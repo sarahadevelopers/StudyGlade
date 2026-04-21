@@ -1,4 +1,9 @@
-const API_BASE = '/api';
+// Expose API_BASE globally so other scripts can use it
+window.API_BASE = window.location.hostname === 'localhost' 
+  ? '/api' 
+  : 'https://studyglade.onrender.com/api';
+
+const API_BASE = window.API_BASE;
 
 async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('token');
