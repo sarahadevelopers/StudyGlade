@@ -30,19 +30,19 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Serve HTML pages
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'views', 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'views', 'register.html')));
-app.get('/student-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'student-dashboard.html')));
-app.get('/tutor-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'tutor-dashboard.html')));
-app.get('/admin-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin-dashboard.html')));
-app.get('/post-question', (req, res) => res.sendFile(path.join(__dirname, 'views', 'post-question.html')));
-app.get('/library', (req, res) => res.sendFile(path.join(__dirname, 'views', 'document-library.html')));
-app.get('/upload-document', (req, res) => res.sendFile(path.join(__dirname, 'views', 'upload-document.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
+app.get('/student-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'student-dashboard.html')));
+app.get('/tutor-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'tutor-dashboard.html')));
+app.get('/admin-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'admin-dashboard.html')));
+app.get('/post-question', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'post-question.html')));
+app.get('/library', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'document-library.html')));
+app.get('/upload-document', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'upload-document.html')));
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
+  res.status(404).sendFile(path.join(__dirname, 'docs', '404.html'));
 });
 
 const PORT = process.env.PORT || 5000;

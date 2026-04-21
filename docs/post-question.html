@@ -35,7 +35,7 @@
       try {
         await apiFetch('/questions', { method: 'POST', body: JSON.stringify(data) });
         alert('Question posted successfully!');
-        window.location.href = '/views/student-dashboard.html';
+        window.location.href = '/docs/student-dashboard.html';
       } catch(err) { alert(err.message); }
     });
   </script>
