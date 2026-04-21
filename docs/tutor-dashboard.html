@@ -2,13 +2,33 @@
 <html>
 <head><meta charset="UTF-8"><title>Tutor Dashboard - StudyGlade</title><link rel="stylesheet" href="style.css"></head>
 <body>
-  <nav class="navbar"><div class="container"><a href="/" class="logo">StudyGlade</a><div class="nav-links"><span id="walletDisplay"></span><button id="logoutBtn" class="btn btn-outline">Logout</button></div></div></nav>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo">StudyGlade</a>
+
+      <div class="nav-links">
+       
+        <span id="walletDisplay"></span>
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
   <div class="container" style="padding: 2rem 0;">
     <h1>Tutor Dashboard</h1>
-    <div class="card"><h3>Pending Questions (Bid)</h3><div id="pendingQuestions"></div></div>
-    <div class="card"><h3>My Assignments</h3><div id="myAssignments"></div></div>
-    <div class="card"><h3>My Wallet</h3><p id="walletBalance">$0</p><button onclick="withdrawFunds()" class="btn">Withdraw</button></div>
-    <a href="/docs/upload-document.html" class="btn">Upload Document</a>
+    <div class="card">
+      <h3>Pending Questions (Bid)</h3>
+      <div id="pendingQuestions"></div>
+    </div>
+    <div class="card">
+      <h3>My Assignments</h3>
+      <div id="myAssignments"></div>
+    </div>
+    <div class="card">
+      <h3>My Wallet</h3>
+      <p id="walletBalance">$0</p>
+      <button onclick="withdrawFunds()" class="btn">Withdraw</button>
+    </div>
+    <a href="upload-document.html" class="btn">Upload Document</a>
   </div>
   <script src="api.js"></script>
   <script src="tutor.js"></script>
