@@ -15,7 +15,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from 'docs' folder (CSS, JS, images, etc.)
+app.use(express.static(path.join(__dirname, 'docs')));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -29,7 +31,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Serve HTML pages
+// Serve HTML pages (explicit routes – static middleware will also serve them, but this ensures correct paths)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
