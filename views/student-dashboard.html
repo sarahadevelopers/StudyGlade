@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Student Dashboard - StudyGlade</title><link rel="stylesheet" href="/public/css/style.css"></head>
+<body>
+  <nav class="navbar"><div class="container"><a href="/" class="logo">StudyGlade</a><div class="nav-links"><span id="walletDisplay" class="wallet-badge"></span><button id="logoutBtn" class="btn btn-outline">Logout</button></div></div></nav>
+  <div class="container" style="padding: 2rem 0;">
+    <h1>Student Dashboard</h1>
+    <div class="card" style="margin-bottom: 2rem;"><h3>My Wallet</h3><p id="walletBalance">$0</p><button onclick="addFunds()" class="btn">Add Funds</button></div>
+    <div class="card"><h3>Active Questions</h3><table><thead><tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th></tr></thead><tbody id="activeQuestions"></tbody></table></div>
+    <div class="card"><h3>Completed Questions</h3><table><thead><tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th></tr></thead><tbody id="completedQuestions"></tbody></table></div>
+    <a href="/views/post-question.html" class="btn" style="margin-top: 1rem;">+ Post New Question</a>
+  </div>
+  <script src="/public/js/api.js"></script>
+  <script src="/public/js/student.js"></script>
+</body>
+</html>

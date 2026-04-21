@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Document Library - StudyGlade</title><link rel="stylesheet" href="/public/css/style.css"></head>
+<body>
+  <nav class="navbar"><div class="container"><a href="/views/index.html" class="logo">StudyGlade</a><div class="nav-links"><a href="/views/document-library.html">Library</a><a href="/views/login.html">Login</a><a href="/views/register.html" class="btn">Sign Up</a></div></div></nav>
+  <div class="container" style="padding: 2rem 0;">
+    <h1>Document Library</h1>
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+      <input type="text" id="search" placeholder="Search..." style="flex:1">
+      <select id="subjectFilter"><option value="">All Subjects</option><option>Mathematics</option><option>Science</option><option>Business</option></select>
+      <select id="levelFilter"><option value="">All Levels</option><option>High School</option><option>College</option><option>Masters</option></select>
+      <button id="searchBtn" class="btn">Search</button>
+    </div>
+    <div id="documentsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1.5rem;"></div>
+  </div>
+  <script src="/public/js/api.js"></script>
+  <script src="/public/js/library.js"></script>
+</body>
+</html>
