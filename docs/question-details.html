@@ -47,30 +47,10 @@
     });
   }
 
-  async function loadQuestion() {
-    try {
-      const q = await apiFetch(`/questions/${questionId}`);
-      let filesHtml = '';
-      if (q.files && q.files.length > 0) {
-        filesHtml = '<p><strong>Attached files:</strong></p><ul>';
-        q.files.forEach(url => {
-          filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Download file</a></li>`;
-        });
-        filesHtml += '</ul>';
-      }
-
-      document.getElementById('questionDetails').innerHTML = `
-        <h2>${escapeHtml(q.title)}</h2>
-        <p>${escapeHtml(q.description)}</p>
-        <p><strong>Budget:</strong> $${q.budget} | <strong>Status:</strong> ${escapeHtml(q.status)}</p>
-        <p><strong>Category:</strong> ${escapeHtml(q.category)} | <strong>Deadline:</strong> ${new Date(q.deadline).toLocaleString()}</p>
-        <p><strong>School:</strong> ${escapeHtml(q.school || 'Not specified')} | <strong>Course:</strong> ${escapeHtml(q.course || 'Not specified')}</p>
-        ${filesHtml}
-      `;
-    } catch (err) {
-      document.getElementById('questionDetails').innerHTML = `<p style="color:red;">Error loading question: ${err.message}</p>`;
-    }
-  }
+  let answerHtml = '';
+if (q.answerFile) {
+  answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(q.answerFile)}" target="_blank">Download answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
+}
 
   async function loadComments() {
     try {

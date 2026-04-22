@@ -43,7 +43,7 @@
 
   <script src="api.js"></script>
   <script>
-    // Helper: escape HTML to prevent XSS
+    // Helper: escape HTML
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/[&<>]/g, function(m) {
@@ -75,7 +75,7 @@
         </div>
       `).join('');
 
-      // My assignments
+      // My assignments – includes answer upload and download
       const assignments = await apiFetch('/questions/my-assignments');
       const assignDiv = document.getElementById('myAssignments');
       assignDiv.innerHTML = assignments.map(q => `
@@ -84,7 +84,15 @@
           Status: ${escapeHtml(q.status)} &nbsp;|&nbsp;
           Student: ${escapeHtml(q.studentId.fullName)} &nbsp;|&nbsp;
           Budget: $${q.budget}
-          ${q.status === 'assigned' ? `<button onclick="completeQuestion('${q._id}')" class="btn" style="margin-top: 0.5rem;">Mark Complete</button>` : ''}
+          ${q.status === 'assigned' ? `
+            <div style="margin-top: 0.5rem;">
+              <input type="file" id="answer-${q._id}" accept=".pdf,.doc,.docx,.zip,.jpg,.png,.txt">
+              <button onclick="uploadAnswer('${q._id}')" class="btn" style="margin-left: 0.5rem;">Upload Answer</button>
+              ${q.answerFile ? `<a href="${q.answerFile}" target="_blank" style="margin-left: 0.5rem;">Download current answer</a>` : ''}
+              <button onclick="completeQuestion('${q._id}')" class="btn btn-outline" style="margin-left: 0.5rem;">Mark Complete</button>
+            </div>
+          ` : ''}
+          ${q.status === 'completed' && q.answerFile ? `<div style="margin-top: 0.5rem;"><a href="${q.answerFile}" target="_blank">📎 Download Answer</a></div>` : ''}
         </div>
       `).join('');
     }
@@ -103,8 +111,8 @@
           body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid placed from dashboard' })
         });
         alert('Bid placed successfully!');
-        amountInput.value = ''; // clear
-        loadTutorDashboard();   // refresh (optional)
+        amountInput.value = '';
+        loadTutorDashboard();
       } catch (err) {
         alert(err.message);
       }
@@ -120,16 +128,44 @@
       }
     }
 
+    // ---------- Answer Upload ----------
+    async function uploadAnswer(questionId) {
+      const fileInput = document.getElementById(`answer-${questionId}`);
+      const file = fileInput.files[0];
+      if (!file) return alert('Please select a file');
+      const formData = new FormData();
+      formData.append('answer', file);
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Answer uploaded successfully!');
+          loadTutorDashboard();
+        } else {
+          alert(data.error);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // ---------- Complete Question ----------
     async function completeQuestion(id) {
       try {
         await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-        alert('Question marked as complete! Payment will be processed.');
+        alert('Question marked as complete! Payment processed.');
         loadTutorDashboard();
       } catch (err) {
         alert(err.message);
       }
     }
 
+    // ---------- Withdraw ----------
     async function withdrawFunds() {
       const amount = prompt('Withdraw amount (USD):');
       if (amount && !isNaN(amount) && parseFloat(amount) > 0) {

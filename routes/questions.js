@@ -157,13 +157,21 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
 // ----------------------------------------------------------------------
 // 7. Tutor marks question as completed (pays 76% of budget)
 // ----------------------------------------------------------------------
+// Complete a question (tutor marks as completed)
 router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
     if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
+    
+    // ✅ OPTIONAL: Require answer file before completing
+    if (!question.answerFile) {
+      return res.status(400).json({ error: 'Please upload the answer file first' });
+    }
+    
     question.status = 'completed';
     await question.save();
+    // Pay tutor 76% of budget
     const tutor = await User.findById(req.userId);
     const earnings = question.budget * 0.76;
     tutor.walletBalance += earnings;
@@ -263,6 +271,37 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
       tutorId: question.tutorId
     });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ----------------------------------------------------------------------
+// 10. Tutor uploads answer file (PDF, Word, image, zip, etc.)
+// ----------------------------------------------------------------------
+router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answer'), async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    if (question.tutorId.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Not your question' });
+    }
+    if (question.status !== 'assigned') {
+      return res.status(400).json({ error: 'Question is not in assigned state' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'studyglade/answers'
+    });
+    await fs.unlink(req.file.path);
+
+    question.answerFile = result.secure_url;
+    question.answerFileName = req.file.originalname;
+    question.answerUploadedAt = new Date();
+    await question.save();
+
+    res.json({ message: 'Answer uploaded successfully', fileUrl: result.secure_url });
+  } catch (err) {
+    if (req.file) await fs.unlink(req.file.path).catch(() => {});
     res.status(500).json({ error: err.message });
   }
 });
