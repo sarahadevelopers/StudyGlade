@@ -1,20 +1,101 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Post a Question - StudyGlade</title><link rel="stylesheet" href="style.css"></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Post a Question - StudyGlade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
   <div class="container" style="max-width: 800px; margin-top: 2rem;">
-    <!-- Add this after the opening body tag or inside the card -->
-<a href="student-dashboard.html" style="display: inline-block; margin-bottom: 1rem;">← Back to Dashboard</a>
+    <a href="student-dashboard.html" style="display: inline-block; margin-bottom: 1rem;">← Back to Dashboard</a>
     <div class="card">
       <h2>Post a New Question</h2>
-      <form id="postQuestionForm">
-        <div class="form-group"><label>Title</label><input type="text" id="title" required></div>
-        <div class="form-group"><label>Description</label><textarea id="description" rows="5" required></textarea></div>
-        <div class="form-group"><label>Category</label><select id="category"><option>Mathematics</option><option>Science</option><option>Business</option><option>Programming</option></select></div>
-        <div class="form-group"><label>Budget ($)</label><input type="number" id="budget" min="3" required></div>
-        <div class="form-group"><label>Deadline (days from now)</label><input type="number" id="deadlineDays" min="1"></div>
-        <div class="form-group"><label>School</label><input type="text" id="school"></div>
-        <div class="form-group"><label>Course</label><input type="text" id="course"></div>
+      <form id="postQuestionForm" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="description" name="description" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="category" name="category">
+            <optgroup label="Business">
+              <option>Accounting</option><option>Advertising</option><option>Business</option><option>Business Law</option><option>Communications</option>
+              <option>Data Analytics</option><option>Entrepreneurship</option><option>Excel</option><option>Management</option><option>Marketing</option>
+              <option>Real Estate</option><option>Risk Management</option><option>Sales</option><option>Supply Chain</option><option>Tourism</option>
+            </optgroup>
+            <optgroup label="Economics">
+              <option>Developmental Economics</option><option>Economics</option><option>Finance</option><option>Game Theory</option>
+              <option>International Economics</option><option>Macro Economics</option><option>Micro Economics</option>
+            </optgroup>
+            <optgroup label="Writing">
+              <option>Article Writing</option><option>Creative Writing</option><option>Editing</option><option>Proofreading</option>
+              <option>Research & Summaries</option><option>Resume Writing</option><option>Scriptwriting</option>
+            </optgroup>
+            <optgroup label="Humanities">
+              <option>Anthropology</option><option>Art</option><option>Education & Teaching</option><option>English</option><option>History</option>
+              <option>Philosophy</option><option>Political Science</option><option>Psychology</option><option>Sociology</option>
+            </optgroup>
+            <optgroup label="Law">
+              <option>Criminal Justice</option><option>International Law</option><option>Law</option><option>Policy</option>
+            </optgroup>
+            <optgroup label="Mathematics">
+              <option>Algebra</option><option>Applied Mathematics</option><option>Calculus</option><option>Geometry</option>
+              <option>Linear Algebra</option><option>Statistics</option><option>Trigonometry</option>
+            </optgroup>
+            <optgroup label="Science">
+              <option>Biology</option><option>Chemistry</option><option>Environmental Science</option><option>Genetics</option>
+              <option>Microbiology</option><option>Physics</option><option>Zoology</option>
+            </optgroup>
+            <optgroup label="Health & Medical">
+              <option>Anatomy</option><option>Dentistry</option><option>Nursing</option><option>Nutrition</option><option>Public Health</option>
+            </optgroup>
+            <optgroup label="Computer Science">
+              <option>Algorithms</option><option>Artificial Intelligence</option><option>Cyber Security</option><option>Databases</option>
+              <option>Machine Learning</option><option>Networking</option><option>Operating Systems</option>
+            </optgroup>
+            <optgroup label="Programming">
+              <option>C / C++</option><option>HTML / CSS</option><option>Java</option><option>JavaScript</option><option>PHP</option>
+              <option>Python</option><option>Ruby</option><option>Swift</option>
+            </optgroup>
+            <optgroup label="Engineering">
+              <option>Aerospace Engineering</option><option>Chemical Engineering</option><option>Civil Engineering</option>
+              <option>Electrical Engineering</option><option>Mechanical Engineering</option><option>Software Engineering</option>
+            </optgroup>
+            <optgroup label="Foreign Languages">
+              <option>Arabic</option><option>Chinese</option><option>French</option><option>German</option><option>Italian</option>
+              <option>Japanese</option><option>Latin</option><option>Russian</option><option>Spanish</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option>College Applications</option><option>Data Entry</option><option>Internship</option><option>Job Applications</option>
+              <option>Proofreading</option><option>Scholarship</option><option>Other</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Budget ($)</label>
+          <input type="number" id="budget" name="budget" min="3" required>
+        </div>
+        <div class="form-group">
+          <label>Deadline (days from now)</label>
+          <input type="number" id="deadlineDays" name="deadlineDays" min="1" value="3">
+        </div>
+        <div class="form-group">
+          <label>School (optional)</label>
+          <input type="text" id="school" name="school">
+        </div>
+        <div class="form-group">
+          <label>Course (optional)</label>
+          <input type="text" id="course" name="course">
+        </div>
+        <div class="form-group">
+          <label>Upload files (images, PDFs, Word, Excel, ZIP - max 10MB each)</label>
+          <input type="file" id="files" name="files" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
+          <small>You can select multiple files</small>
+        </div>
         <button type="submit" class="btn">Post Question & Pay</button>
       </form>
     </div>
@@ -23,22 +104,31 @@
   <script>
     document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const formData = new FormData(e.target);
       const deadline = new Date();
-      deadline.setDate(deadline.getDate() + parseInt(document.getElementById('deadlineDays').value || 3));
-      const data = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        category: document.getElementById('category').value,
-        budget: parseFloat(document.getElementById('budget').value),
-        deadline: deadline.toISOString(),
-        school: document.getElementById('school').value,
-        course: document.getElementById('course').value
-      };
+      const days = parseInt(formData.get('deadlineDays')) || 3;
+      deadline.setDate(deadline.getDate() + days);
+      formData.append('deadline', deadline.toISOString());
+      // Remove deadlineDays from formData (not needed in backend)
+      formData.delete('deadlineDays');
+      
       try {
-        await apiFetch('/questions', { method: 'POST', body: JSON.stringify(data) });
-        alert('Question posted successfully!');
-        window.location.href = '/docs/student-dashboard.html';
-      } catch(err) { alert(err.message); }
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${window.API_BASE}/questions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Question posted successfully!');
+          window.location.href = 'student-dashboard.html';
+        } else {
+          alert(data.error || 'Failed to post question');
+        }
+      } catch(err) {
+        alert(err.message);
+      }
     });
   </script>
 </body>

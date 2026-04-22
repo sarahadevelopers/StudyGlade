@@ -1,36 +1,160 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Tutor Dashboard - StudyGlade</title><link rel="stylesheet" href="style.css"></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Tutor Dashboard - StudyGlade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
-
       <div class="nav-links">
-       
         <span id="walletDisplay"></span>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
     </div>
   </nav>
+
   <div class="container" style="padding: 2rem 0;">
     <h1>Tutor Dashboard</h1>
+
+    <!-- Pending Questions (with bidding) -->
     <div class="card">
-      <h3>Pending Questions (Bid)</h3>
+      <h3>Pending Questions – Place a Bid or Accept at Student's Budget</h3>
       <div id="pendingQuestions"></div>
     </div>
+
+    <!-- My Assignments -->
     <div class="card">
       <h3>My Assignments</h3>
       <div id="myAssignments"></div>
     </div>
+
+    <!-- Wallet -->
     <div class="card">
       <h3>My Wallet</h3>
       <p id="walletBalance">$0</p>
       <button onclick="withdrawFunds()" class="btn">Withdraw</button>
     </div>
+
     <a href="upload-document.html" class="btn">Upload Document</a>
   </div>
+
   <script src="api.js"></script>
-  <script src="tutor.js"></script>
+  <script>
+    // Helper: escape HTML to prevent XSS
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // ---------- Dashboard Load ----------
+    async function loadTutorDashboard() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      document.getElementById('walletBalance').innerText = `$${user.walletBalance}`;
+
+      // Pending questions (with bid input)
+      const pending = await apiFetch('/questions/pending');
+      const pendingDiv = document.getElementById('pendingQuestions');
+      pendingDiv.innerHTML = pending.map(q => `
+        <div class="card" style="margin-bottom: 1rem;">
+          <strong><a href="question-details.html?id=${q._id}">${escapeHtml(q.title)}</a></strong><br>
+          Student budget: $${q.budget} &nbsp;|&nbsp;
+          Student: ${escapeHtml(q.studentId.fullName)}
+          <div style="margin-top: 0.5rem;">
+            <input type="number" id="bid-${q._id}" placeholder="Your bid amount" min="1" step="1" style="width: 150px;">
+            <button onclick="placeBid('${q._id}')" class="btn" style="margin-left: 0.5rem;">Place Bid</button>
+            <button onclick="acceptQuestion('${q._id}')" class="btn btn-outline" style="margin-left: 0.5rem;">Accept at $${q.budget}</button>
+          </div>
+        </div>
+      `).join('');
+
+      // My assignments
+      const assignments = await apiFetch('/questions/my-assignments');
+      const assignDiv = document.getElementById('myAssignments');
+      assignDiv.innerHTML = assignments.map(q => `
+        <div class="card" style="margin-bottom: 1rem;">
+          <strong><a href="question-details.html?id=${q._id}">${escapeHtml(q.title)}</a></strong><br>
+          Status: ${escapeHtml(q.status)} &nbsp;|&nbsp;
+          Student: ${escapeHtml(q.studentId.fullName)} &nbsp;|&nbsp;
+          Budget: $${q.budget}
+          ${q.status === 'assigned' ? `<button onclick="completeQuestion('${q._id}')" class="btn" style="margin-top: 0.5rem;">Mark Complete</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // ---------- Bid Functions ----------
+    async function placeBid(questionId) {
+      const amountInput = document.getElementById(`bid-${questionId}`);
+      const amount = amountInput.value;
+      if (!amount || amount <= 0) {
+        alert('Please enter a valid bid amount (minimum $1)');
+        return;
+      }
+      try {
+        await apiFetch(`/questions/${questionId}/bid`, {
+          method: 'POST',
+          body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid placed from dashboard' })
+        });
+        alert('Bid placed successfully!');
+        amountInput.value = ''; // clear
+        loadTutorDashboard();   // refresh (optional)
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function acceptQuestion(id) {
+      try {
+        await apiFetch(`/questions/${id}/accept`, { method: 'PUT' });
+        alert('Question accepted!');
+        loadTutorDashboard();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function completeQuestion(id) {
+      try {
+        await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
+        alert('Question marked as complete! Payment will be processed.');
+        loadTutorDashboard();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function withdrawFunds() {
+      const amount = prompt('Withdraw amount (USD):');
+      if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
+        try {
+          await apiFetch('/wallet/withdraw', {
+            method: 'POST',
+            body: JSON.stringify({ amount: parseFloat(amount), method: 'paypal' })
+          });
+          alert('Withdrawal request submitted. Funds will be sent within 3‑5 business days.');
+          location.reload();
+        } catch (err) {
+          alert(err.message);
+        }
+      } else {
+        alert('Invalid amount');
+      }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    });
+
+    loadTutorDashboard();
+  </script>
 </body>
 </html>

@@ -17,6 +17,11 @@ const questionSchema = new mongoose.Schema({
     enum: ['pending', 'assigned', 'completed', 'cancelled'], 
     default: 'pending' 
   },
+  // --- New fields for budget suggestion system ---
+  suggestedBudget: { type: Number, default: 0 },
+  suggestedTutorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  budgetSuggestionSent: { type: Boolean, default: false },
+  // ------------------------------------------------
   createdAt: { type: Date, default: Date.now }
 });
 
