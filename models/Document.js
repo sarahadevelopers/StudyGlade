@@ -13,7 +13,10 @@ const documentSchema = new mongoose.Schema({
   uploaderName: String,
   downloads: { type: Number, default: 0 },
   isApproved: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
+  previewText: { type: String, default: '' },        // first 500 characters
+  previewImageUrl: { type: String, default: '' },    // first page as image (PDFs)
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Document', documentSchema);
