@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Admin Dashboard - StudyGlade</title><link rel="stylesheet" href="style.css"></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - StudyGlade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
-  <nav class="navbar"><div class="container"><a href="/" class="logo">StudyGlade</a><div class="nav-links"><button id="logoutBtn" class="btn btn-outline">Logout</button></div></div></nav>
+  <nav class="navbar">
+    <div class="container">
+      <!-- Change absolute "/" to relative "index.html" -->
+      <a href="index.html" class="logo">StudyGlade</a>
+      <div class="nav-links">
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
   <div class="container" style="padding: 2rem 0;">
     <h1>Admin Dashboard</h1>
-    <div class="card"><h3>Platform Analytics</h3><pre id="analytics"></pre></div>
-    <div class="card"><h3>Pending Tutor Approvals</h3><div id="pendingTutors"></div></div>
-    <div class="card"><h3>All Users</h3><div id="allUsers"></div></div>
-    <div class="card"><h3>All Documents (Unapproved)</h3><div id="documents"></div></div>
+    <div class="card">
+      <h3>Platform Analytics</h3>
+      <pre id="analytics"></pre>
+    </div>
+    <div class="card">
+      <h3>Pending Tutor Approvals</h3>
+      <div id="pendingTutors"></div>
+    </div>
+    <div class="card">
+      <h3>All Users</h3>
+      <div id="allUsers"></div>
+    </div>
+    <div class="card">
+      <h3>All Documents (Unapproved)</h3>
+      <div id="documents"></div>
+    </div>
   </div>
   <script src="api.js"></script>
   <script src="admin.js"></script>
