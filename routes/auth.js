@@ -1,10 +1,46 @@
+// At the top of your routes/auth.js file
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Replace your placeholder sendEmail function with this:
+async function sendEmail(to, subject, text) {
+  try {
+    // This uses a verified sender email address from your Resend account
+    const { data, error } = await resend.emails.send({
+      from: 'StudyGlade <onboarding@resend.dev>', // Use your verified domain or email
+      to: [to],
+      subject: subject,
+      html: `<p>${text}</p>`,
+    });
+
+    if (error) {
+      console.error('Resend email error:', error);
+      throw new Error('Failed to send email');
+    }
+    console.log('Email sent successfully:', data);
+    return data;
+  } catch (err) {
+    console.error('Failed to send email:', err);
+    throw new Error('Email service unavailable');
+  }
+}
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');               // for reset tokens
 const User = require('../models/User');
 const router = express.Router();
 
-// Helper to generate tokens
+// ---------- Helper: send email (placeholder – replace with nodemailer) ----------
+async function sendEmail(to, subject, text) {
+  console.log(`📧 Email to ${to}: ${subject} - ${text}`);
+  // TODO: integrate nodemailer or SendGrid
+  // const nodemailer = require('nodemailer');
+  // const transporter = nodemailer.createTransport({ ... });
+  // await transporter.sendMail({ from: 'noreply@studyglade.com', to, subject, text });
+}
+
+// ---------- Helper: generate tokens ----------
 function generateTokens(userId, role) {
   const accessToken = jwt.sign(
     { id: userId, role },
@@ -23,6 +59,12 @@ function generateTokens(userId, role) {
 router.post('/register', async (req, res) => {
   try {
     const { email, password, fullName, role } = req.body;
+    
+    // Enforce minimum password length
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ error: 'Email already exists' });
     const hashed = await bcrypt.hash(password, 10);
@@ -34,7 +76,6 @@ router.post('/register', async (req, res) => {
       isApproved: role === 'student' || role === 'admin' ? true : false
     });
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
-    // Save refresh token in database (optional but good practice)
     user.refreshToken = refreshToken;
     await user.save();
 
@@ -43,13 +84,13 @@ router.post('/register', async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000 // 15 minutes
+      maxAge: 15 * 60 * 1000
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
     res.json({ user: { id: user._id, email, fullName, role, walletBalance: user.walletBalance } });
   } catch (err) {
@@ -57,17 +98,39 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// ----------------- Login -----------------
+// ----------------- Login (with lockout) -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    
+    // Check if account is locked
+    if (user && user.lockUntil && user.lockUntil > Date.now()) {
+      return res.status(401).json({ error: 'Account locked. Try again later.' });
+    }
+    
+    // Invalid credentials handling
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      if (user) {
+        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+        if (user.failedLoginAttempts >= 3) {
+          user.lockUntil = Date.now() + 15 * 60 * 1000; // lock 15 minutes
+          user.failedLoginAttempts = 0;
+        }
+        await user.save();
+      }
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Reset failed attempts on success
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    
+    // Tutor approval check
     if (user.role === 'tutor' && !user.isApproved) {
       return res.status(403).json({ error: 'Tutor account pending approval' });
     }
+    
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
     user.refreshToken = refreshToken;
     await user.save();
@@ -118,6 +181,52 @@ router.post('/refresh-token', async (req, res) => {
     res.json({ message: 'Tokens refreshed' });
   } catch (err) {
     res.status(403).json({ error: 'Invalid refresh token' });
+  }
+});
+
+// ----------------- Forgot Password -----------------
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'No account with that email' });
+    
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+    
+    const resetLink = `https://sarahadevelopers.github.io/StudyGlade/reset-password.html?token=${token}`;
+    await sendEmail(user.email, 'Password Reset', `Click here to reset your password: ${resetLink}`);
+    
+    res.json({ message: 'Reset link sent to your email' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- Reset Password -----------------
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    if (!user) return res.status(400).json({ error: 'Invalid or expired token' });
+    
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+    
+    // Optional: clear all refresh tokens for this user (force re-login)
+    user.refreshToken = null;
+    await user.save();
+    
+    res.json({ message: 'Password updated. Please log in.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
