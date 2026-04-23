@@ -96,29 +96,39 @@ router.post('/register', async (req, res) => {
 });
 
 // ----------------- Login -----------------
+// ----------------- Login (with lockout) -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
+    
+    // Check if account is locked
     if (user && user.lockUntil && user.lockUntil > Date.now()) {
       return res.status(401).json({ error: 'Account locked. Try again later.' });
     }
+    
+    // Invalid credentials handling
     if (!user || !(await bcrypt.compare(password, user.password))) {
       if (user) {
         user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
         if (user.failedLoginAttempts >= 3) {
-          user.lockUntil = Date.now() + 15 * 60 * 1000;
+          user.lockUntil = Date.now() + 15 * 60 * 1000; // lock 15 minutes
           user.failedLoginAttempts = 0;
         }
         await user.save();
       }
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    
+    // Reset failed attempts on success
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
+    
+    // Tutor approval check
     if (user.role === 'tutor' && !user.isApproved) {
       return res.status(403).json({ error: 'Tutor account pending approval' });
     }
+    
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
     user.refreshToken = refreshToken;
     await user.save();
@@ -135,13 +145,14 @@ router.post('/login', async (req, res) => {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
-    res.json({ user: { id: user._id, email, fullName: user.fullName, role, walletBalance: user.walletBalance } });
+    
+    // ✅ FIXED: use user.role instead of undefined 'role'
+    res.json({ user: { id: user._id, email, fullName: user.fullName, role: user.role, walletBalance: user.walletBalance } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 // ----------------- Refresh Token -----------------
 router.post('/refresh-token', async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
