@@ -22,7 +22,7 @@ async function loadDocuments() {
 
 async function unlockDoc(id, price) {
   if (!localStorage.getItem('token')) {
-    if (confirm('You need to login to unlock documents. Go to login?')) window.location.href = '/login';
+    if (confirm('You need to login to unlock documents. Go to login?')) window.location.href = 'login.html';
     return;
   }
   try {

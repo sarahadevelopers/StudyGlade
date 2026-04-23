@@ -37,7 +37,7 @@ async function apiFetch(endpoint, options = {}) {
         } catch (err) {
           processQueue(err);
           localStorage.clear();
-          window.location.href = '/login';
+          window.location.href = 'login.html';
           throw new Error('Session expired. Please log in again.');
         } finally {
           isRefreshing = false;
