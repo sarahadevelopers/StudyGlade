@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Store user info (no token)
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'student') window.location.href = '/student-dashboard';
-        else if (data.user.role === 'tutor') window.location.href = '/tutor-dashboard';
-        else if (data.user.role === 'admin') window.location.href = '/admin-dashboard';
+        if (data.user.role === 'student') window.location.href = 'student-dashboard.html';
+        else if (data.user.role === 'tutor') window.location.href = 'tutor-dashboard.html';
+        else if (data.user.role === 'admin') window.location.href = 'admin-dashboard.html';
       } catch (err) {
         alert(err.message);
       }
@@ -35,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ fullName, email, password, role })
         });
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (role === 'student') window.location.href = '/student-dashboard';
-        else if (role === 'tutor') window.location.href = '/tutor-dashboard';
+        if (role === 'student') window.location.href = 'student-dashboard.html';
+        else if (role === 'tutor') window.location.href = 'tutor-dashboard.html';
       } catch (err) {
         alert(err.message);
       }
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Call logout endpoint to clear cookies
       await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = 'index.html';
     });
   }
 });
