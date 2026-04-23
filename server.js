@@ -2,25 +2,44 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cron = require('node-cron');                       // added
+const cron = require('node-cron');
+const cookieParser = require('cookie-parser');
+
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const documentRoutes = require('./routes/documents');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
-const Bid = require('./models/Bid');                     // added
-const Question = require('./models/Question');           // added
-const cookieParser = require('cookie-parser');
-
+const Bid = require('./models/Bid');
+const Question = require('./models/Question');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ---------- CORS configuration (allow credentials with exact origin) ----------
+const allowedOrigins = [
+  'https://sarahadevelopers.github.io',   // your frontend (GitHub Pages)
+  'http://localhost:5000',                // local backend (if needed)
+  'http://localhost:3000'                 // local frontend (if any)
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true   // required for cookies / HTTP‑only authentication
+}));
+
+// Other middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // for parsing cookies (if needed in future)
+app.use(cookieParser());
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
