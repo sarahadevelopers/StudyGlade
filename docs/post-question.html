@@ -115,10 +115,10 @@
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${window.API_BASE}/questions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
+  method: 'POST',
+  credentials: 'include',   // ✅ add this
+  body: formData
+});
         const data = await res.json();
         if (res.ok) {
           alert('Question posted successfully!');

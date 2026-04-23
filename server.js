@@ -11,6 +11,8 @@ const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
 const Bid = require('./models/Bid');                     // added
 const Question = require('./models/Question');           // added
+const cookieParser = require('cookie-parser');
+
 
 const app = express();
 
@@ -18,6 +20,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // for parsing cookies (if needed in future)
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)

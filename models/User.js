@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
     bio: String,
     subjects: [String]
   },
+  refreshToken: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   lastActive: Date
 });

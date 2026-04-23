@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
           method: 'POST',
           body: JSON.stringify({ email, password })
         });
-        localStorage.setItem('token', data.token);
+        // Store user info (no token)
         localStorage.setItem('user', JSON.stringify(data.user));
         if (data.user.role === 'student') window.location.href = '/student-dashboard';
         else if (data.user.role === 'tutor') window.location.href = '/tutor-dashboard';
@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
           method: 'POST',
           body: JSON.stringify({ fullName, email, password, role })
         });
-        localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         if (role === 'student') window.location.href = '/student-dashboard';
         else if (role === 'tutor') window.location.href = '/tutor-dashboard';
@@ -46,7 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', async () => {
+      // Call logout endpoint to clear cookies
+      await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
       localStorage.clear();
       window.location.href = '/';
     });
