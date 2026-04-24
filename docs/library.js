@@ -21,8 +21,11 @@ async function loadDocuments() {
 }
 
 async function unlockDoc(id, price) {
-  if (!localStorage.getItem('token')) {
-    if (confirm('You need to login to unlock documents. Go to login?')) window.location.href = 'login.html';
+  // Check if user is logged in by verifying user object exists in localStorage
+  if (!localStorage.getItem('user')) {
+    if (confirm('You need to login to unlock documents. Go to login?')) {
+      window.location.href = 'login.html';
+    }
     return;
   }
   try {

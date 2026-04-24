@@ -1,22 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <meta name="description" content="Thousands of study notes, exam prep, guides, and templates. Search by subject or level. Unlock with your StudyGlade wallet.">
-<meta name="keywords" content="study documents, academic notes, exam papers, tutoring resources, study guides">
-  <meta charset="UTF-8"><title>Document Library - StudyGlade</title><link rel="stylesheet" href="style.css"></head>
+  <meta name="keywords" content="study documents, academic notes, exam papers, tutoring resources, study guides">
+  <title>Document Library - StudyGlade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
-  <nav class="navbar"><div class="container"><a href="index.html" class="logo">StudyGlade</a><div class="nav-links"><a href="document-library.html">Library</a><a href="login.html">Login</a><a href="register.html" class="btn">Sign Up</a></div></div></nav>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo">StudyGlade</a>
+      <div class="nav-links" id="navLinks">
+        <a href="document-library.html">Library</a>
+        <!-- Dynamic content will be filled by JavaScript -->
+      </div>
+    </div>
+  </nav>
+
   <div class="container" style="padding: 2rem 0;">
     <h1>Document Library</h1>
     <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
       <input type="text" id="search" placeholder="Search..." style="flex:1">
-      <select id="subjectFilter"><option value="">All Subjects</option><option>Mathematics</option><option>Science</option><option>Business</option></select>
-      <select id="levelFilter"><option value="">All Levels</option><option>High School</option><option>College</option><option>Masters</option></select>
+      <select id="subjectFilter">
+        <option value="">All Subjects</option>
+        <option>Mathematics</option>
+        <option>Science</option>
+        <option>Business</option>
+        <option>Programming</option>
+        <option>Engineering</option>
+        <option>Health & Medical</option>
+      </select>
+      <select id="levelFilter">
+        <option value="">All Levels</option>
+        <option>High School</option>
+        <option>College</option>
+        <option>Masters</option>
+        <option>PhD</option>
+      </select>
       <button id="searchBtn" class="btn">Search</button>
     </div>
     <div id="documentsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1.5rem;"></div>
   </div>
+
   <script src="api.js"></script>
+  <script>
+    // Update navbar based on login status
+    const user = localStorage.getItem('user');
+    const navLinks = document.getElementById('navLinks');
+    if (user) {
+      const userObj = JSON.parse(user);
+      navLinks.innerHTML = `
+        <a href="document-library.html">Library</a>
+        <a href="${userObj.role}-dashboard.html">Dashboard</a>
+        <button id="logoutBtnNav" class="btn btn-outline">Logout</button>
+      `;
+      document.getElementById('logoutBtnNav').addEventListener('click', async () => {
+        try {
+          await apiFetch('/auth/logout', { method: 'POST' });
+        } catch(e) {}
+        localStorage.clear();
+        window.location.href = 'index.html';
+      });
+    } else {
+      navLinks.innerHTML = `
+        <a href="document-library.html">Library</a>
+        <a href="login.html">Login</a>
+        <a href="register.html" class="btn">Sign Up</a>
+      `;
+    }
+  </script>
   <script src="library.js"></script>
 </body>
 </html>

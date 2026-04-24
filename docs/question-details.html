@@ -15,96 +15,131 @@
       </div>
     </div>
   </nav>
+
   <div class="container" style="padding: 2rem 0;">
     <div id="questionDetails" class="card"></div>
-<div id="commentsSection" class="card">
-  <h3>Comments & Clarifications</h3>
-  <div id="commentsList"></div>
-  <div id="addComment">
-    <textarea id="commentText" rows="3" placeholder="Ask a question or provide clarification..."></textarea>
-    <button id="postCommentBtn" class="btn">Post Comment</button>
+    <div id="commentsSection" class="card">
+      <h3>Comments & Clarifications</h3>
+      <div id="commentsList"></div>
+      <div id="addComment">
+        <textarea id="commentText" rows="3" placeholder="Ask a question or provide clarification..."></textarea>
+        <button id="postCommentBtn" class="btn">Post Comment</button>
+      </div>
+    </div>
   </div>
-</div>
-  </div>
+
   <script src="api.js"></script>
-
-<script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const questionId = urlParams.get('id');
-  if (!questionId) {
-    alert('No question specified');
-    window.location.href = '/';
-  }
-
-  // Helper: escape HTML to prevent XSS
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-
-  let answerHtml = '';
-if (q.answerFile) {
-  answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(q.answerFile)}" target="_blank">Download answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
-}
-
-  async function loadComments() {
-    try {
-      const comments = await apiFetch(`/comments/question/${questionId}`);
-      const container = document.getElementById('commentsList');
-      if (comments.length === 0) {
-        container.innerHTML = '<p>No comments yet. Be the first to ask a question.</p>';
-        return;
-      }
-      const currentUser = JSON.parse(localStorage.getItem('user'));
-      const currentUserId = currentUser ? currentUser.id : null;
-      container.innerHTML = comments.map(c => `
-        <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
-          <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
-          <small>${new Date(c.createdAt).toLocaleString()}</small>
-          <p>${escapeHtml(c.text)}</p>
-          ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
-            ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
-            : ''}
-        </div>
-      `).join('');
-    } catch (err) {
-      document.getElementById('commentsList').innerHTML = `<p style="color:red;">Error loading comments: ${err.message}</p>`;
+  <script src="auth.js"></script>   <!-- ✅ needed for logout -->
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const questionId = urlParams.get('id');
+    if (!questionId) {
+      alert('No question specified');
+      window.location.href = '/';
     }
-  }
 
-  document.getElementById('postCommentBtn').addEventListener('click', async () => {
-    const text = document.getElementById('commentText').value;
-    if (!text.trim()) return alert('Please enter a comment');
-    try {
-      await apiFetch('/comments', {
-        method: 'POST',
-        body: JSON.stringify({ questionId, text })
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
       });
-      document.getElementById('commentText').value = '';
-      loadComments();
-    } catch (err) {
-      alert(err.message);
     }
-  });
 
-  async function deleteComment(commentId) {
-    if (confirm('Delete this comment?')) {
+    // ---------- Load Question Details ----------
+    async function loadQuestion() {
       try {
-        await apiFetch(`/comments/${commentId}`, { method: 'DELETE' });
+        const q = await apiFetch(`/questions/${questionId}`);
+
+        // Attached files
+        let filesHtml = '';
+        if (q.files && q.files.length > 0) {
+          filesHtml = '<p><strong>Attached files:</strong></p><ul>';
+          q.files.forEach(url => {
+            filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Download file</a></li>`;
+          });
+          filesHtml += '</ul>';
+        }
+
+        // Answer file (if uploaded)
+        let answerHtml = '';
+        if (q.answerFile) {
+          answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(q.answerFile)}" target="_blank">Download answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
+        }
+
+        document.getElementById('questionDetails').innerHTML = `
+          <h2>${escapeHtml(q.title)}</h2>
+          <p>${escapeHtml(q.description)}</p>
+          <p><strong>Budget:</strong> $${q.budget} | <strong>Status:</strong> ${escapeHtml(q.status)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(q.category)} | <strong>Deadline:</strong> ${new Date(q.deadline).toLocaleString()}</p>
+          <p><strong>School:</strong> ${escapeHtml(q.school || 'Not specified')} | <strong>Course:</strong> ${escapeHtml(q.course || 'Not specified')}</p>
+          ${filesHtml}
+          ${answerHtml}
+        `;
+      } catch (err) {
+        document.getElementById('questionDetails').innerHTML = `<p style="color:red;">Error loading question: ${err.message}</p>`;
+      }
+    }
+
+    // ---------- Load Comments ----------
+    async function loadComments() {
+      try {
+        const comments = await apiFetch(`/comments/question/${questionId}`);
+        const container = document.getElementById('commentsList');
+        if (comments.length === 0) {
+          container.innerHTML = '<p>No comments yet. Be the first to ask a question.</p>';
+          return;
+        }
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const currentUserId = currentUser ? currentUser.id : null;
+        container.innerHTML = comments.map(c => `
+          <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
+            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
+            <small>${new Date(c.createdAt).toLocaleString()}</small>
+            <p>${escapeHtml(c.text)}</p>
+            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
+              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
+              : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('commentsList').innerHTML = `<p style="color:red;">Error loading comments: ${err.message}</p>`;
+      }
+    }
+
+    // ---------- Post Comment ----------
+    document.getElementById('postCommentBtn').addEventListener('click', async () => {
+      const text = document.getElementById('commentText').value;
+      if (!text.trim()) return alert('Please enter a comment');
+      try {
+        await apiFetch('/comments', {
+          method: 'POST',
+          body: JSON.stringify({ questionId, text })
+        });
+        document.getElementById('commentText').value = '';
         loadComments();
       } catch (err) {
         alert(err.message);
       }
-    }
-  }
+    });
 
-  loadQuestion();
-  loadComments();
-</script>
+    // ---------- Delete Comment ----------
+    async function deleteComment(commentId) {
+      if (confirm('Delete this comment?')) {
+        try {
+          await apiFetch(`/comments/${commentId}`, { method: 'DELETE' });
+          loadComments();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+    }
+
+    // ---------- Initial load ----------
+    loadQuestion();
+    loadComments();
+  </script>
 </body>
 </html>

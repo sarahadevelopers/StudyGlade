@@ -8,13 +8,13 @@
 <body>
   <nav class="navbar">
     <div class="container">
-      <!-- Change absolute "/" to relative "index.html" -->
       <a href="index.html" class="logo">StudyGlade</a>
       <div class="nav-links">
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
     </div>
   </nav>
+
   <div class="container" style="padding: 2rem 0;">
     <h1>Admin Dashboard</h1>
     <div class="card">
@@ -34,7 +34,9 @@
       <div id="documents"></div>
     </div>
   </div>
+
   <script src="api.js"></script>
+  <script src="auth.js"></script>   <!-- ✅ Added for logout handler -->
   <script src="admin.js"></script>
 </body>
 </html>

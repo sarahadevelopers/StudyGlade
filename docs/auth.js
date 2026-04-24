@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Call logout endpoint to clear cookies
       await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
       localStorage.clear();
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
     });
   }
 });

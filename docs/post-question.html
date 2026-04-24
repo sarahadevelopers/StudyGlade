@@ -100,36 +100,35 @@
       </form>
     </div>
   </div>
-  <script src="api.js"></script>
-  <script>
-    document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const deadline = new Date();
-      const days = parseInt(formData.get('deadlineDays')) || 3;
-      deadline.setDate(deadline.getDate() + days);
-      formData.append('deadline', deadline.toISOString());
-      // Remove deadlineDays from formData (not needed in backend)
-      formData.delete('deadlineDays');
-      
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${window.API_BASE}/questions`, {
-  method: 'POST',
-  credentials: 'include',   // ✅ add this
-  body: formData
-});
-        const data = await res.json();
-        if (res.ok) {
-          alert('Question posted successfully!');
-          window.location.href = 'student-dashboard.html';
-        } else {
-          alert(data.error || 'Failed to post question');
-        }
-      } catch(err) {
-        alert(err.message);
+ <script src="api.js"></script>
+<script>
+  document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const deadline = new Date();
+    const days = parseInt(formData.get('deadlineDays')) || 3;
+    deadline.setDate(deadline.getDate() + days);
+    formData.append('deadline', deadline.toISOString());
+    formData.delete('deadlineDays');
+
+    try {
+      const res = await fetch(`${window.API_BASE}/questions`, {
+        method: 'POST',
+        credentials: 'include',   // sends HTTP‑only cookie
+        body: formData
+        // No Content-Type header – let browser set it with boundary
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Question posted successfully!');
+        window.location.href = 'student-dashboard.html';
+      } else {
+        alert(data.error || 'Failed to post question');
       }
-    });
-  </script>
+    } catch(err) {
+      alert(err.message);
+    }
+  });
+</script>
 </body>
 </html>
