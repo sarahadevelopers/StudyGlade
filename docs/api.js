@@ -1,6 +1,5 @@
-window.API_BASE = window.location.hostname === 'localhost' 
-  ? '/api' 
-  : 'https://studyglade.onrender.com/api';
+// API base is now relative because frontend and backend are on the same origin
+window.API_BASE = '/api';
 
 async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${window.API_BASE}${endpoint}`, {
