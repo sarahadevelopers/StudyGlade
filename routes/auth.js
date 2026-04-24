@@ -6,7 +6,7 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// ---------- Email helper (Resend) – only one definition ----------
+// ---------- Email helper (Resend) ----------
 let resend = null;
 try {
   if (process.env.RESEND_API_KEY) {
@@ -36,7 +36,6 @@ async function sendEmail(to, subject, text) {
     console.log('✅ Email sent:', data.id);
   } catch (err) {
     console.error('❌ Resend error:', err.message);
-    // Don't throw – the user will still see a success message
   }
 }
 
@@ -53,6 +52,27 @@ function generateTokens(userId, role) {
     { expiresIn: '7d' }
   );
   return { accessToken, refreshToken };
+}
+
+// Helper for cookie settings (cross‑origin friendly)
+function getCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,          // true in production (HTTPS)
+    sameSite: isProduction ? 'none' : 'lax',  // 'none' for cross‑origin, 'lax' for local
+    maxAge: 15 * 60 * 1000         // access token lifetime (15 min)
+  };
+}
+
+function getRefreshCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000  // refresh token lifetime (7 days)
+  };
 }
 
 // ----------------- Register -----------------
@@ -76,18 +96,8 @@ router.post('/register', async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000
-    });
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.cookie('accessToken', accessToken, getCookieOptions());
+    res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
     res.json({ user: { id: user._id, email, fullName, role, walletBalance: user.walletBalance } });
   } catch (err) {
     console.error('Register error:', err);
@@ -96,7 +106,6 @@ router.post('/register', async (req, res) => {
 });
 
 // ----------------- Login -----------------
-// ----------------- Login (with lockout) -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -112,7 +121,7 @@ router.post('/login', async (req, res) => {
       if (user) {
         user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
         if (user.failedLoginAttempts >= 3) {
-          user.lockUntil = Date.now() + 15 * 60 * 1000; // lock 15 minutes
+          user.lockUntil = Date.now() + 15 * 60 * 1000;
           user.failedLoginAttempts = 0;
         }
         await user.save();
@@ -133,26 +142,16 @@ router.post('/login', async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000
-    });
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.cookie('accessToken', accessToken, getCookieOptions());
+    res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
     
-    // ✅ FIXED: use user.role instead of undefined 'role'
     res.json({ user: { id: user._id, email, fullName: user.fullName, role: user.role, walletBalance: user.walletBalance } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 // ----------------- Refresh Token -----------------
 router.post('/refresh-token', async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
@@ -166,18 +165,8 @@ router.post('/refresh-token', async (req, res) => {
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
     user.refreshToken = newRefreshToken;
     await user.save();
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000
-    });
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.cookie('accessToken', accessToken, getCookieOptions());
+    res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
     res.json({ message: 'Tokens refreshed' });
   } catch (err) {
     console.error('Refresh error:', err);

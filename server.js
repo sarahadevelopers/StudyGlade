@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
 const cookieParser = require('cookie-parser');
+const path = require('path');   // added for static file serving
 
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
@@ -16,11 +17,13 @@ const Question = require('./models/Question');
 
 const app = express();
 
-// ---------- CORS configuration (allow credentials with exact origin) ----------
+// ---------- CORS configuration (allow credentials) ----------
+// Since frontend and backend are now on the same origin, we can relax CORS.
+// Allow localhost for development, and the Render domain for production.
 const allowedOrigins = [
-  'https://sarahadevelopers.github.io',   // your frontend (GitHub Pages)
-  'http://localhost:5000',                // local backend (if needed)
-  'http://localhost:3000'                 // local frontend (if any)
+  'http://localhost:5000',
+  'http://localhost:3000',
+  'https://studyglade.onrender.com'   // the domain where both frontend & backend live
 ];
 
 app.use(cors({
@@ -33,7 +36,7 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true   // required for cookies / HTTP‑only authentication
+  credentials: true
 }));
 
 // Other middleware
@@ -46,7 +49,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// API routes
+// API routes (must come before static serving)
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -56,6 +59,15 @@ app.use('/api/comments', commentRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => res.send('OK'));
+
+// ---------- Serve static frontend files from 'docs' ----------
+app.use(express.static(path.join(__dirname, 'docs')));
+
+// For any other route not matched by API or static files, serve index.html
+// (this allows client‑side routing, e.g., /student-dashboard)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'index.html'));
+});
 
 // ---------- CRON JOB: Check for pending questions >6h and create budget suggestions ----------
 cron.schedule('0 * * * *', async () => {
@@ -77,7 +89,6 @@ cron.schedule('0 * * * *', async () => {
         await question.save();
         console.log(`✅ Suggestion for question ${question._id}: increase to $${lowestBid.amount}`);
       } else {
-        // Mark as checked even if no bid or bid <= budget
         question.budgetSuggestionSent = true;
         await question.save();
       }
