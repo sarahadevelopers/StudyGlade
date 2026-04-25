@@ -2,9 +2,11 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const axios = require('axios');
+const crypto = require('crypto');
 const router = express.Router();
 
-// Get wallet balance & transactions
+// ---------- Get wallet balance & transactions ----------
 router.get('/', auth, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -15,7 +17,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Add funds (simulated payment gateway)
+// ---------- SIMULATED ADD FUNDS (for testing, optional) ----------
 router.post('/add-funds', auth, async (req, res) => {
   try {
     const { amount } = req.body;
@@ -23,20 +25,91 @@ router.post('/add-funds', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     user.walletBalance += amount;
     await user.save();
-    await Transaction.create({ userId: req.userId, type: 'deposit', amount, description: `Added $${amount} to wallet` });
+    await Transaction.create({ userId: req.userId, type: 'deposit', amount, description: `Simulated deposit: $${amount}` });
     res.json({ balance: user.walletBalance });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Withdraw request (simulated, admin will process)
+// ---------- PAYSTACK: Initialize Transaction ----------
+router.post('/paystack/initialize', auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    const user = await User.findById(req.userId);
+    const amountInKobo = Math.round(amount * 100); // Paystack uses kobo (cents)
+    const response = await axios.post('https://api.paystack.co/transaction/initialize', {
+      email: user.email,
+      amount: amountInKobo,
+      callback_url: `${process.env.FRONTEND_URL}/student-dashboard`,
+      metadata: {
+        userId: req.userId,
+        amount: amount.toString()
+      }
+    }, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const { authorization_url, reference } = response.data.data;
+    res.json({ url: authorization_url, reference });
+  } catch (err) {
+    console.error('Paystack init error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to initialize payment' });
+  }
+});
+
+// ---------- PAYSTACK WEBHOOK (charge.success) ----------
+router.post('/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+  if (hash !== req.headers['x-paystack-signature']) {
+    console.error('Invalid Paystack signature');
+    return res.status(401).send('Unauthorized');
+  }
+  const event = req.body;
+  if (event.event === 'charge.success') {
+    const { reference, metadata } = event.data;
+    const { userId, amount } = metadata;
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User ${userId} not found for webhook`);
+      return res.status(404).send('User not found');
+    }
+    // Double-check transaction via Paystack API (optional but safe)
+    const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+    if (verifyRes.data.data.status !== 'success') {
+      console.error(`Verification failed for ref ${reference}`);
+      return res.status(400).send('Verification failed');
+    }
+    const verifiedAmount = verifyRes.data.data.amount / 100;
+    if (parseFloat(amount) !== verifiedAmount) {
+      console.error(`Amount mismatch: expected ${amount}, got ${verifiedAmount}`);
+      return res.status(400).send('Amount mismatch');
+    }
+    user.walletBalance += verifiedAmount;
+    await user.save();
+    await Transaction.create({
+      userId: user._id,
+      type: 'deposit',
+      amount: verifiedAmount,
+      description: `Paystack deposit - Ref: ${reference}`
+    });
+    console.log(`Wallet credited: ${verifiedAmount} to user ${userId}`);
+  }
+  res.sendStatus(200);
+});
+
+// ---------- Withdraw request (unchanged) ----------
 router.post('/withdraw', auth, async (req, res) => {
   try {
-    const { amount, method } = req.body; // method: paypal, mpesa, etc.
+    const { amount, method } = req.body;
     const user = await User.findById(req.userId);
     if (user.walletBalance < amount) return res.status(400).json({ error: 'Insufficient balance' });
-    // For MVP, just deduct and record (admin will manually pay)
     user.walletBalance -= amount;
     await user.save();
     await Transaction.create({ userId: req.userId, type: 'withdraw', amount: -amount, description: `Withdrawal request: $${amount} via ${method}` });

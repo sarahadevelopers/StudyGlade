@@ -25,17 +25,25 @@ async function loadStudentDashboard() {
   await checkForSuggestions(questions);
 }
 
+// ---------- Add Funds with Stripe ----------
+// ---------- Add Funds with Paystack ----------
 async function addFunds() {
   const amount = prompt('Enter amount to add ($):');
-  if (amount && !isNaN(amount)) {
-    await apiFetch('/wallet/add-funds', { method: 'POST', body: JSON.stringify({ amount: parseFloat(amount) }) });
-    const user = JSON.parse(localStorage.getItem('user'));
-    user.walletBalance += parseFloat(amount);
-    localStorage.setItem('user', JSON.stringify(user));
-    loadStudentDashboard();
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+    alert('Please enter a valid positive amount.');
+    return;
+  }
+  try {
+    const { url } = await apiFetch('/wallet/paystack/initialize', {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseFloat(amount) })
+    });
+    // Redirect to Paystack payment page
+    window.location.href = url;
+  } catch (err) {
+    alert('Failed to initiate payment: ' + err.message);
   }
 }
-
 // ---------- Budget Suggestion System ----------
 async function checkForSuggestions(questions) {
   // Filter pending questions that have a suggestedBudget > 0
