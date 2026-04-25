@@ -1,3 +1,4 @@
+// ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   document.getElementById('walletBalance').innerText = `$${user.walletBalance}`;
@@ -25,32 +26,32 @@ async function loadStudentDashboard() {
   await checkForSuggestions(questions);
 }
 
-// ---------- Add Funds with Stripe ----------
 // ---------- Add Funds with Paystack ----------
 async function addFunds() {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-    alert('Please enter a valid positive amount.');
+    showToast('Please enter a valid positive amount.', 'error');
     return;
   }
   try {
+    const btn = event?.target;
+    if (btn) showSpinner(btn);
     const { url } = await apiFetch('/wallet/paystack/initialize', {
       method: 'POST',
       body: JSON.stringify({ amount: parseFloat(amount) })
     });
-    // Redirect to Paystack payment page
     window.location.href = url;
   } catch (err) {
-    alert('Failed to initiate payment: ' + err.message);
+    showToast(err.message, 'error');
+    if (btn) hideSpinner(btn);
   }
 }
+
 // ---------- Budget Suggestion System ----------
 async function checkForSuggestions(questions) {
-  // Filter pending questions that have a suggestedBudget > 0
   const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
   for (const q of pendingWithSuggestion) {
     const extra = q.suggestedBudget - q.budget;
-    // Avoid duplicate banners
     if (document.getElementById(`suggestion-${q._id}`)) continue;
     const banner = document.createElement('div');
     banner.id = `suggestion-${q._id}`;
@@ -63,7 +64,6 @@ async function checkForSuggestions(questions) {
       The lowest tutor bid is $${q.suggestedBudget}. Add $${extra} to assign this tutor now.
       <button onclick="acceptSuggestion('${q._id}')" class="btn" style="margin-left: 1rem;">Add $${extra} & Assign</button>
     `;
-    // Insert at the top of the dashboard (after wallet card)
     const walletCard = document.querySelector('.card:first-of-type');
     if (walletCard && walletCard.parentNode) {
       walletCard.parentNode.insertBefore(banner, walletCard.nextSibling);
@@ -73,27 +73,73 @@ async function checkForSuggestions(questions) {
   }
 }
 
-// Make acceptSuggestion globally available for the button onclick
 window.acceptSuggestion = async (questionId) => {
   try {
     const result = await apiFetch(`/questions/${questionId}/accept-suggestion`, { method: 'POST' });
-    alert(`Budget increased to $${result.newBudget} and tutor assigned!`);
-    location.reload(); // refresh dashboard
+    showToast(`Budget increased to $${result.newBudget} and tutor assigned!`, 'success');
+    location.reload();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
   }
 };
 
-// Poll for suggestions every 30 seconds (in case new suggestions appear)
+// ---------- Transaction History ----------
+let transactionPage = 1;
+let transactionHasMore = true;
+
+async function loadTransactionHistory(reset = true) {
+  if (reset) {
+    transactionPage = 1;
+    transactionHasMore = true;
+    document.getElementById('transactionList').innerHTML = '';
+  }
+  if (!transactionHasMore) return;
+  try {
+    const data = await apiFetch(`/wallet?page=${transactionPage}&limit=10`);
+    const list = document.getElementById('transactionList');
+    if (!data.transactions || data.transactions.length === 0) {
+      if (transactionPage === 1) list.innerHTML = '<p>No transactions yet.</p>';
+      transactionHasMore = false;
+      return;
+    }
+    const html = data.transactions.map(t => `
+      <li style="border-bottom:1px solid #eee; padding:0.5rem 0;">
+        <strong>${t.type}</strong> - $${Math.abs(t.amount)}<br>
+        <small>${t.description} (${new Date(t.createdAt).toLocaleString()})</small>
+      </li>
+    `).join('');
+    if (reset) list.innerHTML = `<ul style="list-style:none; padding-left:0;">${html}</ul>`;
+    else list.innerHTML += html;
+    transactionHasMore = transactionPage < data.pagination.pages;
+    transactionPage++;
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// Replace the old showTransactionHistory:
+window.showTransactionHistory = async function() {
+  await loadTransactionHistory(true);
+  document.getElementById('transactionModal').style.display = 'block';
+};
+
+// Event listener for "Load More" (add in DOMContentLoaded or after modal creation)
+document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
+window.closeTransactionModal = function() {
+  const modal = document.getElementById('transactionModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// ---------- Poll for suggestions every 30 seconds ----------
 setInterval(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
-  if (user && (user.role === 'student')) {
+  if (user && user.role === 'student') {
     const questions = await apiFetch('/questions/my-questions');
     await checkForSuggestions(questions);
   }
 }, 30000);
 
-// Helper function to prevent XSS
+// Helper: prevent XSS
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, function(m) {
@@ -104,4 +150,5 @@ function escapeHtml(str) {
   });
 }
 
+// Start dashboard
 loadStudentDashboard();

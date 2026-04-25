@@ -5,7 +5,8 @@ const commentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   userRole: { type: String, enum: ['student', 'tutor', 'admin'], required: true },
   userName: { type: String, required: true },
-  text: { type: String, required: true },
+  text: { type: String, default: '' },                     // text is now optional (file can be provided instead)
+  fileUrl: { type: String, default: null },               // URL of attached file (if any)
   createdAt: { type: Date, default: Date.now },
   isEdited: { type: Boolean, default: false }
 });

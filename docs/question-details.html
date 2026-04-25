@@ -10,6 +10,7 @@
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
       <div class="nav-links">
+        <a href="student-dashboard.html" style="margin-right: 1rem;">Dashboard</a>
         <span id="walletDisplay"></span>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
@@ -30,7 +31,8 @@
       <div id="commentsList"></div>
       <div id="addComment">
         <textarea id="commentText" rows="3" placeholder="Ask a question or provide clarification..."></textarea>
-        <button id="postCommentBtn" class="btn">Post Comment</button>
+        <input type="file" id="commentFile" accept="image/*,application/pdf,.doc,.docx,.txt"><br>
+        <button id="postCommentBtn" class="btn" style="margin-top:0.5rem;">Post Comment (with optional file)</button>
       </div>
     </div>
   </div>
@@ -84,7 +86,6 @@
           ${answerHtml}
         `;
 
-        // Determine whether to show bids section
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.role === 'student' && q.status === 'pending') {
           await loadBids();
@@ -105,14 +106,17 @@
           container.innerHTML = '<p>No bids yet. Check back later.</p>';
         } else {
           container.innerHTML = bids.map(b => `
-            <div class="bid-item" style="border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
-              <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
-              Bid amount: <strong>$${b.amount}</strong><br>
-              Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
-              Completed questions: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
-              <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
-            </div>
-          `).join('');
+      <div class="bid-item" style="position:relative; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+     <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
+     Bid amount: <strong>$${b.amount}</strong><br>
+     <div class="tutor-tooltip" style="display:none; position:absolute; background:var(--white); border:1px solid #ccc; padding:0.5rem; border-radius:0.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.1); z-index:10; max-width:200px;">
+      Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
+      Completed: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
+      Subjects: ${b.tutorId.tutorProfile?.subjects?.join(', ') || 'Not specified'}
+     </div>
+     <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
+      </div>
+     `).join('');
         }
         document.getElementById('bidsSection').style.display = 'block';
       } catch (err) {
@@ -121,19 +125,29 @@
       }
     }
 
+    // Attach tooltip events after bids are loaded
+function attachTooltipEvents() {
+  document.querySelectorAll('.bid-item').forEach(item => {
+    const tooltip = item.querySelector('.tutor-tooltip');
+    if (!tooltip) return;
+    item.addEventListener('mouseenter', () => tooltip.style.display = 'block');
+    item.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+  });
+}
+
     // ---------- Accept a Bid ----------
     window.acceptBid = async (bidId, bidAmount) => {
       if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) return;
       try {
         const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
         alert(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`);
-        location.reload();
+        location.reload(); // refresh page – bids disappear, status changes
       } catch (err) {
         alert(err.message);
       }
     };
 
-    // ---------- Load Comments ----------
+    // ---------- Load Comments (with file attachment display) ----------
     async function loadComments() {
       try {
         const comments = await apiFetch(`/comments/question/${questionId}`);
@@ -149,6 +163,7 @@
             <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
             <small>${new Date(c.createdAt).toLocaleString()}</small>
             <p>${escapeHtml(c.text)}</p>
+            ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" target="_blank">📎 Download attached file</a></p>` : ''}
             ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
               ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
               : ''}
@@ -159,16 +174,34 @@
       }
     }
 
+    // ---------- Post Comment with optional file ----------
     document.getElementById('postCommentBtn').addEventListener('click', async () => {
       const text = document.getElementById('commentText').value;
-      if (!text.trim()) return alert('Please enter a comment');
+      const fileInput = document.getElementById('commentFile');
+      const file = fileInput.files[0];
+      if (!text.trim() && !file) {
+        alert('Please enter a comment or attach a file.');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('questionId', questionId);
+      if (text.trim()) formData.append('text', text);
+      if (file) formData.append('file', file);
+      const token = localStorage.getItem('token');
       try {
-        await apiFetch('/comments', {
+        const res = await fetch(`${window.API_BASE}/comments`, {
           method: 'POST',
-          body: JSON.stringify({ questionId, text })
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
         });
-        document.getElementById('commentText').value = '';
-        loadComments();
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('commentText').value = '';
+          fileInput.value = '';
+          loadComments();
+        } else {
+          alert(data.error);
+        }
       } catch (err) {
         alert(err.message);
       }

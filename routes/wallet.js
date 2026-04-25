@@ -9,9 +9,20 @@ const router = express.Router();
 // ---------- Get wallet balance & transactions ----------
 router.get('/', auth, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     const user = await User.findById(req.userId);
-    const transactions = await Transaction.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(50);
-    res.json({ balance: user.walletBalance, transactions });
+    const transactions = await Transaction.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Transaction.countDocuments({ userId: req.userId });
+    res.json({
+      balance: user.walletBalance,
+      transactions,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
