@@ -56,7 +56,7 @@
     <!-- Active Questions -->
     <div class="card" style="overflow-x: auto;">
       <h3>Active Questions</h3>
-      </table>
+      <table>
         <thead>
           <tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th><th>Actions</th></tr>
         </thead>
@@ -78,58 +78,39 @@
     <a href="post-question.html" class="btn" style="margin-top: 1rem;">+ Post New Question</a>
   </div>
 
-  <!-- Transaction History Modal (hidden initially) -->
- <div id="transactionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-  <div style="background:white; max-width:600px; margin:4rem auto; border-radius:1rem; padding:1.5rem;">
-    <h3>Transaction History</h3>
-    <div id="transactionList" class="transaction-history"></div>
-    <button id="loadMoreTransactions" class="btn-outline" style="margin-top:0.5rem;">Load More</button>
-    <button onclick="closeTransactionModal()" class="btn-outline" style="margin-top:0.5rem; margin-left:0.5rem;">Close</button>
+  <!-- Transaction History Modal -->
+  <div id="transactionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:white; max-width:600px; margin:4rem auto; border-radius:1rem; padding:1.5rem;">
+      <h3>Transaction History</h3>
+      <div id="transactionList" class="transaction-history"></div>
+      <button id="loadMoreTransactions" class="btn-outline" style="margin-top:0.5rem;">Load More</button>
+      <button onclick="closeTransactionModal()" class="btn-outline" style="margin-top:0.5rem; margin-left:0.5rem;">Close</button>
+    </div>
   </div>
-</div>
-  <div id="transactionList" class="transaction-history"></div>
-<button id="loadMoreTransactions" class="btn-outline" style="margin-top:0.5rem;">Load More</button>
 
   <script src="api.js"></script>
   <script src="auth.js"></script>
   <script src="student.js"></script>
+
   <script>
-    // Fetch transaction history and show modal
-    window.showTransactionHistory = async function() {
-      const data = await apiFetch('/wallet');
-      const list = document.getElementById('transactionList');
-      if (!data.transactions || data.transactions.length === 0) {
-        list.innerHTML = '<p>No transactions yet.</p>';
-      } else {
-        list.innerHTML = '<ul style="list-style:none; padding-left:0;">' + data.transactions.map(t => `
-          <li style="border-bottom:1px solid #eee; padding:0.5rem 0;">
-            <strong>${t.type}</strong> - $${Math.abs(t.amount)}<br>
-            <small>${t.description} (${new Date(t.createdAt).toLocaleString()})</small>
-          </li>
-        `).join('') + '</ul>';
-      }
-      document.getElementById('transactionModal').style.display = 'block';
-    };
-    window.closeTransactionModal = function() {
-      document.getElementById('transactionModal').style.display = 'none';
-    };
-    // Check for pending questions with bids (to show notification)
+    // Bid notification logic (checks for pending questions)
     async function checkForBidNotifications() {
       const questions = await apiFetch('/questions/my-questions');
       const pendingWithBids = questions.filter(q => q.status === 'pending');
       if (pendingWithBids.length > 0) {
-        // Optionally check if any have bids by calling /bids endpoint (expensive). For simplicity, just show if pending questions exist.
-        // Better: call a new backend endpoint that returns whether there are bids. We'll improvise.
-        // For demo, show notification if any pending question exists (tutors may have bid).
         const notification = document.getElementById('bidNotification');
-        notification.style.display = 'block';
-        document.getElementById('viewBidsLink').onclick = () => {
-          document.querySelector('.card h3').scrollIntoView({ behavior: 'smooth' });
-          return false;
-        };
+        if (notification) notification.style.display = 'block';
+        const viewLink = document.getElementById('viewBidsLink');
+        if (viewLink) {
+          viewLink.onclick = () => {
+            document.querySelector('.card h3').scrollIntoView({ behavior: 'smooth' });
+            return false;
+          };
+        }
       }
     }
-    // Override loadStudentDashboard to include notification check
+
+    // Extend the original loadStudentDashboard to show bid notification
     const originalLoad = window.loadStudentDashboard;
     if (originalLoad) {
       window.loadStudentDashboard = async function() {
@@ -138,16 +119,17 @@
       };
     }
 
+    // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
-if (darkModeToggle) {
-  darkModeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-  });
-  if (localStorage.getItem('darkMode') === 'true') {
-    document.body.classList.add('dark-mode');
-  }
-}
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+      });
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+    }
   </script>
 </body>
 </html>
