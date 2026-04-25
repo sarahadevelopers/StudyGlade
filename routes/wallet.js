@@ -38,10 +38,11 @@ router.post('/paystack/initialize', auth, async (req, res) => {
     const { amount } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
     const user = await User.findById(req.userId);
-    const amountInKobo = Math.round(amount * 100); // Paystack uses kobo (cents)
+    const amountInKobo = Math.round(amount * 100); // USD → cents
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
       email: user.email,
       amount: amountInKobo,
+      currency: 'USD',                           // 👈 explicit USD currency
       callback_url: `${process.env.FRONTEND_URL}/student-dashboard`,
       metadata: {
         userId: req.userId,
