@@ -43,7 +43,7 @@ router.post('/paystack/initialize', auth, async (req, res) => {
       email: user.email,
       amount: amountInKobo,
       currency: 'USD',                           // 👈 explicit USD currency
-      callback_url: `${process.env.FRONTEND_URL}/student-dashboard`,
+      callback_url: `${process.env.FRONTEND_URL}/student-dashboard.html`,
       metadata: {
         userId: req.userId,
         amount: amount.toString()

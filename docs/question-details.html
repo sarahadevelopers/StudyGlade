@@ -18,6 +18,13 @@
 
   <div class="container" style="padding: 2rem 0;">
     <div id="questionDetails" class="card"></div>
+
+    <!-- Bids Section (visible only for students if question pending) -->
+    <div id="bidsSection" class="card" style="display: none;">
+      <h3>💼 Bids from Tutors</h3>
+      <div id="bidsList"></div>
+    </div>
+
     <div id="commentsSection" class="card">
       <h3>Comments & Clarifications</h3>
       <div id="commentsList"></div>
@@ -29,7 +36,7 @@
   </div>
 
   <script src="api.js"></script>
-  <script src="auth.js"></script>   <!-- ✅ needed for logout -->
+  <script src="auth.js"></script>
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const questionId = urlParams.get('id');
@@ -53,17 +60,15 @@
       try {
         const q = await apiFetch(`/questions/${questionId}`);
 
-        // Attached files
         let filesHtml = '';
         if (q.files && q.files.length > 0) {
           filesHtml = '<p><strong>Attached files:</strong></p><ul>';
           q.files.forEach(url => {
-            filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Download file</a></li>`;
+            filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download file</a></li>`;
           });
           filesHtml += '</ul>';
         }
 
-        // Answer file (if uploaded)
         let answerHtml = '';
         if (q.answerFile) {
           answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(q.answerFile)}" target="_blank">Download answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
@@ -78,10 +83,55 @@
           ${filesHtml}
           ${answerHtml}
         `;
+
+        // Determine whether to show bids section
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.role === 'student' && q.status === 'pending') {
+          await loadBids();
+        } else {
+          document.getElementById('bidsSection').style.display = 'none';
+        }
       } catch (err) {
         document.getElementById('questionDetails').innerHTML = `<p style="color:red;">Error loading question: ${err.message}</p>`;
       }
     }
+
+    // ---------- Load Bids ----------
+    async function loadBids() {
+      try {
+        const bids = await apiFetch(`/questions/${questionId}/bids`);
+        const container = document.getElementById('bidsList');
+        if (!bids.length) {
+          container.innerHTML = '<p>No bids yet. Check back later.</p>';
+        } else {
+          container.innerHTML = bids.map(b => `
+            <div class="bid-item" style="border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+              <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
+              Bid amount: <strong>$${b.amount}</strong><br>
+              Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
+              Completed questions: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
+              <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
+            </div>
+          `).join('');
+        }
+        document.getElementById('bidsSection').style.display = 'block';
+      } catch (err) {
+        console.error('Error loading bids:', err);
+        document.getElementById('bidsList').innerHTML = '<p>Error loading bids.</p>';
+      }
+    }
+
+    // ---------- Accept a Bid ----------
+    window.acceptBid = async (bidId, bidAmount) => {
+      if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) return;
+      try {
+        const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
+        alert(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`);
+        location.reload();
+      } catch (err) {
+        alert(err.message);
+      }
+    };
 
     // ---------- Load Comments ----------
     async function loadComments() {
@@ -109,7 +159,6 @@
       }
     }
 
-    // ---------- Post Comment ----------
     document.getElementById('postCommentBtn').addEventListener('click', async () => {
       const text = document.getElementById('commentText').value;
       if (!text.trim()) return alert('Please enter a comment');
@@ -125,7 +174,6 @@
       }
     });
 
-    // ---------- Delete Comment ----------
     async function deleteComment(commentId) {
       if (confirm('Delete this comment?')) {
         try {
@@ -137,7 +185,7 @@
       }
     }
 
-    // ---------- Initial load ----------
+    // Initial loads
     loadQuestion();
     loadComments();
   </script>

@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      // Call logout endpoint to clear cookies
+      // Call logout endpoint to clear cookiess
       await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
       localStorage.clear();
       window.location.href = 'login.html';

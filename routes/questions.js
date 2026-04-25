@@ -306,4 +306,81 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
   }
 });
 
+// ----------------------------------------------------------------------
+// 11. Get all bids for a specific question (student or admin only)
+// ----------------------------------------------------------------------
+router.get('/:id/bids', auth, async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    const user = await User.findById(req.userId);
+    const isStudent = question.studentId.toString() === req.userId;
+    const isAdmin = user.role === 'admin';
+    if (!isStudent && !isAdmin) {
+      return res.status(403).json({ error: 'Only the student who posted the question can view bids' });
+    }
+    const bids = await Bid.find({ questionId: question._id }).populate('tutorId', 'fullName tutorProfile.rating tutorProfile.completedQuestions email');
+    res.json(bids);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------------------------
+// 12. Accept a specific bid (student only)
+// ----------------------------------------------------------------------
+router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    if (question.status !== 'pending') {
+      return res.status(400).json({ error: 'Question already assigned or completed' });
+    }
+    const bid = await Bid.findById(req.params.bidId);
+    if (!bid || bid.questionId.toString() !== question._id.toString()) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+    const student = await User.findById(req.userId);
+    const originalBudget = question.budget;
+    const bidAmount = bid.amount;
+
+    // Adjust wallet based on bid amount vs original budget
+    if (bidAmount > originalBudget) {
+      const extra = bidAmount - originalBudget;
+      if (student.walletBalance < extra) {
+        return res.status(400).json({ error: `Insufficient balance. Need $${extra} more.` });
+      }
+      student.walletBalance -= extra;
+      await student.save();
+      await Transaction.create({
+        userId: req.userId,
+        type: 'post_question_extra',
+        amount: -extra,
+        description: `Extra budget for accepted bid on question: ${question.title}`,
+        referenceId: question._id
+      });
+    } else if (bidAmount < originalBudget) {
+      const refund = originalBudget - bidAmount;
+      student.walletBalance += refund;
+      await student.save();
+      await Transaction.create({
+        userId: req.userId,
+        type: 'refund',
+        amount: refund,
+        description: `Refund for lower accepted bid on question: ${question.title}`,
+        referenceId: question._id
+      });
+    }
+
+    // Update question
+    question.budget = bidAmount;          // update to agreed amount
+    question.tutorId = bid.tutorId;
+    question.status = 'assigned';
+    await question.save();
+
+    res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
