@@ -100,10 +100,15 @@
       </form>
     </div>
   </div>
- <script src="api.js"></script>
+<script src="api.js"></script>
 <script>
   document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Posting...';
+
     const formData = new FormData(e.target);
     const deadline = new Date();
     const days = parseInt(formData.get('deadlineDays')) || 3;
@@ -114,19 +119,22 @@
     try {
       const res = await fetch(`${window.API_BASE}/questions`, {
         method: 'POST',
-        credentials: 'include',   // sends HTTP‑only cookie
+        credentials: 'include',
         body: formData
-        // No Content-Type header – let browser set it with boundary
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Question posted successfully!');
+        showToast('Question posted successfully!', 'success');
         window.location.href = 'student-dashboard.html';
       } else {
-        alert(data.error || 'Failed to post question');
+        showToast(data.error || 'Failed to post question', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
       }
     } catch(err) {
-      alert(err.message);
+      showToast(err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
     }
   });
 </script>

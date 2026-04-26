@@ -9,13 +9,13 @@ function escapeHtml(str) {
   });
 }
 
-// Helper for file uploads (since apiFetch expects JSON)
+// Helper for file uploads
 async function uploadFile(endpoint, file) {
   const formData = new FormData();
   formData.append('answer', file);
   const res = await fetch(`${window.API_BASE}${endpoint}`, {
     method: 'POST',
-    credentials: 'include',   // sends cookie
+    credentials: 'include',
     body: formData
   });
   if (!res.ok) {
@@ -30,7 +30,6 @@ async function loadTutorDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   document.getElementById('walletBalance').innerText = `$${user.walletBalance}`;
 
-  // Pending questions (with bid input)
   const pending = await apiFetch('/questions/pending');
   const pendingDiv = document.getElementById('pendingQuestions');
   pendingDiv.innerHTML = pending.map(q => `
@@ -41,12 +40,12 @@ async function loadTutorDashboard() {
       <div style="margin-top: 0.5rem;">
         <input type="number" id="bid-${q._id}" placeholder="Your bid amount" min="1" step="1" style="width: 150px;">
         <button onclick="placeBid('${q._id}')" class="btn">Place Bid</button>
-        <button onclick="acceptQuestion('${q._id}')" class="btn btn-outline">Accept at $${q.budget}</button>
+        <!-- pass event to acceptQuestion -->
+        <button onclick="acceptQuestion('${q._id}', event)" class="btn btn-outline">Accept at $${q.budget}</button>
       </div>
     </div>
   `).join('');
 
-  // My assignments – includes answer upload and download
   const assignments = await apiFetch('/questions/my-assignments');
   const assignDiv = document.getElementById('myAssignments');
   assignDiv.innerHTML = assignments.map(q => `
@@ -58,7 +57,8 @@ async function loadTutorDashboard() {
       ${q.status === 'assigned' ? `
         <div style="margin-top: 0.5rem;">
           <input type="file" id="answer-${q._id}" accept=".pdf,.doc,.docx,.zip,.jpg,.png,.txt">
-          <button onclick="uploadAnswer('${q._id}')" class="btn">Upload Answer</button>
+          <!-- pass event to uploadAnswer -->
+          <button onclick="uploadAnswer('${q._id}', event)" class="btn">Upload Answer</button>
           ${q.answerFile ? `<a href="${q.answerFile}" target="_blank" style="margin-left: 0.5rem;">Download current answer</a>` : ''}
           <button onclick="completeQuestion('${q._id}')" class="btn btn-outline" style="margin-left: 0.5rem;">Mark Complete</button>
         </div>
@@ -73,7 +73,7 @@ async function placeBid(questionId) {
   const amountInput = document.getElementById(`bid-${questionId}`);
   const amount = amountInput.value;
   if (!amount || amount <= 0) {
-    alert('Please enter a valid bid amount (minimum $1)');
+    showToast('Please enter a valid bid amount (minimum $1)', 'error');
     return;
   }
   try {
@@ -81,50 +81,70 @@ async function placeBid(questionId) {
       method: 'POST',
       body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid placed from dashboard' })
     });
-    alert('Bid placed successfully!');
+    showToast('Bid placed successfully!', 'success');
     amountInput.value = '';
     loadTutorDashboard();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
   }
 }
 
-async function acceptQuestion(id) {
+// Updated acceptQuestion with button disabling and spinner
+async function acceptQuestion(questionId, event) {
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Accepting...';
+  }
   try {
-    await apiFetch(`/questions/${id}/accept`, { method: 'PUT' });
-    alert('Question accepted!');
+    await apiFetch(`/questions/${questionId}/accept`, { method: 'PUT' });
+    showToast('Question accepted!', 'success');
     loadTutorDashboard();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `Accept at student's budget`;
+    }
   }
 }
 
-// ---------- Answer Upload ----------
-async function uploadAnswer(questionId) {
+// Updated uploadAnswer with button disabling and spinner
+async function uploadAnswer(questionId, event) {
   const fileInput = document.getElementById(`answer-${questionId}`);
+  const btn = event?.target;
   const file = fileInput.files[0];
-  if (!file) return alert('Please select a file');
+  if (!file) {
+    showToast('Please select a file', 'error');
+    return;
+  }
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Uploading...';
+  }
   try {
     await uploadFile(`/questions/${questionId}/upload-answer`, file);
-    alert('Answer uploaded successfully!');
+    showToast('Answer uploaded successfully!', 'success');
     loadTutorDashboard();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Upload Answer';
+    }
   }
 }
 
-// ---------- Complete Question ----------
 async function completeQuestion(id) {
   try {
     await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-    alert('Question marked as complete! Payment processed.');
+    showToast('Question marked as complete! Payment processed.', 'success');
     loadTutorDashboard();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
   }
 }
 
-// ---------- Withdraw ----------
 async function withdrawFunds() {
   const amount = prompt('Withdraw amount (USD):');
   if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
@@ -133,22 +153,20 @@ async function withdrawFunds() {
         method: 'POST',
         body: JSON.stringify({ amount: parseFloat(amount), method: 'paypal' })
       });
-      alert('Withdrawal request submitted. Funds will be sent within 3‑5 business days.');
+      showToast('Withdrawal request submitted. Funds will be sent within 3‑5 business days.', 'success');
       location.reload();
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, 'error');
     }
   } else {
-    alert('Invalid amount');
+    showToast('Invalid amount', 'error');
   }
 }
 
-// Make functions globally available for inline onclick handlers
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
 window.completeQuestion = completeQuestion;
 window.withdrawFunds = withdrawFunds;
 
-// Load dashboard
 loadTutorDashboard();

@@ -30,29 +30,37 @@
       </form>
     </div>
   </div>
-  <script src="api.js"></script>
-  <script>
-    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      try {
-        const res = await fetch(`${window.API_BASE}/documents/upload`, {
-          method: 'POST',
-          credentials: 'include',   // sends HTTP‑only cookie automatically
-          body: formData
-          // No Content-Type header – let the browser set it with boundary
-        });
-        const data = await res.json();
-        if (res.ok) {
-          alert('Upload successful! Waiting for admin approval.');
-          window.location.href = 'tutor-dashboard.html';
-        } else {
-          alert(data.error || 'Upload failed');
-        }
-      } catch (err) {
-        alert('Upload failed: ' + err.message);
+ <script src="api.js"></script>
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Uploading...';
+
+    const formData = new FormData(e.target);
+    try {
+      const res = await fetch(`${window.API_BASE}/documents/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Upload successful! Waiting for admin approval.', 'success');
+        window.location.href = 'tutor-dashboard.html';
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
       }
-    });
-  </script>
+    } catch (err) {
+      showToast('Upload failed: ' + err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  });
+</script>
 </body>
 </html>

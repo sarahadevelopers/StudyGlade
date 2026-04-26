@@ -7,11 +7,10 @@ const roleCheck = require('../middleware/roleCheck');
 const Question = require('../models/Question');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
-const Bid = require('../models/Bid');   // ✅ new
+const Bid = require('../models/Bid');
 
 const router = express.Router();
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -21,49 +20,55 @@ cloudinary.config({
 const upload = multer({ dest: 'uploads/' });
 
 // ----------------------------------------------------------------------
-// 1. POST a question (student only) – with file uploads
+// 1. POST a question (student only) – with file uploads (atomic deduction)
 // ----------------------------------------------------------------------
 router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
     const { title, description, category, subcategory, budget, deadline, school, course } = req.body;
-    
-    if (user.walletBalance < budget) {
-      return res.status(400).json({ error: 'Insufficient wallet balance' });
-    }
+    const budgetNum = parseFloat(budget);
+    if (isNaN(budgetNum) || budgetNum <= 0) throw new Error('Invalid budget');
 
-    // Upload attached files to Cloudinary
+    // Upload files
     const uploadedFiles = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: 'studyglade/questions'
-        });
+        const result = await cloudinary.uploader.upload(file.path, { folder: 'studyglade/questions' });
         uploadedFiles.push(result.secure_url);
         await fs.unlink(file.path);
       }
     }
 
+    // Create question
     const question = await Question.create({
       studentId: req.userId,
       title,
       description,
       category,
       subcategory,
-      budget: parseFloat(budget),
+      budget: budgetNum,
       deadline,
       school,
       course,
       files: uploadedFiles
     });
 
-    // Deduct full budget immediately
-    user.walletBalance -= parseFloat(budget);
-    await user.save();
+    // Atomic deduction – only if balance >= budget
+    const user = await User.findOneAndUpdate(
+      { _id: req.userId, walletBalance: { $gte: budgetNum } },
+      { $inc: { walletBalance: -budgetNum } },
+      { new: true }
+    );
+
+    if (!user) {
+      // Rollback: delete the question
+      await Question.findByIdAndDelete(question._id);
+      return res.status(400).json({ error: 'Insufficient wallet balance' });
+    }
+
     await Transaction.create({
       userId: req.userId,
       type: 'post_question',
-      amount: -budget,
+      amount: -budgetNum,
       description: `Posted question: ${title}`,
       referenceId: question._id
     });
@@ -71,9 +76,7 @@ router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (re
     res.status(201).json(question);
   } catch (err) {
     if (req.files) {
-      for (const file of req.files) {
-        await fs.unlink(file.path).catch(() => {});
-      }
+      for (const file of req.files) await fs.unlink(file.path).catch(() => {});
     }
     res.status(400).json({ error: err.message });
   }
@@ -128,9 +131,7 @@ router.get('/:id', auth, async (req, res) => {
     const isStudent = question.studentId._id.toString() === req.userId;
     const isTutor = question.tutorId && question.tutorId._id.toString() === req.userId;
     const isAdmin = user.role === 'admin';
-    if (!isStudent && !isTutor && !isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    if (!isStudent && !isTutor && !isAdmin) return res.status(403).json({ error: 'Access denied' });
     res.json(question);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -157,25 +158,21 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
 // ----------------------------------------------------------------------
 // 7. Tutor marks question as completed (pays 76% of budget)
 // ----------------------------------------------------------------------
-// Complete a question (tutor marks as completed)
 router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
     if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
-    
-    // ✅ OPTIONAL: Require answer file before completing
-    if (!question.answerFile) {
-      return res.status(400).json({ error: 'Please upload the answer file first' });
-    }
-    
+    if (!question.answerFile) return res.status(400).json({ error: 'Please upload the answer file first' });
+
     question.status = 'completed';
     await question.save();
-    // Pay tutor 76% of budget
+
     const tutor = await User.findById(req.userId);
     const earnings = question.budget * 0.76;
     tutor.walletBalance += earnings;
     await tutor.save();
+
     await Transaction.create({
       userId: req.userId,
       type: 'tutor_payment',
@@ -197,9 +194,8 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
     const { amount, message } = req.body;
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
-    if (question.status !== 'pending') {
-      return res.status(400).json({ error: 'Question is no longer pending' });
-    }
+    if (question.status !== 'pending') return res.status(400).json({ error: 'Question is no longer pending' });
+
     const existingBid = await Bid.findOne({ questionId: question._id, tutorId: req.userId });
     if (existingBid) {
       existingBid.amount = amount;
@@ -220,8 +216,7 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
 });
 
 // ----------------------------------------------------------------------
-// 9. Student accepts the suggested budget increase (from lowest bid)
-//    – Deducts only the extra amount, updates question budget, assigns tutor.
+// 9. Student accepts the suggested budget increase (from lowest bid) – atomic deduction
 // ----------------------------------------------------------------------
 router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, res) => {
   try {
@@ -230,33 +225,27 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
     if (!question.suggestedBudget || !question.suggestedTutorId) {
       return res.status(400).json({ error: 'No budget suggestion available' });
     }
-    if (question.status !== 'pending') {
-      return res.status(400).json({ error: 'Question is no longer pending' });
-    }
+    if (question.status !== 'pending') return res.status(400).json({ error: 'Question is no longer pending' });
 
-    const student = await User.findById(req.userId);
     const extraNeeded = question.suggestedBudget - question.budget;
-    if (extraNeeded <= 0) {
-      return res.status(400).json({ error: 'Suggested budget is not higher than current budget' });
-    }
-    if (student.walletBalance < extraNeeded) {
-      return res.status(400).json({ error: `Insufficient balance. Need $${extraNeeded} more.` });
-    }
+    if (extraNeeded <= 0) return res.status(400).json({ error: 'Suggested budget is not higher than current budget' });
 
-    // Deduct the extra amount
-    student.walletBalance -= extraNeeded;
-    await student.save();
+    // Atomic deduction
+    const student = await User.findOneAndUpdate(
+      { _id: req.userId, walletBalance: { $gte: extraNeeded } },
+      { $inc: { walletBalance: -extraNeeded } },
+      { new: true }
+    );
+    if (!student) return res.status(400).json({ error: `Insufficient balance. Need $${extraNeeded} more.` });
 
-    // Update question: new budget, assign tutor, clear suggestion fields
     question.budget = question.suggestedBudget;
     question.tutorId = question.suggestedTutorId;
     question.status = 'assigned';
     question.suggestedBudget = 0;
     question.suggestedTutorId = null;
-    question.budgetSuggestionSent = true; // optional, but good to mark
+    question.budgetSuggestionSent = true;
     await question.save();
 
-    // Record transaction for the extra payment
     await Transaction.create({
       userId: req.userId,
       type: 'post_question_extra',
@@ -265,33 +254,24 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
       referenceId: question._id
     });
 
-    res.json({
-      message: 'Budget increased and tutor assigned',
-      newBudget: question.budget,
-      tutorId: question.tutorId
-    });
+    res.json({ message: 'Budget increased and tutor assigned', newBudget: question.budget });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 // ----------------------------------------------------------------------
-// 10. Tutor uploads answer file (PDF, Word, image, zip, etc.)
+// 10. Tutor uploads answer file
 // ----------------------------------------------------------------------
 router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answer'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
-    if (question.tutorId.toString() !== req.userId) {
-      return res.status(403).json({ error: 'Not your question' });
-    }
-    if (question.status !== 'assigned') {
-      return res.status(400).json({ error: 'Question is not in assigned state' });
-    }
+    if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
+    if (question.status !== 'assigned') return res.status(400).json({ error: 'Question is not in assigned state' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'studyglade/answers'
-    });
+    const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/answers' });
     await fs.unlink(req.file.path);
 
     question.answerFile = result.secure_url;
@@ -316,9 +296,7 @@ router.get('/:id/bids', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     const isStudent = question.studentId.toString() === req.userId;
     const isAdmin = user.role === 'admin';
-    if (!isStudent && !isAdmin) {
-      return res.status(403).json({ error: 'Only the student who posted the question can view bids' });
-    }
+    if (!isStudent && !isAdmin) return res.status(403).json({ error: 'Only the student who posted the question can view bids' });
     const bids = await Bid.find({ questionId: question._id }).populate('tutorId', 'fullName tutorProfile.rating tutorProfile.completedQuestions email');
     res.json(bids);
   } catch (err) {
@@ -327,36 +305,30 @@ router.get('/:id/bids', auth, async (req, res) => {
 });
 
 // ----------------------------------------------------------------------
-// 12. Accept a specific bid (student only)
+// 12. Accept a specific bid (student only) – atomic deduction for extra amount
 // ----------------------------------------------------------------------
 router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
-    if (question.status !== 'pending') {
-      return res.status(400).json({ error: 'Question already assigned or completed' });
-    }
-    const bid = await Bid.findById(req.params.bidId);
-    if (!bid || bid.questionId.toString() !== question._id.toString()) {
-      return res.status(404).json({ error: 'Bid not found' });
-    }
-    // === NEW: prevent duplicate acceptance ===
-    if (bid.accepted) {
-      return res.status(400).json({ error: 'Bid already accepted' });
-    }
+    if (question.status !== 'pending') return res.status(400).json({ error: 'Question already assigned or completed' });
 
-    const student = await User.findById(req.userId);
+    const bid = await Bid.findById(req.params.bidId);
+    if (!bid || bid.questionId.toString() !== question._id.toString()) return res.status(404).json({ error: 'Bid not found' });
+    if (bid.accepted) return res.status(400).json({ error: 'Bid already accepted' });
+
     const originalBudget = question.budget;
     const bidAmount = bid.amount;
 
-    // Adjust wallet based on bid amount vs original budget
     if (bidAmount > originalBudget) {
       const extra = bidAmount - originalBudget;
-      if (student.walletBalance < extra) {
-        return res.status(400).json({ error: `Insufficient balance. Need $${extra} more.` });
-      }
-      student.walletBalance -= extra;
-      await student.save();
+      // Atomic deduction for extra amount
+      const student = await User.findOneAndUpdate(
+        { _id: req.userId, walletBalance: { $gte: extra } },
+        { $inc: { walletBalance: -extra } },
+        { new: true }
+      );
+      if (!student) return res.status(400).json({ error: `Insufficient balance. Need $${extra} more.` });
       await Transaction.create({
         userId: req.userId,
         type: 'post_question_extra',
@@ -366,8 +338,7 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
       });
     } else if (bidAmount < originalBudget) {
       const refund = originalBudget - bidAmount;
-      student.walletBalance += refund;
-      await student.save();
+      await User.updateOne({ _id: req.userId }, { $inc: { walletBalance: refund } });
       await Transaction.create({
         userId: req.userId,
         type: 'refund',
@@ -383,7 +354,6 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     question.status = 'assigned';
     await question.save();
 
-    // === NEW: mark bid as accepted ===
     bid.accepted = true;
     await bid.save();
 
@@ -392,4 +362,5 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     res.status(500).json({ error: err.message });
   }
 });
+
 module.exports = router;
