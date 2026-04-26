@@ -229,3 +229,70 @@ th {
     padding: 0.4rem 0.8rem;
   }
 }
+
+.btn-sm {
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+/* Premium button variants – all buttons use pill shape */
+.btn, .btn-outline, #darkModeToggle, #loadMoreTransactions, button[onclick="closeTransactionModal()"] {
+  border-radius: 9999px !important;   /* force pill shape */
+  padding: 0.6rem 1.2rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn {
+  background: var(--primary);
+  border: none;
+  color: white;
+}
+.btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Dark mode toggle – match .btn-outline style but with grey border */
+#darkModeToggle {
+  background: transparent;
+  border: 1px solid var(--gray);
+  color: var(--gray);
+}
+#darkModeToggle:hover {
+  background: var(--gray);
+  border-color: var(--gray);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Modal buttons (Load More & Close) – already .btn-outline, but ensure consistent spacing */
+#loadMoreTransactions, button[onclick="closeTransactionModal()"] {
+  min-width: 100px;
+  margin: 0.25rem;
+}
+
+/* Optional: Close button turns red on hover for clear action */
+button[onclick="closeTransactionModal()"]:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}

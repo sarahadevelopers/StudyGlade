@@ -16,12 +16,9 @@
       margin-bottom: 1rem;
       border-radius: 0.5rem;
     }
-    .view-details-btn {
-      background: none;
-      border: none;
-      color: #2563EB;
-      cursor: pointer;
-      text-decoration: underline;
+    .btn-sm {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.85rem;
     }
   </style>
 </head>
@@ -44,7 +41,7 @@
     <div class="card" style="margin-bottom: 2rem;">
       <h3>My Wallet</h3>
       <p id="walletBalance">$0</p>
-      <button onclick="addFunds()" class="btn">Add Funds</button>
+      <button id="addFundsBtn" onclick="addFunds()" class="btn">Add Funds</button>
       <button onclick="showTransactionHistory()" class="btn btn-outline" style="margin-left: 1rem;">View Transaction History</button>
     </div>
 
@@ -93,6 +90,17 @@
   <script src="student.js"></script>
 
   <script>
+    // Auto-trigger Add Funds if redirected from bid acceptance due to insufficient balance
+    if (window.location.search.includes('action=addFunds')) {
+      // Give the page a moment to fully load, then click the Add Funds button
+      window.addEventListener('DOMContentLoaded', () => {
+        const addFundsBtn = document.getElementById('addFundsBtn');
+        if (addFundsBtn) addFundsBtn.click();
+        // Clean the URL to avoid re-triggering on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+    }
+
     // Bid notification logic (checks for pending questions)
     async function checkForBidNotifications() {
       const questions = await apiFetch('/questions/my-questions');

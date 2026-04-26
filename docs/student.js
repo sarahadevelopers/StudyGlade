@@ -7,17 +7,40 @@ async function loadStudentDashboard() {
   const completedTable = document.getElementById('completedQuestions');
   activeTable.innerHTML = '';
   completedTable.innerHTML = '';
+
   questions.forEach(q => {
-    const titleLink = `<a href="question-details.html?id=${q._id}">${escapeHtml(q.title)}</a>`;
-    const row = `<tr>
-      <td>${titleLink}</td>
-      <td>${escapeHtml(q.tutorId?.fullName || 'None')}</td>
-      <td>${escapeHtml(q.status)}</td>
-      <td>$${q.budget}</td>
-    </tr>`;
+    // Escape data for security
+    const safeTitle = escapeHtml(q.title);
+    const safeTutor = escapeHtml(q.tutorId?.fullName || 'None');
+    const safeStatus = escapeHtml(q.status);
+    const budget = `$${q.budget}`;
+
     if (q.status === 'pending' || q.status === 'assigned') {
+      // Active questions row – add View Question button
+      const viewQuestionBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
+      const row = `<tr>
+        <td>${safeTitle}</td>
+        <td>${safeTutor}</td>
+        <td>${safeStatus}</td>
+        <td>${budget}</td>
+        <td>${viewQuestionBtn}</td>
+      </tr>`;
       activeTable.innerHTML += row;
-    } else {
+    } else if (q.status === 'completed') {
+      // Completed questions – show View Answer button if answer exists
+      let viewAnswerBtn = '';
+      if (q.answerFile) {
+        viewAnswerBtn = `<button class="btn-outline btn-sm" onclick="window.open('${escapeHtml(q.answerFile)}', '_blank')">View Answer</button>`;
+      } else {
+        viewAnswerBtn = `<span class="disabled">No answer uploaded</span>`;
+      }
+      const row = `<tr>
+        <td>${safeTitle}</td>
+        <td>${safeTutor}</td>
+        <td>${safeStatus}</td>
+        <td>${budget}</td>
+        <td>${viewAnswerBtn}</td>
+      </tr>`;
       completedTable.innerHTML += row;
     }
   });
@@ -83,7 +106,7 @@ window.acceptSuggestion = async (questionId) => {
   }
 };
 
-// ---------- Transaction History ----------
+// ---------- Transaction History (pagination) ----------
 let transactionPage = 1;
 let transactionHasMore = true;
 
@@ -123,8 +146,9 @@ window.showTransactionHistory = async function() {
   document.getElementById('transactionModal').style.display = 'block';
 };
 
-// Event listener for "Load More" (add in DOMContentLoaded or after modal creation)
+// Event listener for "Load More" (add after DOM ready)
 document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
+
 window.closeTransactionModal = function() {
   const modal = document.getElementById('transactionModal');
   if (modal) modal.style.display = 'none';

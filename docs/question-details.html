@@ -106,17 +106,18 @@
           container.innerHTML = '<p>No bids yet. Check back later.</p>';
         } else {
           container.innerHTML = bids.map(b => `
-      <div class="bid-item" style="position:relative; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
-     <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
-     Bid amount: <strong>$${b.amount}</strong><br>
-     <div class="tutor-tooltip" style="display:none; position:absolute; background:var(--white); border:1px solid #ccc; padding:0.5rem; border-radius:0.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.1); z-index:10; max-width:200px;">
-      Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
-      Completed: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
-      Subjects: ${b.tutorId.tutorProfile?.subjects?.join(', ') || 'Not specified'}
-     </div>
-     <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
-      </div>
-     `).join('');
+            <div class="bid-item" style="position:relative; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+              <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
+              Bid amount: <strong>$${b.amount}</strong><br>
+              <div class="tutor-tooltip" style="display:none; position:absolute; background:var(--white); border:1px solid #ccc; padding:0.5rem; border-radius:0.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.1); z-index:10; max-width:200px;">
+                Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
+                Completed: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
+                Subjects: ${b.tutorId.tutorProfile?.subjects?.join(', ') || 'Not specified'}
+              </div>
+              <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
+            </div>
+          `).join('');
+          attachTooltipEvents();
         }
         document.getElementById('bidsSection').style.display = 'block';
       } catch (err) {
@@ -125,25 +126,39 @@
       }
     }
 
-    // Attach tooltip events after bids are loaded
-function attachTooltipEvents() {
-  document.querySelectorAll('.bid-item').forEach(item => {
-    const tooltip = item.querySelector('.tutor-tooltip');
-    if (!tooltip) return;
-    item.addEventListener('mouseenter', () => tooltip.style.display = 'block');
-    item.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-  });
-}
+    function attachTooltipEvents() {
+      document.querySelectorAll('.bid-item').forEach(item => {
+        const tooltip = item.querySelector('.tutor-tooltip');
+        if (!tooltip) return;
+        item.addEventListener('mouseenter', () => tooltip.style.display = 'block');
+        item.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+      });
+    }
 
-    // ---------- Accept a Bid ----------
+    // ---------- Enhanced Accept a Bid ----------
     window.acceptBid = async (bidId, bidAmount) => {
       if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) return;
+
+      // Optional: disable button to prevent double-click (not implemented for brevity)
       try {
         const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
-        alert(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`);
-        location.reload(); // refresh page – bids disappear, status changes
+        showToast(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`, 'success');
+        // Reload the page – bids section will disappear because question is now assigned
+        location.reload();
       } catch (err) {
-        alert(err.message);
+        // Parse insufficient balance error
+        const errorMsg = err.message;
+        if (errorMsg.includes('Insufficient balance')) {
+          // Extract the amount needed from the error message
+          const match = errorMsg.match(/Need \$([\d.]+) more/);
+          const neededAmount = match ? match[1] : 'the required amount';
+          const userConfirmed = confirm(`⚠️ Insufficient wallet balance. You need to add $${neededAmount} to your wallet before accepting this bid.\n\nClick OK to go to your dashboard and add funds.`);
+          if (userConfirmed) {
+            window.location.href = 'student-dashboard.html?action=addFunds';
+          }
+        } else {
+          showToast(errorMsg, 'error');
+        }
       }
     };
 
