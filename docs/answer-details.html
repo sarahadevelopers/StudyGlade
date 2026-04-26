@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Answer Details - StudyGlade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo">StudyGlade</a>
+      <div class="nav-links">
+        <a href="student-dashboard.html" style="margin-right: 1rem;">Dashboard</a>
+        <span id="walletDisplay"></span>
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" style="padding: 2rem 0;">
+    <div id="answerDetails" class="card"></div>
+    <div id="answerFileSection" class="card" style="display:none;"></div>
+    <div id="commentsSection" class="card">
+      <h3>💬 Discussion with Tutor</h3>
+      <div id="commentsList"></div>
+      <div id="addComment">
+        <textarea id="commentText" rows="3" placeholder="Ask a follow-up question or provide clarification..."></textarea>
+        <input type="file" id="commentFile" accept="image/*,application/pdf,.doc,.docx,.txt"><br>
+        <button id="postCommentBtn" class="btn" style="margin-top:0.5rem;">Post Comment (with optional file)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const questionId = urlParams.get('id');
+    if (!questionId) {
+      alert('No question specified');
+      window.location.href = '/';
+    }
+
+    let currentUser = null;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    async function loadAnswerDetails() {
+      try {
+        const q = await apiFetch(`/questions/${questionId}`);
+        currentUser = JSON.parse(localStorage.getItem('user'));
+
+        // Question metadata
+        const titleHtml = `<h2>${escapeHtml(q.title)}</h2><p>${escapeHtml(q.description)}</p>`;
+        const metaHtml = `<p><strong>Budget:</strong> $${q.budget} | <strong>Status:</strong> ${escapeHtml(q.status)}</p>`;
+        document.getElementById('answerDetails').innerHTML = titleHtml + metaHtml;
+
+        // Answer file display
+        const answerDiv = document.getElementById('answerFileSection');
+        if (q.answerFile) {
+          let content = `<h3>📄 Answer</h3>`;
+          if (q.answerFile.endsWith('.pdf')) {
+            content += `<iframe src="${escapeHtml(q.answerFile)}" width="100%" height="500px" style="border:1px solid #ddd; border-radius:8px;"></iframe>`;
+            content += `<p style="margin-top:0.5rem;"><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn-outline">📥 Download PDF</a></p>`;
+          } else if (q.answerFile.match(/\.(jpg|jpeg|png|gif)$/)) {
+            content += `<img src="${escapeHtml(q.answerFile)}" style="max-width:100%; border-radius:8px;">`;
+            content += `<p style="margin-top:0.5rem;"><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn-outline">🔍 Open image in new tab</a></p>`;
+          } else {
+            content += `<p><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn">📎 Download Answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
+          }
+          answerDiv.innerHTML = content;
+          answerDiv.style.display = 'block';
+        } else {
+          answerDiv.style.display = 'none';
+        }
+
+        await loadComments();
+      } catch (err) {
+        document.getElementById('answerDetails').innerHTML = `<p style="color:red;">Error loading answer: ${err.message}</p>`;
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const comments = await apiFetch(`/comments/question/${questionId}`);
+        const container = document.getElementById('commentsList');
+        if (comments.length === 0) {
+          container.innerHTML = '<p>No discussion yet. Start a conversation with your tutor.</p>';
+          return;
+        }
+        const currentUserId = currentUser ? currentUser.id : null;
+        container.innerHTML = comments.map(c => `
+          <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
+            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
+            <small>${new Date(c.createdAt).toLocaleString()}</small>
+            <p>${escapeHtml(c.text)}</p>
+            ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" target="_blank">📎 Download attached file</a></p>` : ''}
+            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
+              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
+              : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('commentsList').innerHTML = `<p style="color:red;">Error loading discussion: ${err.message}</p>`;
+      }
+    }
+
+    document.getElementById('postCommentBtn').addEventListener('click', async () => {
+      const text = document.getElementById('commentText').value;
+      const fileInput = document.getElementById('commentFile');
+      const file = fileInput.files[0];
+      if (!text.trim() && !file) {
+        alert('Please enter a comment or attach a file.');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('questionId', questionId);
+      if (text.trim()) formData.append('text', text);
+      if (file) formData.append('file', file);
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${window.API_BASE}/comments`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        if (res.ok) {
+          document.getElementById('commentText').value = '';
+          fileInput.value = '';
+          loadComments();
+        } else {
+          const data = await res.json();
+          alert(data.error);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    async function deleteComment(commentId) {
+      if (confirm('Delete this comment?')) {
+        try {
+          await apiFetch(`/comments/${commentId}`, { method: 'DELETE' });
+          loadComments();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+    }
+
+    loadAnswerDetails();
+  </script>
+</body>
+</html>

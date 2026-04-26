@@ -27,21 +27,21 @@ async function loadStudentDashboard() {
       </tr>`;
       activeTable.innerHTML += row;
     } else if (q.status === 'completed') {
-      // Completed questions – show View Answer button if answer exists
-      let viewAnswerBtn = '';
-      if (q.answerFile) {
-        viewAnswerBtn = `<button class="btn-outline btn-sm" onclick="window.open('${escapeHtml(q.answerFile)}', '_blank')">View Answer</button>`;
-      } else {
-        viewAnswerBtn = `<span class="disabled">No answer uploaded</span>`;
-      }
-      const row = `<tr>
-        <td>${safeTitle}</td>
-        <td>${safeTutor}</td>
-        <td>${safeStatus}</td>
-        <td>${budget}</td>
-        <td>${viewAnswerBtn}</td>
-      </tr>`;
-      completedTable.innerHTML += row;
+     // Completed questions – show View Answer button if answer exists
+let viewAnswerBtn = '';
+if (q.answerFile) {
+  viewAnswerBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`;
+} else {
+  viewAnswerBtn = `<span class="disabled">No answer uploaded</span>`;
+}
+const row = `<tr>
+  <td>${safeTitle}</td>
+  <td>${safeTutor}</td>
+  <td>${safeStatus}</td>
+  <td>${budget}</td>
+  <td>${viewAnswerBtn}</td>
+</tr>`;
+completedTable.innerHTML += row;
     }
   });
 
@@ -50,7 +50,7 @@ async function loadStudentDashboard() {
 }
 
 // ---------- Add Funds with Paystack ----------
-async function addFunds() {
+async function addFunds(event) {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
     showToast('Please enter a valid positive amount.', 'error');
