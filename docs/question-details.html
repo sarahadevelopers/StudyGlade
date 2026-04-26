@@ -114,8 +114,7 @@
                 Completed: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
                 Subjects: ${b.tutorId.tutorProfile?.subjects?.join(', ') || 'Not specified'}
               </div>
-              <button onclick="acceptBid('${b._id}', ${b.amount})" class="btn" style="margin-top:0.5rem;">Accept this bid</button>
-            </div>
+          <button onclick="acceptBid('${b._id}', ${b.amount}, event)" class="btn" style="margin-top:0.5rem;">Accept this bid</button>  </div>
           `).join('');
           attachTooltipEvents();
         }
@@ -136,31 +135,31 @@
     }
 
     // ---------- Enhanced Accept a Bid ----------
-    window.acceptBid = async (bidId, bidAmount) => {
-      if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) return;
-
-      // Optional: disable button to prevent double-click (not implemented for brevity)
-      try {
-        const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
-        showToast(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`, 'success');
-        // Reload the page – bids section will disappear because question is now assigned
-        location.reload();
-      } catch (err) {
-        // Parse insufficient balance error
-        const errorMsg = err.message;
-        if (errorMsg.includes('Insufficient balance')) {
-          // Extract the amount needed from the error message
-          const match = errorMsg.match(/Need \$([\d.]+) more/);
-          const neededAmount = match ? match[1] : 'the required amount';
-          const userConfirmed = confirm(`⚠️ Insufficient wallet balance. You need to add $${neededAmount} to your wallet before accepting this bid.\n\nClick OK to go to your dashboard and add funds.`);
-          if (userConfirmed) {
-            window.location.href = 'student-dashboard.html?action=addFunds';
-          }
-        } else {
-          showToast(errorMsg, 'error');
-        }
-      }
-    };
+   window.acceptBid = async (bidId, bidAmount, event) => {
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Accepting...';
+  }
+  if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Accept this bid';
+    }
+    return;
+  }
+  try {
+    const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
+    showToast(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`, 'success');
+    location.reload();
+  } catch (err) {
+    showToast(err.message, 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Accept this bid';
+    }
+  }
+};
 
     // ---------- Load Comments (with file attachment display) ----------
     async function loadComments() {

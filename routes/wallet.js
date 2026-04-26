@@ -6,7 +6,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const router = express.Router();
 
-// ---------- Get wallet balance & transactions ----------
+// ---------- Get wallet balance & transactions (paginated) ----------
 router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -49,11 +49,11 @@ router.post('/paystack/initialize', auth, async (req, res) => {
     const { amount } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
     const user = await User.findById(req.userId);
-    const amountInKobo = Math.round(amount * 100); // USD → cents
+    const amountInKobo = Math.round(amount * 100);
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
       email: user.email,
       amount: amountInKobo,
-      currency: 'USD',                           // 👈 explicit USD currency
+      currency: 'USD',
       callback_url: `${process.env.FRONTEND_URL}/student-dashboard.html`,
       metadata: {
         userId: req.userId,
@@ -73,7 +73,7 @@ router.post('/paystack/initialize', auth, async (req, res) => {
   }
 });
 
-// ---------- PAYSTACK WEBHOOK (charge.success) ----------
+// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention ----------
 router.post('/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
@@ -85,11 +85,20 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
   if (event.event === 'charge.success') {
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;
+
+    // 🚫 DUPLICATE PREVENTION: check if transaction already processed
+    const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
+    if (existingTx) {
+      console.log(`Duplicate webhook ignored for ref ${reference}`);
+      return res.sendStatus(200);
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       console.error(`User ${userId} not found for webhook`);
       return res.status(404).send('User not found');
     }
+
     // Double-check transaction via Paystack API (optional but safe)
     const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${secret}` }
@@ -103,6 +112,8 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       console.error(`Amount mismatch: expected ${amount}, got ${verifiedAmount}`);
       return res.status(400).send('Amount mismatch');
     }
+
+    // Credit wallet
     user.walletBalance += verifiedAmount;
     await user.save();
     await Transaction.create({
@@ -131,4 +142,6 @@ router.post('/withdraw', auth, async (req, res) => {
   }
 });
 
+// (Optional) To prevent future duplicates at database level, run this once in MongoDB:
+// Transaction.collection.createIndex({ description: 1 }, { unique: true, partialFilterExpression: { description: /^Paystack deposit - Ref:/ } });
 module.exports = router;

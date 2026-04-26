@@ -340,6 +340,11 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     if (!bid || bid.questionId.toString() !== question._id.toString()) {
       return res.status(404).json({ error: 'Bid not found' });
     }
+    // === NEW: prevent duplicate acceptance ===
+    if (bid.accepted) {
+      return res.status(400).json({ error: 'Bid already accepted' });
+    }
+
     const student = await User.findById(req.userId);
     const originalBudget = question.budget;
     const bidAmount = bid.amount;
@@ -373,10 +378,14 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     }
 
     // Update question
-    question.budget = bidAmount;          // update to agreed amount
+    question.budget = bidAmount;
     question.tutorId = bid.tutorId;
     question.status = 'assigned';
     await question.save();
+
+    // === NEW: mark bid as accepted ===
+    bid.accepted = true;
+    await bid.save();
 
     res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
   } catch (err) {
