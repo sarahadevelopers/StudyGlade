@@ -2,6 +2,7 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const Withdrawal = require('../models/Withdrawal');  // <-- new model
 const axios = require('axios');
 const crypto = require('crypto');
 const router = express.Router();
@@ -28,7 +29,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ---------- SIMULATED ADD FUNDS (for testing, optional) ----------
+// ---------- SIMULATED ADD FUNDS (for testing) ----------
 router.post('/add-funds', auth, async (req, res) => {
   try {
     const { amount } = req.body;
@@ -86,7 +87,7 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;
 
-    // 🚫 DUPLICATE PREVENTION: check if transaction already processed
+    // Duplicate prevention
     const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
     if (existingTx) {
       console.log(`Duplicate webhook ignored for ref ${reference}`);
@@ -99,7 +100,7 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       return res.status(404).send('User not found');
     }
 
-    // Double-check transaction via Paystack API (optional but safe)
+    // Verify via Paystack API
     const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${secret}` }
     });
@@ -127,21 +128,47 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
   res.sendStatus(200);
 });
 
-// ---------- Withdraw request (unchanged) ----------
+// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) ----------
 router.post('/withdraw', auth, async (req, res) => {
   try {
-    const { amount, method } = req.body;
+    const { amount, method, accountDetails } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    if (!method || !accountDetails) return res.status(400).json({ error: 'Missing method or account details' });
+
     const user = await User.findById(req.userId);
     if (user.walletBalance < amount) return res.status(400).json({ error: 'Insufficient balance' });
+
+    // Deduct immediately (virtual hold)
     user.walletBalance -= amount;
     await user.save();
-    await Transaction.create({ userId: req.userId, type: 'withdraw', amount: -amount, description: `Withdrawal request: $${amount} via ${method}` });
-    res.json({ message: 'Withdrawal request submitted. Funds will be sent within 3-5 business days.', balance: user.walletBalance });
+
+    // Create withdrawal request for admin
+    const withdrawal = new Withdrawal({
+      userId: user._id,
+      amount,
+      method,
+      accountDetails,
+      status: 'pending'
+    });
+    await withdrawal.save();
+
+    // Record transaction
+    await Transaction.create({
+      userId: req.userId,
+      type: 'withdraw',
+      amount: -amount,
+      description: `Withdrawal request #${withdrawal._id}: $${amount} via ${method}`
+    });
+
+    console.log(`Withdrawal request #${withdrawal._id} for $${amount} by ${user.email}`);
+
+    res.json({ message: 'Withdrawal request submitted. Admin will process within 3‑5 business days.', withdrawalId: withdrawal._id, balance: user.walletBalance });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// (Optional) To prevent future duplicates at database level, run this once in MongoDB:
+// Optional unique index for duplicate webhook prevention (run once in MongoDB)
 // Transaction.collection.createIndex({ description: 1 }, { unique: true, partialFilterExpression: { description: /^Paystack deposit - Ref:/ } });
+
 module.exports = router;

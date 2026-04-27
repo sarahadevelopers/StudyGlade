@@ -17,14 +17,30 @@ const questionSchema = new mongoose.Schema({
     enum: ['pending', 'assigned', 'completed', 'cancelled'], 
     default: 'pending' 
   },
-  // Budget suggestion fields
+  // Budget suggestion
   suggestedBudget: { type: Number, default: 0 },
   suggestedTutorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   budgetSuggestionSent: { type: Boolean, default: false },
-  // Answer file fields
+  // Answer file
   answerFile: { type: String, default: '' },
   answerFileName: { type: String, default: '' },
   answerUploadedAt: { type: Date, default: null },
+  // Rating (student gives after completion)
+  rating: {
+    score: { type: Number, min: 1, max: 5 },
+    feedback: { type: String },
+    createdAt: { type: Date }
+  },
+  // Tutor requests additional funds
+  additionalFundsRequest: {
+    amount: { type: Number },
+    reason: { type: String },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    requestedAt: Date,
+    studentResponseAt: Date
+  },
+  // Tutor cancellation reason (no penalty)
+  cancellationReason: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

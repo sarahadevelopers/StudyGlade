@@ -4,34 +4,82 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
 const cookieParser = require('cookie-parser');
-const path = require('path');   // added for static file serving
+const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
+const app = express();
+
+// ---------- 1. ENSURE UPLOADS FOLDER EXISTS ----------
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+  console.log('📁 Created uploads folder');
+}
+
+// ---------- 2. MULTER CONFIGURATION (exported for routes) ----------
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain'
+  ];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Allowed: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG, GIF, TXT'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// ✅ EXPORT IMMEDIATELY – before any route requires
+module.exports.upload = upload;
+
+// ---------- 3. NOW REQUIRE ROUTES (they can import the upload) ----------
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const documentRoutes = require('./routes/documents');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
+
+// Models for cron jobs (these do NOT depend on upload)
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 
-const app = express();
-
-// ---------- CORS configuration (allow credentials) ----------
-// Since frontend and backend are now on the same origin, we can relax CORS.
-// Allow localhost for development, and the Render domain for production.
+// ---------- 4. CORS CONFIGURATION ----------
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
-  'https://studyglade.onrender.com'   // the domain where both frontend & backend live
+  'https://studyglade.onrender.com'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      const msg = 'CORS policy does not allow this origin.';
       return callback(new Error(msg), false);
     }
     return callback(null, true);
@@ -39,17 +87,17 @@ app.use(cors({
   credentials: true
 }));
 
-// Other middleware
+// ---------- 5. STANDARD MIDDLEWARE ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// MongoDB connection
+// ---------- 6. DATABASE CONNECTION ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// API routes (must come before static serving)
+// ---------- 7. API ROUTES ----------
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -57,19 +105,19 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => res.send('OK'));
 
-// ---------- Serve static frontend files from 'docs' ----------
+// ---------- 8. STATIC FRONTEND (docs folder) ----------
 app.use(express.static(path.join(__dirname, 'docs')));
 
-// For any other route not matched by API or static files, serve index.html
-// (this allows client‑side routing, e.g., /student-dashboard)
+// Catch-all for client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'index.html'));
 });
 
-// ---------- CRON JOB: Check for pending questions >6h and create budget suggestions ----------
+// ---------- 9. CRON JOBS ----------
+// Budget suggestion (every hour)
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -97,11 +145,20 @@ cron.schedule('0 * * * *', async () => {
     console.error('Cron job error:', err);
   }
 });
-// -----------------------------------------------------------------
 
-const PORT = process.env.PORT || 5000;
+// Tutor level progression (every midnight)
+const updateTutorLevels = require('./utils/updateTutorLevels');
+cron.schedule('0 0 * * *', () => {
+  console.log('Running tutor level update...');
+  updateTutorLevels().catch(console.error);
+});
+
+// ---------- 10. GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   res.status(500).json({ error: err.message });
 });
+
+// ---------- 11. START SERVER ----------
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

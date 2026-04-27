@@ -8,69 +8,114 @@ async function loadStudentDashboard() {
   activeTable.innerHTML = '';
   completedTable.innerHTML = '';
 
-  questions.forEach(q => {
-    // Escape data for security
+  for (const q of questions) {
     const safeTitle = escapeHtml(q.title);
     const safeTutor = escapeHtml(q.tutorId?.fullName || 'None');
     const safeStatus = escapeHtml(q.status);
     const budget = `$${q.budget}`;
 
     if (q.status === 'pending' || q.status === 'assigned') {
-      // Active questions row – add View Question button
-      const viewQuestionBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
-      const row = `<tr>
-        <td>${safeTitle}</td>
-        <td>${safeTutor}</td>
-        <td>${safeStatus}</td>
-        <td>${budget}</td>
-        <td>${viewQuestionBtn}</td>
-      </tr>`;
+      const viewBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
+      const row = `<tr><td>${safeTitle}</td><td>${safeTutor}</td><td>${safeStatus}</td><td>${budget}</td><td>${viewBtn}</td></tr>`;
       activeTable.innerHTML += row;
     } else if (q.status === 'completed') {
-     // Completed questions – show View Answer button if answer exists
-let viewAnswerBtn = '';
-if (q.answerFile) {
-  viewAnswerBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`;
-} else {
-  viewAnswerBtn = `<span class="disabled">No answer uploaded</span>`;
-}
-const row = `<tr>
-  <td>${safeTitle}</td>
-  <td>${safeTutor}</td>
-  <td>${safeStatus}</td>
-  <td>${budget}</td>
-  <td>${viewAnswerBtn}</td>
-</tr>`;
-completedTable.innerHTML += row;
+      let viewAnswerBtn = q.answerFile ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>` : '<span class="disabled">No answer</span>';
+      let rateBtn = '';
+      if (!q.rating || !q.rating.score) {
+        rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">Rate Tutor</button>`;
+      }
+      const row = `<tr><td>${safeTitle}</td><td>${safeTutor}${rateBtn}</td><td>${safeStatus}</td><td>${budget}</td><td>${viewAnswerBtn}</td></tr>`;
+      completedTable.innerHTML += row;
     }
-  });
+  }
 
-  // Check for budget suggestions (after table is loaded)
   await checkForSuggestions(questions);
+  await checkForFundsRequests(questions);
 }
 
-// ---------- Add Funds with Paystack ----------
-async function addFunds(event) {
-  const amount = prompt('Enter amount to add ($):');
-  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-    showToast('Please enter a valid positive amount.', 'error');
-    return;
-  }
+// ---------- RATING MODAL (NEW) ----------
+let currentRatingQuestionId = null;
+
+window.showRatingModal = function(questionId, tutorName) {
+  currentRatingQuestionId = questionId;
+  document.getElementById('ratingModalTutorName').innerText = tutorName;
+  document.getElementById('ratingModal').style.display = 'block';
+  document.getElementById('ratingFeedback').value = '';
+  document.querySelectorAll('.star').forEach(star => star.classList.remove('selected'));
+};
+
+window.submitRating = async function() {
+  const selectedStar = document.querySelector('.star.selected');
+  if (!selectedStar) { showToast('Select a star rating', 'error'); return; }
+  const score = parseInt(selectedStar.dataset.value);
+  const feedback = document.getElementById('ratingFeedback').value;
   try {
-    const btn = event?.target;
-    if (btn) showSpinner(btn);
-    const { url } = await apiFetch('/wallet/paystack/initialize', {
+    await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
-      body: JSON.stringify({ amount: parseFloat(amount) })
+      body: JSON.stringify({ score, feedback })
     });
-    window.location.href = url;
+    showToast('Thank you for rating!', 'success');
+    document.getElementById('ratingModal').style.display = 'none';
+    loadStudentDashboard(); // refresh to remove rate button
   } catch (err) {
     showToast(err.message, 'error');
-    if (btn) hideSpinner(btn);
+  }
+};
+
+// Star selection (attach after modal opens)
+document.addEventListener('DOMContentLoaded', () => {
+  const starContainer = document.querySelector('#ratingModal .star');
+  if (starContainer) {
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', function() {
+        const val = this.dataset.value;
+        document.querySelectorAll('.star').forEach(s => s.classList.remove('selected'));
+        for (let i = 1; i <= val; i++) {
+          document.querySelector(`.star[data-value='${i}']`).classList.add('selected');
+        }
+      });
+    });
+  }
+});
+
+// ---------- RESPOND TO ADDITIONAL FUNDS REQUEST (NEW) ----------
+async function checkForFundsRequests(questions) {
+  for (const q of questions) {
+    if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
+      if (document.getElementById(`funds-banner-${q._id}`)) continue;
+      const banner = document.createElement('div');
+      banner.id = `funds-banner-${q._id}`;
+      banner.className = 'card';
+      banner.style.backgroundColor = '#fff3cd';
+      banner.style.borderLeft = '4px solid #ffc107';
+      banner.style.marginBottom = '1rem';
+      banner.innerHTML = `
+        <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
+        Tutor requests <strong>$${q.additionalFundsRequest.amount}</strong> extra.<br>
+        Reason: ${escapeHtml(q.additionalFundsRequest.reason)}<br>
+        <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
+        <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
+      `;
+      const container = document.querySelector('.container');
+      container.insertBefore(banner, container.firstChild);
+    }
   }
 }
 
-// ---------- Budget Suggestion System ----------
+window.respondToFunds = async function(questionId, accept) {
+  try {
+    await apiFetch(`/questions/${questionId}/respond-funds-request`, {
+      method: 'POST',
+      body: JSON.stringify({ accept })
+    });
+    showToast(accept ? 'Additional funds added' : 'Request rejected', 'success');
+    location.reload();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+// ---------- Budget Suggestion System (unchanged from your original) ----------
 async function checkForSuggestions(questions) {
   const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
   for (const q of pendingWithSuggestion) {
@@ -106,6 +151,27 @@ window.acceptSuggestion = async (questionId) => {
   }
 };
 
+// ---------- Add Funds with Paystack (unchanged) ----------
+async function addFunds(event) {
+  const amount = prompt('Enter amount to add ($):');
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+    showToast('Please enter a valid positive amount.', 'error');
+    return;
+  }
+  try {
+    const btn = event?.target;
+    if (btn) btn.disabled = true;
+    const { url } = await apiFetch('/wallet/paystack/initialize', {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseFloat(amount) })
+    });
+    window.location.href = url;
+  } catch (err) {
+    showToast(err.message, 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ---------- Transaction History (pagination) ----------
 let transactionPage = 1;
 let transactionHasMore = true;
@@ -140,26 +206,22 @@ async function loadTransactionHistory(reset = true) {
   }
 }
 
-// Replace the old showTransactionHistory:
 window.showTransactionHistory = async function() {
   await loadTransactionHistory(true);
   document.getElementById('transactionModal').style.display = 'block';
 };
-
-// Event listener for "Load More" (add after DOM ready)
+window.closeTransactionModal = function() {
+  document.getElementById('transactionModal').style.display = 'none';
+};
 document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
 
-window.closeTransactionModal = function() {
-  const modal = document.getElementById('transactionModal');
-  if (modal) modal.style.display = 'none';
-};
-
-// ---------- Poll for suggestions every 30 seconds ----------
+// ---------- Poll for suggestions & funds requests every 30 seconds ----------
 setInterval(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
   if (user && user.role === 'student') {
     const questions = await apiFetch('/questions/my-questions');
     await checkForSuggestions(questions);
+    await checkForFundsRequests(questions);
   }
 }, 30000);
 

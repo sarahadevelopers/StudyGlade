@@ -10,7 +10,7 @@
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
       <div class="nav-links">
-        <a href="student-dashboard.html" style="margin-right: 1rem;">Dashboard</a>
+        <a href="#" id="dashboardLink" style="margin-right: 1rem;">Dashboard</a>
         <span id="walletDisplay"></span>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
@@ -20,12 +20,28 @@
   <div class="container" style="padding: 2rem 0;">
     <div id="questionDetails" class="card"></div>
 
-    <!-- Bids Section (visible only for students if question pending) -->
+    <!-- Tutor Actions (visible only if tutor is assigned) -->
+    <div id="tutorActions" class="card" style="display: none;">
+      <h3>Tutor Actions</h3>
+      <button id="requestFundsBtn" class="btn">💰 Request Additional Funds</button>
+      <button id="cancelAssignmentBtn" class="btn-outline" style="background:#ef4444; color:white;">❌ Cancel Assignment (No Penalty)</button>
+    </div>
+
+    <!-- Student Response to Funds Request -->
+    <div id="fundsRequestCard" class="card" style="display: none;">
+      <h3>📢 Additional Funds Request</h3>
+      <p id="fundsRequestDetails"></p>
+      <button id="approveFundsBtn" class="btn">✅ Approve & Pay</button>
+      <button id="rejectFundsBtn" class="btn-outline">❌ Reject</button>
+    </div>
+
+    <!-- Bids Section (student only) -->
     <div id="bidsSection" class="card" style="display: none;">
       <h3>💼 Bids from Tutors</h3>
       <div id="bidsList"></div>
     </div>
 
+    <!-- Comments Section -->
     <div id="commentsSection" class="card">
       <h3>Comments & Clarifications</h3>
       <div id="commentsList"></div>
@@ -42,161 +58,177 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const questionId = urlParams.get('id');
-    if (!questionId) {
-      alert('No question specified');
-      window.location.href = '/';
-    }
+    let currentUser = null;
+    let currentQuestion = null;
+
+    if (!questionId) { alert('No question specified'); window.location.href = '/'; }
 
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
+      return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
-    // ---------- Load Question Details ----------
+    // ---------- Load everything ----------
+    async function loadPage() {
+      currentUser = JSON.parse(localStorage.getItem('user'));
+      // Set dashboard link based on role
+      const dashboardLink = document.getElementById('dashboardLink');
+      if (currentUser.role === 'student') dashboardLink.href = 'student-dashboard.html';
+      else if (currentUser.role === 'tutor') dashboardLink.href = 'tutor-dashboard.html';
+      else dashboardLink.href = 'admin-dashboard.html';
+
+      await loadQuestion();
+      if (currentUser.role === 'student' && currentQuestion.status === 'pending') await loadBids();
+      await loadComments();
+      checkSpecialActions();
+    }
+
     async function loadQuestion() {
       try {
-        const q = await apiFetch(`/questions/${questionId}`);
-
-        let filesHtml = '';
-        if (q.files && q.files.length > 0) {
+        currentQuestion = await apiFetch(`/questions/${questionId}`);
+        let filesHtml = '', answerHtml = '';
+        if (currentQuestion.files?.length) {
           filesHtml = '<p><strong>Attached files:</strong></p><ul>';
-          q.files.forEach(url => {
-            filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download file</a></li>`;
-          });
+          currentQuestion.files.forEach(url => filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download file</a></li>`);
           filesHtml += '</ul>';
         }
-
-        let answerHtml = '';
-        if (q.answerFile) {
-          answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(q.answerFile)}" target="_blank">Download answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
+        if (currentQuestion.answerFile) {
+          answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(currentQuestion.answerFile)}" target="_blank">Download answer (${escapeHtml(currentQuestion.answerFileName || 'file')})</a></p>`;
         }
-
         document.getElementById('questionDetails').innerHTML = `
-          <h2>${escapeHtml(q.title)}</h2>
-          <p>${escapeHtml(q.description)}</p>
-          <p><strong>Budget:</strong> $${q.budget} | <strong>Status:</strong> ${escapeHtml(q.status)}</p>
-          <p><strong>Category:</strong> ${escapeHtml(q.category)} | <strong>Deadline:</strong> ${new Date(q.deadline).toLocaleString()}</p>
-          <p><strong>School:</strong> ${escapeHtml(q.school || 'Not specified')} | <strong>Course:</strong> ${escapeHtml(q.course || 'Not specified')}</p>
-          ${filesHtml}
-          ${answerHtml}
+          <h2>${escapeHtml(currentQuestion.title)}</h2>
+          <p>${escapeHtml(currentQuestion.description)}</p>
+          <p><strong>Budget:</strong> $${currentQuestion.budget} | <strong>Status:</strong> ${escapeHtml(currentQuestion.status)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(currentQuestion.category)} | <strong>Deadline:</strong> ${new Date(currentQuestion.deadline).toLocaleString()}</p>
+          <p><strong>School:</strong> ${escapeHtml(currentQuestion.school || 'Not specified')} | <strong>Course:</strong> ${escapeHtml(currentQuestion.course || 'Not specified')}</p>
+          ${filesHtml} ${answerHtml}
         `;
-
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user && user.role === 'student' && q.status === 'pending') {
-          await loadBids();
-        } else {
-          document.getElementById('bidsSection').style.display = 'none';
-        }
       } catch (err) {
-        document.getElementById('questionDetails').innerHTML = `<p style="color:red;">Error loading question: ${err.message}</p>`;
+        document.getElementById('questionDetails').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
       }
     }
 
-    // ---------- Load Bids ----------
     async function loadBids() {
       try {
         const bids = await apiFetch(`/questions/${questionId}/bids`);
         const container = document.getElementById('bidsList');
-        if (!bids.length) {
-          container.innerHTML = '<p>No bids yet. Check back later.</p>';
-        } else {
+        if (!bids.length) container.innerHTML = '<p>No bids yet.</p>';
+        else {
           container.innerHTML = bids.map(b => `
-            <div class="bid-item" style="position:relative; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+            <div class="bid-item" style="border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
               <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
               Bid amount: <strong>$${b.amount}</strong><br>
-              <div class="tutor-tooltip" style="display:none; position:absolute; background:var(--white); border:1px solid #ccc; padding:0.5rem; border-radius:0.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.1); z-index:10; max-width:200px;">
-                Rating: ${b.tutorId.tutorProfile?.rating || 'No rating yet'} ⭐<br>
-                Completed: ${b.tutorId.tutorProfile?.completedQuestions || 0}<br>
-                Subjects: ${b.tutorId.tutorProfile?.subjects?.join(', ') || 'Not specified'}
-              </div>
-          <button onclick="acceptBid('${b._id}', ${b.amount}, event)" class="btn" style="margin-top:0.5rem;">Accept this bid</button>  </div>
+              <button onclick="acceptBid('${b._id}', ${b.amount}, event)" class="btn">Accept this bid</button>
+            </div>
           `).join('');
-          attachTooltipEvents();
         }
         document.getElementById('bidsSection').style.display = 'block';
+      } catch (err) { console.error(err); }
+    }
+
+    window.acceptBid = async (bidId, bidAmount, event) => {
+      const btn = event.target;
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Accepting...'; }
+      if (!confirm(`Accept bid $${bidAmount}? Your wallet will be adjusted.`)) {
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Accept this bid'; }
+        return;
+      }
+      try {
+        const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
+        showToast(`Bid accepted! New budget $${result.newBudget}`, 'success');
+        location.reload();
       } catch (err) {
-        console.error('Error loading bids:', err);
-        document.getElementById('bidsList').innerHTML = '<p>Error loading bids.</p>';
+        showToast(err.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Accept this bid'; }
+      }
+    };
+
+    // ---------- Tutor Actions (Additional Funds & Cancel) ----------
+    function checkSpecialActions() {
+      const tutorActionsDiv = document.getElementById('tutorActions');
+      const fundsRequestDiv = document.getElementById('fundsRequestCard');
+      if (currentUser.role === 'tutor' && currentQuestion.tutorId === currentUser.id && currentQuestion.status === 'assigned') {
+        tutorActionsDiv.style.display = 'block';
+        document.getElementById('requestFundsBtn').onclick = () => requestAdditionalFunds();
+        document.getElementById('cancelAssignmentBtn').onclick = () => cancelAssignment();
+      } else {
+        tutorActionsDiv.style.display = 'none';
+      }
+
+      // Student: show pending funds request
+      if (currentUser.role === 'student' && currentQuestion.additionalFundsRequest && currentQuestion.additionalFundsRequest.status === 'pending') {
+        const req = currentQuestion.additionalFundsRequest;
+        document.getElementById('fundsRequestDetails').innerHTML = `Tutor requests <strong>$${req.amount}</strong> extra.<br>Reason: ${escapeHtml(req.reason)}`;
+        fundsRequestDiv.style.display = 'block';
+        document.getElementById('approveFundsBtn').onclick = () => respondToFundsRequest(true);
+        document.getElementById('rejectFundsBtn').onclick = () => respondToFundsRequest(false);
+      } else {
+        fundsRequestDiv.style.display = 'none';
       }
     }
 
-    function attachTooltipEvents() {
-      document.querySelectorAll('.bid-item').forEach(item => {
-        const tooltip = item.querySelector('.tutor-tooltip');
-        if (!tooltip) return;
-        item.addEventListener('mouseenter', () => tooltip.style.display = 'block');
-        item.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-      });
+    async function requestAdditionalFunds() {
+      const amount = prompt('Additional amount requested ($):');
+      if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return showToast('Invalid amount', 'error');
+      const reason = prompt('Reason for additional funds:');
+      if (!reason) return showToast('Reason required', 'error');
+      try {
+        await apiFetch(`/questions/${questionId}/request-additional-funds`, {
+          method: 'POST',
+          body: JSON.stringify({ amount: parseFloat(amount), reason })
+        });
+        showToast('Request sent to student', 'success');
+        location.reload();
+      } catch (err) { showToast(err.message, 'error'); }
     }
 
-    // ---------- Enhanced Accept a Bid ----------
-   window.acceptBid = async (bidId, bidAmount, event) => {
-  const btn = event?.target;
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Accepting...';
-  }
-  if (!confirm(`Accept bid of $${bidAmount}? Your wallet will be adjusted (extra charge or refund).`)) {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Accept this bid';
+    async function cancelAssignment() {
+      const reason = prompt('Why are you cancelling? (No penalty)');
+      if (!reason) return;
+      if (!confirm('Cancel this assignment? You will not be penalized.')) return;
+      try {
+        await apiFetch(`/questions/${questionId}/cancel-assignment`, {
+          method: 'POST',
+          body: JSON.stringify({ reason })
+        });
+        showToast('Assignment cancelled', 'success');
+        location.reload();
+      } catch (err) { showToast(err.message, 'error'); }
     }
-    return;
-  }
-  try {
-    const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
-    showToast(`Bid accepted! Tutor assigned. New budget: $${result.newBudget}`, 'success');
-    location.reload();
-  } catch (err) {
-    showToast(err.message, 'error');
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Accept this bid';
-    }
-  }
-};
 
-    // ---------- Load Comments (with file attachment display) ----------
+    async function respondToFundsRequest(accept) {
+      try {
+        await apiFetch(`/questions/${questionId}/respond-funds-request`, {
+          method: 'POST',
+          body: JSON.stringify({ accept })
+        });
+        showToast(accept ? 'Additional funds added' : 'Request rejected', 'success');
+        location.reload();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ---------- Comments (same as before) ----------
     async function loadComments() {
       try {
         const comments = await apiFetch(`/comments/question/${questionId}`);
         const container = document.getElementById('commentsList');
-        if (comments.length === 0) {
-          container.innerHTML = '<p>No comments yet. Be the first to ask a question.</p>';
-          return;
-        }
-        const currentUser = JSON.parse(localStorage.getItem('user'));
-        const currentUserId = currentUser ? currentUser.id : null;
+        if (!comments.length) { container.innerHTML = '<p>No comments yet.</p>'; return; }
+        const currentUserId = currentUser.id;
         container.innerHTML = comments.map(c => `
-          <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
-            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
-            <small>${new Date(c.createdAt).toLocaleString()}</small>
+          <div style="border-left:3px solid #2563EB; margin-bottom:1rem; padding-left:1rem;">
+            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small>
             <p>${escapeHtml(c.text)}</p>
             ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" target="_blank">📎 Download attached file</a></p>` : ''}
-            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
-              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
-              : ''}
+            ${(c.userId === currentUserId || currentUser.role === 'admin') ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` : ''}
           </div>
         `).join('');
-      } catch (err) {
-        document.getElementById('commentsList').innerHTML = `<p style="color:red;">Error loading comments: ${err.message}</p>`;
-      }
+      } catch (err) { console.error(err); }
     }
 
-    // ---------- Post Comment with optional file ----------
     document.getElementById('postCommentBtn').addEventListener('click', async () => {
       const text = document.getElementById('commentText').value;
-      const fileInput = document.getElementById('commentFile');
-      const file = fileInput.files[0];
-      if (!text.trim() && !file) {
-        alert('Please enter a comment or attach a file.');
-        return;
-      }
+      const file = document.getElementById('commentFile').files[0];
+      if (!text.trim() && !file) return alert('Enter a comment or attach a file.');
       const formData = new FormData();
       formData.append('questionId', questionId);
       if (text.trim()) formData.append('text', text);
@@ -208,33 +240,22 @@
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
-        const data = await res.json();
         if (res.ok) {
           document.getElementById('commentText').value = '';
-          fileInput.value = '';
+          document.getElementById('commentFile').value = '';
           loadComments();
-        } else {
-          alert(data.error);
-        }
-      } catch (err) {
-        alert(err.message);
-      }
+        } else { const data = await res.json(); alert(data.error); }
+      } catch (err) { alert(err.message); }
     });
 
-    async function deleteComment(commentId) {
+    window.deleteComment = async (commentId) => {
       if (confirm('Delete this comment?')) {
-        try {
-          await apiFetch(`/comments/${commentId}`, { method: 'DELETE' });
-          loadComments();
-        } catch (err) {
-          alert(err.message);
-        }
+        try { await apiFetch(`/comments/${commentId}`, { method: 'DELETE' }); loadComments(); } 
+        catch (err) { alert(err.message); }
       }
-    }
+    };
 
-    // Initial loads
-    loadQuestion();
-    loadComments();
+    loadPage();
   </script>
 </body>
 </html>

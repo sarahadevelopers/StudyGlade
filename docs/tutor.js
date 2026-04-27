@@ -25,120 +25,170 @@ async function uploadFile(endpoint, file) {
   return res.json();
 }
 
+let currentPage = 1;
+const PAGE_SIZE = 10;
+
 // ---------- Dashboard Load ----------
 async function loadTutorDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   document.getElementById('walletBalance').innerText = `$${user.walletBalance}`;
+  // Show tutor level
+  const levelSpan = document.getElementById('tutorLevel');
+  if (levelSpan) levelSpan.innerText = user.tutorProfile?.level || 'Entry-Level';
 
-  const pending = await apiFetch('/questions/pending');
-  const pendingDiv = document.getElementById('pendingQuestions');
-  pendingDiv.innerHTML = pending.map(q => `
-    <div class="card" style="margin-bottom: 1rem;">
-      <strong><a href="question-details.html?id=${q._id}">${escapeHtml(q.title)}</a></strong><br>
-      Student budget: $${q.budget} &nbsp;|&nbsp;
-      Student: ${escapeHtml(q.studentId.fullName)}
-      <div style="margin-top: 0.5rem;">
-        <input type="number" id="bid-${q._id}" placeholder="Your bid amount" min="1" step="1" style="width: 150px;">
-        <button onclick="placeBid('${q._id}')" class="btn">Place Bid</button>
-        <!-- pass event to acceptQuestion -->
-        <button onclick="acceptQuestion('${q._id}', event)" class="btn btn-outline">Accept at $${q.budget}</button>
-      </div>
-    </div>
-  `).join('');
+  // Load pending questions with pagination
+  await loadPendingQuestions();
 
+  // Load assignments
   const assignments = await apiFetch('/questions/my-assignments');
   const assignDiv = document.getElementById('myAssignments');
   assignDiv.innerHTML = assignments.map(q => `
     <div class="card" style="margin-bottom: 1rem;">
-      <strong><a href="question-details.html?id=${q._id}">${escapeHtml(q.title)}</a></strong><br>
-      Status: ${escapeHtml(q.status)} &nbsp;|&nbsp;
-      Student: ${escapeHtml(q.studentId.fullName)} &nbsp;|&nbsp;
-      Budget: $${q.budget}
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>${escapeHtml(q.title)}</strong>
+        <div>
+          <a href="question-details.html?id=${q._id}" class="btn-sm" style="margin-right:0.5rem;">📄 View Question</a>
+          ${q.answerFile ? `<a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>` : ''}
+        </div>
+      </div>
+      <div>Status: ${escapeHtml(q.status)} | Student: ${escapeHtml(q.studentId.fullName)} | Budget: $${q.budget}</div>
       ${q.status === 'assigned' ? `
         <div style="margin-top: 0.5rem;">
           <input type="file" id="answer-${q._id}" accept=".pdf,.doc,.docx,.zip,.jpg,.png,.txt">
-          <!-- pass event to uploadAnswer -->
           <button onclick="uploadAnswer('${q._id}', event)" class="btn">Upload Answer</button>
-          ${q.answerFile ? `<a href="${q.answerFile}" target="_blank" style="margin-left: 0.5rem;">Download current answer</a>` : ''}
-          <button onclick="completeQuestion('${q._id}')" class="btn btn-outline" style="margin-left: 0.5rem;">Mark Complete</button>
+          <button onclick="completeQuestion('${q._id}')" class="btn btn-outline" style="margin-left:0.5rem;">Mark Complete</button>
+          <button onclick="requestAdditionalFunds('${q._id}')" class="btn-outline" style="margin-left:0.5rem;">💰 Request More Funds</button>
+          <button onclick="cancelAssignment('${q._id}')" class="btn-outline" style="margin-left:0.5rem; background:#ef4444; color:white;">❌ Cancel (No Penalty)</button>
         </div>
       ` : ''}
-      ${q.status === 'completed' && q.answerFile ? `<div style="margin-top: 0.5rem;"><a href="${q.answerFile}" target="_blank">📎 Download Answer</a></div>` : ''}
+      ${q.status === 'completed' && q.answerFile ? `<div><a href="${q.answerFile}" target="_blank">📎 Download Answer</a></div>` : ''}
     </div>
   `).join('');
 }
+
+async function loadPendingQuestions() {
+  const res = await fetch(`${window.API_BASE}/questions/pending?page=${currentPage}&limit=${PAGE_SIZE}`, {
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to load pending');
+  const data = await res.json();
+  const pendingDiv = document.getElementById('pendingQuestions');
+  pendingDiv.innerHTML = data.questions.map(q => `
+    <div class="card" style="margin-bottom: 1rem;">
+      <strong>${escapeHtml(q.title)}</strong><br>
+      Student budget: $${q.budget} | Student: ${escapeHtml(q.studentId.fullName)}
+      <div style="margin-top: 0.5rem;">
+        <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" style="width:150px;">
+        <button onclick="placeBid('${q._id}')" class="btn">Place Bid</button>
+        <button onclick="acceptQuestion('${q._id}', event)" class="btn btn-outline">Accept at $${q.budget}</button>
+        <a href="question-details.html?id=${q._id}" class="btn-sm">Details</a>
+      </div>
+    </div>
+  `).join('');
+
+  // Pagination controls
+  const paginationDiv = document.getElementById('paginationControls');
+  if (paginationDiv) {
+    paginationDiv.innerHTML = `
+      <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+      <span>Page ${currentPage} of ${Math.ceil(data.total / PAGE_SIZE)}</span>
+      <button onclick="changePage(1)" ${currentPage * PAGE_SIZE >= data.total ? 'disabled' : ''}>Next</button>
+    `;
+  }
+}
+
+window.changePage = (delta) => {
+  currentPage += delta;
+  if (currentPage < 1) currentPage = 1;
+  loadPendingQuestions();
+};
 
 // ---------- Bid Functions ----------
 async function placeBid(questionId) {
   const amountInput = document.getElementById(`bid-${questionId}`);
   const amount = amountInput.value;
   if (!amount || amount <= 0) {
-    showToast('Please enter a valid bid amount (minimum $1)', 'error');
+    showToast('Enter a valid bid amount (minimum $1)', 'error');
     return;
   }
   try {
     await apiFetch(`/questions/${questionId}/bid`, {
       method: 'POST',
-      body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid placed from dashboard' })
+      body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid from dashboard' })
     });
-    showToast('Bid placed successfully!', 'success');
+    showToast('Bid placed!', 'success');
     amountInput.value = '';
-    loadTutorDashboard();
+    loadPendingQuestions();
   } catch (err) {
     showToast(err.message, 'error');
   }
 }
 
-// Updated acceptQuestion with button disabling and spinner
 async function acceptQuestion(questionId, event) {
   const btn = event?.target;
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Accepting...';
-  }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Accepting...'; }
   try {
     await apiFetch(`/questions/${questionId}/accept`, { method: 'PUT' });
     showToast('Question accepted!', 'success');
     loadTutorDashboard();
   } catch (err) {
     showToast(err.message, 'error');
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `Accept at student's budget`;
-    }
+    if (btn) { btn.disabled = false; btn.innerHTML = `Accept at student's budget`; }
   }
 }
 
-// Updated uploadAnswer with button disabling and spinner
 async function uploadAnswer(questionId, event) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const btn = event?.target;
   const file = fileInput.files[0];
-  if (!file) {
-    showToast('Please select a file', 'error');
-    return;
-  }
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Uploading...';
-  }
+  if (!file) { showToast('Select a file', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...'; }
   try {
     await uploadFile(`/questions/${questionId}/upload-answer`, file);
-    showToast('Answer uploaded successfully!', 'success');
+    showToast('Answer uploaded!', 'success');
     loadTutorDashboard();
   } catch (err) {
     showToast(err.message, 'error');
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Upload Answer';
-    }
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Upload Answer'; }
   }
 }
 
 async function completeQuestion(id) {
   try {
     await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-    showToast('Question marked as complete! Payment processed.', 'success');
+    showToast('Completed! Payment processed.', 'success');
+    loadTutorDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function requestAdditionalFunds(questionId) {
+  const amount = prompt('Additional amount requested ($):');
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return showToast('Invalid amount', 'error');
+  const reason = prompt('Reason for additional funds:');
+  if (!reason) return showToast('Reason required', 'error');
+  try {
+    await apiFetch(`/questions/${questionId}/request-additional-funds`, {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseFloat(amount), reason })
+    });
+    showToast('Request sent to student', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function cancelAssignment(questionId) {
+  const reason = prompt('Why are you cancelling? (No penalty)');
+  if (!reason) return;
+  if (!confirm('Cancel this assignment? You will not be penalized.')) return;
+  try {
+    await apiFetch(`/questions/${questionId}/cancel-assignment`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    showToast('Assignment cancelled', 'success');
     loadTutorDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -147,26 +197,30 @@ async function completeQuestion(id) {
 
 async function withdrawFunds() {
   const amount = prompt('Withdraw amount (USD):');
-  if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
-    try {
-      await apiFetch('/wallet/withdraw', {
-        method: 'POST',
-        body: JSON.stringify({ amount: parseFloat(amount), method: 'paypal' })
-      });
-      showToast('Withdrawal request submitted. Funds will be sent within 3‑5 business days.', 'success');
-      location.reload();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  } else {
-    showToast('Invalid amount', 'error');
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return showToast('Invalid amount', 'error');
+  const method = prompt('Withdrawal method: paypal, mpesa, bank, payoneer');
+  if (!method) return;
+  const accountDetails = prompt('Enter account details (email/phone/account number):');
+  if (!accountDetails) return;
+  try {
+    await apiFetch('/wallet/withdraw', {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseFloat(amount), method, accountDetails: { details: accountDetails } })
+    });
+    showToast('Withdrawal request submitted. Admin will process within 3‑5 business days.', 'success');
+    location.reload();
+  } catch (err) {
+    showToast(err.message, 'error');
   }
 }
 
+// Expose functions globally
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
 window.completeQuestion = completeQuestion;
 window.withdrawFunds = withdrawFunds;
+window.requestAdditionalFunds = requestAdditionalFunds;
+window.cancelAssignment = cancelAssignment;
 
 loadTutorDashboard();

@@ -1,16 +1,15 @@
 const express = require('express');
-const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
 const auth = require('../middleware/auth');
 const Comment = require('../models/Comment');
 const Question = require('../models/Question');
 const User = require('../models/User');
+const { upload } = require('../server');   // <-- global upload with validation
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' });
 
-// Configure Cloudinary (you already have this in other routes)
+// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -27,7 +26,7 @@ router.get('/question/:questionId', async (req, res) => {
   }
 });
 
-// Add a comment (tutor, student, or admin) with optional file attachment
+// Add a comment (tutor, student, admin) with optional file attachment
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
     const { questionId, text } = req.body;
@@ -50,7 +49,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/comments' });
       fileUrl = result.secure_url;
-      await fs.unlink(req.file.path); // delete temporary file
+      await fs.unlink(req.file.path);
     }
 
     const comment = await Comment.create({

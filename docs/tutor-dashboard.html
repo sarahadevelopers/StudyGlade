@@ -10,6 +10,7 @@
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
       <div class="nav-links">
+        <a href="tutor-dashboard.html" class="btn-sm">⬅ Dashboard</a>
         <span id="walletDisplay"></span>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
@@ -19,10 +20,17 @@
   <div class="container" style="padding: 2rem 0;">
     <h1>Tutor Dashboard</h1>
 
-    <!-- Pending Questions (with bidding) -->
+    <!-- Tutor Level Card -->
+    <div class="card">
+      <h3>Your Tutor Level: <span id="tutorLevel">Entry-Level</span></h3>
+      <p>Complete questions, maintain high ratings, and deliver on time to level up.</p>
+    </div>
+
+    <!-- Pending Questions with Pagination -->
     <div class="card">
       <h3>Pending Questions – Place a Bid or Accept at Student's Budget</h3>
       <div id="pendingQuestions"></div>
+      <div id="paginationControls" style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;"></div>
     </div>
 
     <!-- My Assignments -->
@@ -31,13 +39,14 @@
       <div id="myAssignments"></div>
     </div>
 
-    <!-- Wallet -->
+    <!-- Wallet & Withdraw -->
     <div class="card">
       <h3>My Wallet</h3>
       <p id="walletBalance">$0</p>
-      <button onclick="withdrawFunds()" class="btn">Withdraw</button>
+      <button onclick="withdrawFunds()" class="btn">Withdraw Funds</button>
     </div>
 
+    <!-- Document Upload Link -->
     <a href="upload-document.html" class="btn">Upload Document</a>
   </div>
 

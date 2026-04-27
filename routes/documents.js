@@ -1,5 +1,4 @@
 const express = require('express');
-const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
 const path = require('path');
@@ -8,6 +7,7 @@ const roleCheck = require('../middleware/roleCheck');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const { upload } = require('../server');   // <-- global upload with validation
 
 const router = express.Router();
 
@@ -17,8 +17,6 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-const upload = multer({ dest: 'uploads/' });
 
 // Helper: Extract preview text from file
 async function extractPreviewText(filePath, originalName) {

@@ -6,7 +6,7 @@ async function fix() {
   const db = mongoose.connection.db;
 
   // Replace with actual student ID (as a string, no ObjectId wrapper needed)
-  const studentId = "67e8f1a2b3c4d5e6f7a8b9c0"; // CHANGE THIS TO YOUR STUDENT'S ACTUAL ID
+  const studentId = "69eaffa78a80a89daed20ad8"; // CHANGE THIS TO YOUR STUDENT'S ACTUAL ID
 
   // Insert missing transactions
   await db.collection('transactions').insertMany([
