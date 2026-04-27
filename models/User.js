@@ -10,18 +10,19 @@ const userSchema = new mongoose.Schema({
   tutorProfile: {
     level: { 
       type: String, 
-      enum: ['Entry-Level', 'Skilled', 'Expert', 'Premium'],
+      // ✅ Now accepts old 'Entry' and new 'Entry-Level' + others
+      enum: ['Entry', 'Entry-Level', 'Skilled', 'Expert', 'Premium'],
       default: 'Entry-Level' 
     },
-    rating: { type: Number, default: 0 },           // average rating 0-5
+    rating: { type: Number, default: 0 },
     completedQuestions: { type: Number, default: 0 },
-    onTimeDeliveryRate: { type: Number, default: 100 }, // percentage
+    onTimeDeliveryRate: { type: Number, default: 100 },
     totalEarnings: { type: Number, default: 0 },
-    responseTimeAvg: { type: Number, default: 0 },      // minutes
+    responseTimeAvg: { type: Number, default: 0 },
     bio: { type: String, default: '' },
     subjects: [String],
     subjectCertifications: [String],
-    levelHistory: [{ level: String, date: Date }]       // track promotions/demotions
+    levelHistory: [{ level: String, date: Date }]
   },
   refreshToken: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
