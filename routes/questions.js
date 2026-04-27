@@ -103,10 +103,12 @@ router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
   }
 });
 
-// ------------------- 4. My assignments (tutor) -------------------
+// ------------------- 4. My assignments (tutor) – NOW INCLUDES additionalFundsRequest -------------------
 router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   try {
-    const questions = await Question.find({ tutorId: req.userId }).populate('studentId', 'fullName');
+    const questions = await Question.find({ tutorId: req.userId })
+      .populate('studentId', 'fullName')
+      .select('+additionalFundsRequest');  // <-- ADD THIS LINE to expose funds request status
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -441,13 +443,19 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
   }
 });
 
-// ------------------- 16. Tutor cancels assignment (no penalty, e.g., student added extra work) -------------------
+// ------------------- 16. Tutor cancels assignment (ONLY after a REJECTED additional funds request) -------------------
 router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
     if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
     if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
+
+    // NEW RULE: cancellation allowed only if student has rejected a pending additional funds request
+    const fundsReq = question.additionalFundsRequest;
+    if (!fundsReq || fundsReq.status !== 'rejected') {
+      return res.status(400).json({ error: 'Cancellation only allowed after student refuses an additional funds request.' });
+    }
 
     const { reason } = req.body;
     if (!reason) return res.status(400).json({ error: 'Cancellation reason required' });
@@ -457,8 +465,6 @@ router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res)
     question.cancellationReason = reason;
     await question.save();
 
-    // Optional: refund any extra amount that was added? For simplicity, leave budget as is.
-    // The question returns to pending state, other tutors can bid.
     res.json({ message: 'Assignment cancelled. No penalty.' });
   } catch (err) {
     res.status(500).json({ error: err.message });

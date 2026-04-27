@@ -4,13 +4,61 @@
   <meta charset="UTF-8">
   <title>Tutor Dashboard - StudyGlade</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--white);
+      border-radius: 1rem;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .stat-card h4 {
+      margin: 0 0 0.5rem;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+    .stat-card .value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-pending { background: #fef3c7; color: #b45309; }
+    .status-assigned { background: #dbeafe; color: #1e40af; }
+    .status-completed { background: #d1fae5; color: #065f46; }
+    .deadline-soon { background: #fed7aa; color: #9b2c1d; }
+    .deadline-overdue { background: #fee2e2; color: #b91c1c; }
+    .deadline-normal { background: #e2e3e5; color: #383d41; }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .btn-sm {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
       <div class="nav-links">
-        <a href="index.html" class="btn-sm">⬅ Dashboard</a>
+        <a href="tutor-dashboard.html" class="btn-sm">⬅ Dashboard</a>
         <span id="walletDisplay"></span>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
       </div>
@@ -20,34 +68,50 @@
   <div class="container" style="padding: 2rem 0;">
     <h1>Tutor Dashboard</h1>
 
-    <!-- Tutor Level Card -->
-    <div class="card">
-      <h3>Your Tutor Level: <span id="tutorLevel">Entry-Level</span></h3>
-      <p>Complete questions, maintain high ratings, and deliver on time to level up.</p>
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h4>Your Rating</h4>
+        <div class="value" id="tutorRating">0.0 ⭐</div>
+      </div>
+      <div class="stat-card">
+        <h4>Lifetime Earnings</h4>
+        <div class="value" id="totalEarnings">$0</div>
+      </div>
+      <div class="stat-card">
+        <h4>Current Balance</h4>
+        <div class="value" id="walletBalanceStat">$0</div>
+      </div>
+      <div class="stat-card">
+        <h4>Tutor Level</h4>
+        <div class="value" id="tutorLevelStat">Entry-Level</div>
+      </div>
     </div>
 
-    <!-- Pending Questions with Pagination -->
+    <!-- Pending Questions (with pagination) -->
     <div class="card">
-      <h3>Pending Questions – Place a Bid or Accept at Student's Budget</h3>
+      <h3>📋 Available Questions</h3>
       <div id="pendingQuestions"></div>
       <div id="paginationControls" style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;"></div>
     </div>
 
     <!-- My Assignments -->
     <div class="card">
-      <h3>My Assignments</h3>
+      <h3>📌 My Assignments</h3>
       <div id="myAssignments"></div>
     </div>
 
     <!-- Wallet & Withdraw -->
     <div class="card">
-      <h3>My Wallet</h3>
-      <p id="walletBalance">$0</p>
+      <h3>💰 Withdraw Funds</h3>
+      <p>Available balance: <strong id="walletBalance">$0</strong></p>
       <button onclick="withdrawFunds()" class="btn">Withdraw Funds</button>
     </div>
 
     <!-- Document Upload Link -->
-    <a href="upload-document.html" class="btn">Upload Document</a>
+    <div style="text-align: center; margin-top: 1rem;">
+      <a href="upload-document.html" class="btn">📚 Upload Document</a>
+    </div>
   </div>
 
   <script src="api.js"></script>
