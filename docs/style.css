@@ -309,3 +309,6 @@ button[onclick="closeTransactionModal()"]:hover {
   transform: translateY(-3px);
   box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
 }
+.btn-sm {
+  text-decoration: none !important;
+}

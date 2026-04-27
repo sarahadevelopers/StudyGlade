@@ -14,15 +14,19 @@ function formatMoney(amount) {
   return `$${parseFloat(amount).toFixed(2)}`;
 }
 
-// Helper: get deadline status
+// Helper: get deadline status (shows "Overdue", "Due soon", or days left)
 function getDeadlineStatus(deadline) {
   if (!deadline) return { class: 'deadline-normal', text: 'No deadline' };
   const now = new Date();
   const due = new Date(deadline);
   const diffHours = (due - now) / (1000 * 60 * 60);
   if (diffHours < 0) return { class: 'deadline-overdue', text: 'Overdue' };
-  if (diffHours < 24) return { class: 'deadline-soon', text: 'Due soon' };
-  return { class: 'deadline-normal', text: due.toLocaleDateString() };
+  if (diffHours < 24) {
+    const hoursLeft = Math.ceil(diffHours);
+    return { class: 'deadline-soon', text: `Due in ${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}` };
+  }
+  const daysLeft = Math.ceil(diffHours / 24);
+  return { class: 'deadline-normal', text: `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left` };
 }
 
 // Helper for file uploads
@@ -68,16 +72,15 @@ function safeSetHtml(id, html) {
 async function loadTutorDashboard() {
   try {
     const user = await fetchFreshUser();
-    
-    // Update stats cards (using the IDs from your HTML)
+
+    // Update stats cards
     safeSetText('walletBalance', formatMoney(user.walletBalance));
     safeSetText('walletBalanceStat', formatMoney(user.walletBalance));
     safeSetText('totalEarnings', formatMoney(user.tutorProfile?.totalEarnings || 0));
-    // Rating: average with 1 decimal + star icon
     const ratingValue = (user.tutorProfile?.rating || 0).toFixed(1);
     safeSetHtml('tutorRating', `${ratingValue} ⭐`);
     safeSetText('tutorLevel', user.tutorProfile?.level || 'Entry-Level');
-    
+
     // Fetch total withdrawals
     try {
       const withdrawData = await apiFetch('/wallet/withdrawals-total');
@@ -86,26 +89,26 @@ async function loadTutorDashboard() {
       console.error('Failed to load withdrawals total', err);
       safeSetText('totalWithdrawals', '$0.00');
     }
-  
+
     // Load pending questions
     await loadPendingQuestions();
-  
+
     // Load assignments
     const assignments = await apiFetch('/questions/my-assignments');
     const assignDiv = document.getElementById('myAssignments');
     if (!assignDiv) return;
-    
+
     if (!assignments || assignments.length === 0) {
       assignDiv.innerHTML = '<div class="card premium-card"><p>No assignments yet.</p></div>';
       return;
     }
-    
+
     assignDiv.innerHTML = assignments.map(q => {
       const deadlineStatus = getDeadlineStatus(q.deadline);
       const statusClass = q.status === 'pending' ? 'status-pending' : (q.status === 'assigned' ? 'status-assigned' : 'status-completed');
       const showCancel = q.additionalFundsRequest && q.additionalFundsRequest.status === 'rejected';
       const budgetFormatted = formatMoney(q.budget);
-      
+
       return `
         <div class="card premium-card" style="margin-bottom: 1rem;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
@@ -116,7 +119,7 @@ async function loadTutorDashboard() {
             </div>
             <div class="btn-group">
               <a href="question-details.html?id=${q._id}" class="btn-sm">📄 View Question</a>
-              ${q.answerFile ? `<a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>` : ''}
+              ${q.status !== 'completed' && q.answerFile ? `<a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>` : ''}
             </div>
           </div>
           <div style="margin-top:0.5rem; font-size:0.9rem;">
@@ -135,7 +138,7 @@ async function loadTutorDashboard() {
           ` : ''}
           ${q.status === 'completed' && q.answerFile ? `
             <div class="btn-group" style="margin-top:0.5rem;">
-              <a href="${q.answerFile}" download class="btn-outline">⬇ Download Answer</a>
+              <a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>
             </div>
           ` : ''}
         </div>
@@ -156,14 +159,14 @@ async function loadPendingQuestions() {
     const data = await res.json();
     const pendingDiv = document.getElementById('pendingQuestions');
     if (!pendingDiv) return;
-    
+
     if (!data.questions || data.questions.length === 0) {
       pendingDiv.innerHTML = '<div class="card premium-card"><p>No pending questions available.</p></div>';
       const paginationDiv = document.getElementById('paginationControls');
       if (paginationDiv) paginationDiv.innerHTML = '';
       return;
     }
-    
+
     pendingDiv.innerHTML = data.questions.map(q => `
       <div class="card premium-card" style="margin-bottom: 1rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
@@ -180,7 +183,7 @@ async function loadPendingQuestions() {
         </div>
       </div>
     `).join('');
-  
+
     const paginationDiv = document.getElementById('paginationControls');
     if (paginationDiv) {
       const totalPages = Math.ceil(data.total / PAGE_SIZE);
@@ -203,7 +206,7 @@ window.changePage = (delta) => {
   loadPendingQuestions();
 };
 
-// ---------- Bid Functions (rest unchanged) ----------
+// ---------- Bid and action functions (unchanged) ----------
 async function placeBid(questionId) {
   const amountInput = document.getElementById(`bid-${questionId}`);
   if (!amountInput) return;
