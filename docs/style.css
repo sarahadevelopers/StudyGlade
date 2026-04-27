@@ -296,3 +296,16 @@ button[onclick="closeTransactionModal()"]:hover {
   border-color: var(--danger);
   color: white;
 }
+
+/* Premium card effect */
+.premium-card {
+  background: var(--white);
+  border-radius: 1.2rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+.premium-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+}

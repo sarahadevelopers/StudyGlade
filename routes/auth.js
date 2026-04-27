@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const auth = require('../middleware/auth');   // <-- ADD THIS LINE
 
 const router = express.Router();
 
@@ -59,9 +60,9 @@ function getCookieOptions() {
   const isProduction = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: isProduction,          // true in production (HTTPS)
-    sameSite: isProduction ? 'none' : 'lax',  // 'none' for cross‑origin, 'lax' for local
-    maxAge: 15 * 60 * 1000         // access token lifetime (15 min)
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 15 * 60 * 1000
   };
 }
 
@@ -71,7 +72,7 @@ function getRefreshCookieOptions() {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000  // refresh token lifetime (7 days)
+    maxAge: 7 * 24 * 60 * 60 * 1000
   };
 }
 
@@ -111,12 +112,10 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     
-    // Check if account is locked
     if (user && user.lockUntil && user.lockUntil > Date.now()) {
       return res.status(401).json({ error: 'Account locked. Try again later.' });
     }
     
-    // Invalid credentials handling
     if (!user || !(await bcrypt.compare(password, user.password))) {
       if (user) {
         user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
@@ -129,11 +128,9 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Reset failed attempts on success
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     
-    // Tutor approval check
     if (user.role === 'tutor' && !user.isApproved) {
       return res.status(403).json({ error: 'Tutor account pending approval' });
     }
@@ -210,6 +207,19 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password updated. Please log in.' });
   } catch (err) {
     console.error('Reset password error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- Get Current User (fresh data) -----------------
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId)
+      .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires -failedLoginAttempts -lockUntil');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    console.error('Get /me error:', err);
     res.status(500).json({ error: err.message });
   }
 });

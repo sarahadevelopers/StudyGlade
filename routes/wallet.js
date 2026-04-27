@@ -2,7 +2,7 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
-const Withdrawal = require('../models/Withdrawal');  // <-- new model
+const Withdrawal = require('../models/Withdrawal');
 const axios = require('axios');
 const crypto = require('crypto');
 const router = express.Router();
@@ -168,7 +168,18 @@ router.post('/withdraw', auth, async (req, res) => {
   }
 });
 
-// Optional unique index for duplicate webhook prevention (run once in MongoDB)
-// Transaction.collection.createIndex({ description: 1 }, { unique: true, partialFilterExpression: { description: /^Paystack deposit - Ref:/ } });
+// ---------- Get total withdrawals amount (for dashboard stats) ----------
+router.get('/withdrawals-total', auth, async (req, res) => {
+  try {
+    const result = await Transaction.aggregate([
+      { $match: { userId: req.userId, type: 'withdraw' } },
+      { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+    ]);
+    const total = result[0]?.total || 0;
+    res.json({ total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

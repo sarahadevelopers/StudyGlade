@@ -8,20 +8,34 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
+      gap: 1.5rem;
       margin-bottom: 2rem;
     }
-    .stat-card {
+    .premium-card {
       background: var(--white);
+      border-radius: 1.2rem;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .premium-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+    }
+    .stat-card {
+      background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
       border-radius: 1rem;
-      padding: 1rem;
+      padding: 1.2rem;
       text-align: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      border: 1px solid rgba(0,0,0,0.05);
     }
     .stat-card h4 {
       margin: 0 0 0.5rem;
       color: var(--gray);
       font-size: 0.9rem;
+      letter-spacing: 0.5px;
     }
     .stat-card .value {
       font-size: 1.8rem;
@@ -30,9 +44,9 @@
     }
     .status-badge {
       display: inline-block;
-      padding: 0.2rem 0.5rem;
+      padding: 0.2rem 0.6rem;
       border-radius: 9999px;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
     }
     .status-pending { background: #fef3c7; color: #b45309; }
@@ -44,11 +58,17 @@
     .btn-group {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.6rem;
       margin-top: 0.75rem;
+      align-items: center;
     }
     .btn-sm {
-      padding: 0.3rem 0.8rem;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.85rem;
+      border-radius: 9999px;
+    }
+    input[type="file"] {
+      padding: 0.4rem;
       font-size: 0.85rem;
     }
   </style>
@@ -75,42 +95,48 @@
         <div class="value" id="tutorRating">0.0 ⭐</div>
       </div>
       <div class="stat-card">
-        <h4>Lifetime Earnings</h4>
-        <div class="value" id="totalEarnings">$0</div>
+        <h4>Total Earnings</h4>
+        <div class="value" id="totalEarnings">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <h4>Total Withdrawals</h4>
+        <div class="value" id="totalWithdrawals">$0.00</div>
       </div>
       <div class="stat-card">
         <h4>Current Balance</h4>
-        <div class="value" id="walletBalanceStat">$0</div>
-      </div>
-      <div class="stat-card">
-        <h4>Tutor Level</h4>
-        <div class="value" id="tutorLevelStat">Entry-Level</div>
+        <div class="value" id="walletBalanceStat">$0.00</div>
       </div>
     </div>
 
-    <!-- Pending Questions (with pagination) -->
-    <div class="card">
-      <h3>📋 Available Questions</h3>
+    <!-- Tutor Level Card -->
+    <div class="card premium-card">
+      <h3>Your Tutor Level: <span id="tutorLevel">Entry-Level</span></h3>
+      <p>Complete questions, maintain high ratings, and deliver on time to level up.</p>
+    </div>
+
+    <!-- Pending Questions -->
+    <div class="card premium-card">
+      <h3>Available Questions</h3>
       <div id="pendingQuestions"></div>
       <div id="paginationControls" style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;"></div>
     </div>
 
     <!-- My Assignments -->
-    <div class="card">
-      <h3>📌 My Assignments</h3>
+    <div class="card premium-card">
+      <h3>My Assignments</h3>
       <div id="myAssignments"></div>
     </div>
 
-    <!-- Wallet & Withdraw -->
-    <div class="card">
-      <h3>💰 Withdraw Funds</h3>
-      <p>Available balance: <strong id="walletBalance">$0</strong></p>
+    <!-- Withdraw Section -->
+    <div class="card premium-card">
+      <h3>Withdraw Funds</h3>
+      <p>Available balance: <strong id="walletBalance">$0.00</strong></p>
       <button onclick="withdrawFunds()" class="btn">Withdraw Funds</button>
     </div>
 
     <!-- Document Upload Link -->
     <div style="text-align: center; margin-top: 1rem;">
-      <a href="upload-document.html" class="btn">📚 Upload Document</a>
+      <a href="upload-document.html" class="btn">Upload Document</a>
     </div>
   </div>
 
