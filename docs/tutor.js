@@ -51,111 +51,149 @@ async function fetchFreshUser() {
   return user;
 }
 
+// ---------- Safe element update ----------
+function safeSetText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = text;
+  else console.warn(`Element #${id} not found`);
+}
+
+function safeSetHtml(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+  else console.warn(`Element #${id} not found`);
+}
+
 // ---------- Load Dashboard ----------
 async function loadTutorDashboard() {
-  // Get latest user data
-  const user = await fetchFreshUser();
-  
-  // Update stats cards
-  document.getElementById('walletBalance').innerText = formatMoney(user.walletBalance);
-  document.getElementById('walletBalanceStat').innerText = formatMoney(user.walletBalance);
-  document.getElementById('totalEarnings').innerText = formatMoney(user.tutorProfile?.totalEarnings || 0);
-  document.getElementById('tutorRating').innerHTML = `${user.tutorProfile?.rating?.toFixed(1) || 0} ⭐`;
-  document.getElementById('tutorLevelStat').innerText = user.tutorProfile?.level || 'Entry-Level';
-  const levelSpan = document.getElementById('tutorLevel');
-  if (levelSpan) levelSpan.innerText = user.tutorProfile?.level || 'Entry-Level';
-  
-  // Fetch total withdrawals
   try {
-    const withdrawData = await apiFetch('/wallet/withdrawals-total');
-    document.getElementById('totalWithdrawals').innerText = formatMoney(withdrawData.total);
-  } catch (err) {
-    console.error('Failed to load withdrawals total', err);
-    document.getElementById('totalWithdrawals').innerText = '$0.00';
-  }
-
-  // Load pending questions
-  await loadPendingQuestions();
-
-  // Load assignments
-  const assignments = await apiFetch('/questions/my-assignments');
-  const assignDiv = document.getElementById('myAssignments');
-  assignDiv.innerHTML = assignments.map(q => {
-    const deadlineStatus = getDeadlineStatus(q.deadline);
-    const statusClass = q.status === 'pending' ? 'status-pending' : (q.status === 'assigned' ? 'status-assigned' : 'status-completed');
-    const showCancel = q.additionalFundsRequest && q.additionalFundsRequest.status === 'rejected';
+    const user = await fetchFreshUser();
     
-    // Format budget with 2 decimals
-    const budgetFormatted = formatMoney(q.budget);
+    // Update stats cards (using the IDs from your HTML)
+    safeSetText('walletBalance', formatMoney(user.walletBalance));
+    safeSetText('walletBalanceStat', formatMoney(user.walletBalance));
+    safeSetText('totalEarnings', formatMoney(user.tutorProfile?.totalEarnings || 0));
+    // Rating: average with 1 decimal + star icon
+    const ratingValue = (user.tutorProfile?.rating || 0).toFixed(1);
+    safeSetHtml('tutorRating', `${ratingValue} ⭐`);
+    safeSetText('tutorLevel', user.tutorProfile?.level || 'Entry-Level');
     
-    return `
-      <div class="card premium-card" style="margin-bottom: 1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
-          <div>
-            <strong>${escapeHtml(q.title)}</strong>
-            <span class="status-badge ${statusClass}" style="margin-left:0.5rem;">${escapeHtml(q.status)}</span>
-            <span class="status-badge ${deadlineStatus.class}" style="margin-left:0.5rem;">${deadlineStatus.text}</span>
-          </div>
-          <div class="btn-group">
-            <a href="question-details.html?id=${q._id}" class="btn-sm">📄 View Question</a>
-            ${q.answerFile ? `<a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>` : ''}
-          </div>
-        </div>
-        <div style="margin-top:0.5rem; font-size:0.9rem;">
-          Student: ${escapeHtml(q.studentId.fullName)} | Budget: ${budgetFormatted}
-        </div>
-        ${q.status === 'assigned' ? `
-          <div style="margin-top: 0.75rem;">
-            <input type="file" id="answer-${q._id}" accept=".pdf,.doc,.docx,.jpg,.png,.txt" style="margin-bottom:0.5rem;">
+    // Fetch total withdrawals
+    try {
+      const withdrawData = await apiFetch('/wallet/withdrawals-total');
+      safeSetText('totalWithdrawals', formatMoney(withdrawData.total));
+    } catch (err) {
+      console.error('Failed to load withdrawals total', err);
+      safeSetText('totalWithdrawals', '$0.00');
+    }
+  
+    // Load pending questions
+    await loadPendingQuestions();
+  
+    // Load assignments
+    const assignments = await apiFetch('/questions/my-assignments');
+    const assignDiv = document.getElementById('myAssignments');
+    if (!assignDiv) return;
+    
+    if (!assignments || assignments.length === 0) {
+      assignDiv.innerHTML = '<div class="card premium-card"><p>No assignments yet.</p></div>';
+      return;
+    }
+    
+    assignDiv.innerHTML = assignments.map(q => {
+      const deadlineStatus = getDeadlineStatus(q.deadline);
+      const statusClass = q.status === 'pending' ? 'status-pending' : (q.status === 'assigned' ? 'status-assigned' : 'status-completed');
+      const showCancel = q.additionalFundsRequest && q.additionalFundsRequest.status === 'rejected';
+      const budgetFormatted = formatMoney(q.budget);
+      
+      return `
+        <div class="card premium-card" style="margin-bottom: 1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <strong>${escapeHtml(q.title)}</strong>
+              <span class="status-badge ${statusClass}" style="margin-left:0.5rem;">${escapeHtml(q.status)}</span>
+              <span class="status-badge ${deadlineStatus.class}" style="margin-left:0.5rem;">${deadlineStatus.text}</span>
+            </div>
             <div class="btn-group">
-              <button onclick="uploadAnswer('${q._id}', event)" class="btn">📎 Upload Answer</button>
-              <button onclick="completeQuestion('${q._id}')" class="btn-outline">✅ Mark Complete</button>
-              <button onclick="requestAdditionalFunds('${q._id}')" class="btn-outline">💰 Request More Funds</button>
-              ${showCancel ? `<button onclick="cancelAssignment('${q._id}')" class="btn-outline" style="background:#ef4444; color:white;">❌ Cancel (No Penalty)</button>` : ''}
+              <a href="question-details.html?id=${q._id}" class="btn-sm">📄 View Question</a>
+              ${q.answerFile ? `<a href="${q.answerFile}" download class="btn-sm">⬇ Download Answer</a>` : ''}
             </div>
           </div>
-        ` : ''}
-        ${q.status === 'completed' && q.answerFile ? `
-          <div class="btn-group" style="margin-top:0.5rem;">
-            <a href="${q.answerFile}" download class="btn-outline">⬇ Download Answer</a>
+          <div style="margin-top:0.5rem; font-size:0.9rem;">
+            Student: ${escapeHtml(q.studentId.fullName)} | Budget: ${budgetFormatted}
           </div>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
+          ${q.status === 'assigned' ? `
+            <div style="margin-top: 0.75rem;">
+              <input type="file" id="answer-${q._id}" accept=".pdf,.doc,.docx,.jpg,.png,.txt" style="margin-bottom:0.5rem;">
+              <div class="btn-group">
+                <button onclick="uploadAnswer('${q._id}', event)" class="btn">📎 Upload Answer</button>
+                <button onclick="completeQuestion('${q._id}')" class="btn-outline">✅ Mark Complete</button>
+                <button onclick="requestAdditionalFunds('${q._id}')" class="btn-outline">💰 Request More Funds</button>
+                ${showCancel ? `<button onclick="cancelAssignment('${q._id}')" class="btn-outline" style="background:#ef4444; color:white;">❌ Cancel (No Penalty)</button>` : ''}
+              </div>
+            </div>
+          ` : ''}
+          ${q.status === 'completed' && q.answerFile ? `
+            <div class="btn-group" style="margin-top:0.5rem;">
+              <a href="${q.answerFile}" download class="btn-outline">⬇ Download Answer</a>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    showToast('Failed to load dashboard data', 'error');
+  }
 }
 
 async function loadPendingQuestions() {
-  const res = await fetch(`${window.API_BASE}/questions/pending?page=${currentPage}&limit=${PAGE_SIZE}`, {
-    credentials: 'include'
-  });
-  if (!res.ok) throw new Error('Failed to load pending');
-  const data = await res.json();
-  const pendingDiv = document.getElementById('pendingQuestions');
-  pendingDiv.innerHTML = data.questions.map(q => `
-    <div class="card premium-card" style="margin-bottom: 1rem;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-        <div>
-          <strong>${escapeHtml(q.title)}</strong><br>
-          Student budget: ${formatMoney(q.budget)} | Student: ${escapeHtml(q.studentId.fullName)}
+  try {
+    const res = await fetch(`${window.API_BASE}/questions/pending?page=${currentPage}&limit=${PAGE_SIZE}`, {
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to load pending');
+    const data = await res.json();
+    const pendingDiv = document.getElementById('pendingQuestions');
+    if (!pendingDiv) return;
+    
+    if (!data.questions || data.questions.length === 0) {
+      pendingDiv.innerHTML = '<div class="card premium-card"><p>No pending questions available.</p></div>';
+      const paginationDiv = document.getElementById('paginationControls');
+      if (paginationDiv) paginationDiv.innerHTML = '';
+      return;
+    }
+    
+    pendingDiv.innerHTML = data.questions.map(q => `
+      <div class="card premium-card" style="margin-bottom: 1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <strong>${escapeHtml(q.title)}</strong><br>
+            Student budget: ${formatMoney(q.budget)} | Student: ${escapeHtml(q.studentId.fullName)}
+          </div>
+          <a href="question-details.html?id=${q._id}" class="btn-sm">Details</a>
         </div>
-        <a href="question-details.html?id=${q._id}" class="btn-sm">Details</a>
+        <div class="btn-group" style="margin-top:0.5rem;">
+          <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" style="width:150px;">
+          <button onclick="placeBid('${q._id}')" class="btn">💰 Place Bid</button>
+          <button onclick="acceptQuestion('${q._id}', event)" class="btn-outline">Accept at ${formatMoney(q.budget)}</button>
+        </div>
       </div>
-      <div class="btn-group" style="margin-top:0.5rem;">
-        <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" style="width:150px;">
-        <button onclick="placeBid('${q._id}')" class="btn">💰 Place Bid</button>
-        <button onclick="acceptQuestion('${q._id}', event)" class="btn-outline">Accept at ${formatMoney(q.budget)}</button>
-      </div>
-    </div>
-  `).join('');
-
-  const paginationDiv = document.getElementById('paginationControls');
-  if (paginationDiv) {
-    paginationDiv.innerHTML = `
-      <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
-      <span>Page ${currentPage} of ${Math.ceil(data.total / PAGE_SIZE)}</span>
-      <button onclick="changePage(1)" ${currentPage * PAGE_SIZE >= data.total ? 'disabled' : ''}>Next</button>
-    `;
+    `).join('');
+  
+    const paginationDiv = document.getElementById('paginationControls');
+    if (paginationDiv) {
+      const totalPages = Math.ceil(data.total / PAGE_SIZE);
+      paginationDiv.innerHTML = `
+        <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button onclick="changePage(1)" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+      `;
+    }
+  } catch (err) {
+    console.error('Error loading pending questions:', err);
+    const pendingDiv = document.getElementById('pendingQuestions');
+    if (pendingDiv) pendingDiv.innerHTML = '<div class="card premium-card"><p>Error loading questions. Please refresh.</p></div>';
   }
 }
 
@@ -165,9 +203,10 @@ window.changePage = (delta) => {
   loadPendingQuestions();
 };
 
-// ---------- Bid Functions (unchanged except format) ----------
+// ---------- Bid Functions (rest unchanged) ----------
 async function placeBid(questionId) {
   const amountInput = document.getElementById(`bid-${questionId}`);
+  if (!amountInput) return;
   const amount = amountInput.value;
   if (!amount || amount <= 0) {
     showToast('Enter a valid bid amount (minimum $1)', 'error');
@@ -202,6 +241,7 @@ async function acceptQuestion(questionId, event) {
 async function uploadAnswer(questionId, event) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const btn = event?.target;
+  if (!fileInput) return;
   const file = fileInput.files[0];
   if (!file) { showToast('Select a file', 'error'); return; }
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...'; }
@@ -236,7 +276,7 @@ async function requestAdditionalFunds(questionId) {
       body: JSON.stringify({ amount: parseFloat(amount), reason })
     });
     showToast('Request sent to student', 'success');
-    loadTutorDashboard(); // refresh to show pending status
+    loadTutorDashboard();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -286,4 +326,5 @@ window.withdrawFunds = withdrawFunds;
 window.requestAdditionalFunds = requestAdditionalFunds;
 window.cancelAssignment = cancelAssignment;
 
+// Initial load
 loadTutorDashboard();
