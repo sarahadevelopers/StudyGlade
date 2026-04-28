@@ -361,13 +361,13 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
     if (question.studentId.toString() !== req.userId) return res.status(403).json({ error: 'Not authorized' });
 
     const { score, feedback } = req.body;
+    console.log(`📝 Rating received for question ${question.title}: score = ${score}, feedback = ${feedback}`); // 👈 LOG
+
     if (score < 1 || score > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
 
-    // Allow update – overwrite existing rating
     question.rating = { score, feedback, createdAt: new Date() };
     await question.save();
 
-    // Recalculate tutor's average rating
     const tutor = await User.findById(question.tutorId);
     const allRatings = await Question.find({
       tutorId: tutor._id,
@@ -375,11 +375,13 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
       'rating.score': { $exists: true }
     });
     const avg = allRatings.reduce((sum, q) => sum + q.rating.score, 0) / allRatings.length;
+    console.log(`🔄 Tutor ${tutor.email} average recalculated: ${avg} (based on ${allRatings.length} ratings)`); // 👈 LOG
     tutor.tutorProfile.rating = parseFloat(avg.toFixed(2));
     await tutor.save();
 
     res.json({ message: 'Rating updated' });
   } catch (err) {
+    console.error('Rating error:', err);
     res.status(500).json({ error: err.message });
   }
 });

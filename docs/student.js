@@ -78,15 +78,20 @@ window.submitRating = async function() {
   }
   const score = parseInt(selectedStar.getAttribute('data-value'));
   const feedback = document.getElementById('ratingFeedback').value;
+  
+  console.log('⭐ Submitting rating:', score, 'for question:', currentRatingQuestionId);  // 👈 DEBUG
+
   try {
-    await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
+    const response = await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
       body: JSON.stringify({ score, feedback })
     });
+    console.log('✅ Rating API response:', response); // 👈 DEBUG
     showToast('Rating submitted!', 'success');
     document.getElementById('ratingModal').style.display = 'none';
     loadStudentDashboard();
   } catch (err) {
+    console.error('❌ Rating error:', err); // 👈 DEBUG
     showToast(err.message, 'error');
   }
 };
