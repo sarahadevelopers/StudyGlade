@@ -43,7 +43,7 @@ async function loadStudentDashboard() {
 
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
-}
+
 
 // ---------- RATING MODAL – Fixed with Direct Onclick Handlers ----------
 let currentRatingQuestionId = null;
