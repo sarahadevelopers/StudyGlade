@@ -28,10 +28,7 @@ async function loadStudentDashboard() {
       let viewAnswerBtn = q.answerFile
         ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
         : '<span class="disabled">No answer</span>';
-      let rateBtn = '';
-      if (!q.rating || !q.rating.score) {
-        rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">Rate Tutor</button>`;
-      }
+    let rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`; }
       const actions = `${viewAnswerBtn} ${rateBtn}`;
       const row = `<tr>
         <td>${safeTitle}</td>
