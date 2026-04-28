@@ -162,14 +162,22 @@ router.post('/withdraw', auth, async (req, res) => {
   }
 });
 
-// ---------- Get total withdrawals amount (for dashboard stats) – FIXED: convert userId to string ----------
+// ---------- Get total withdrawals amount (for dashboard stats) – FIXED: use $toString to handle both ObjectId and string ----------
 router.get('/withdrawals-total', auth, async (req, res) => {
   try {
-    // Convert req.userId to string for consistent comparison (transactions may store userId as string or ObjectId)
     const userIdStr = req.userId.toString();
     const result = await Transaction.aggregate([
-      { $match: { userId: userIdStr, type: 'withdraw' } },
-      { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+      {
+        $match: {
+          $expr: {
+            $and: [
+              { $eq: [{ $toString: "$userId" }, userIdStr] },
+              { $eq: ["$type", "withdraw"] }
+            ]
+          }
+        }
+      },
+      { $group: { _id: null, total: { $sum: { $abs: "$amount" } } } }
     ]);
     const total = result[0]?.total || 0;
     res.json({ total });
