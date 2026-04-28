@@ -352,28 +352,33 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
 });
 
 // ------------------- 13. Student rates tutor (after completion) -------------------
+// ------------------- 13. Student rates or updates rating -------------------
 router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
     if (question.status !== 'completed') return res.status(400).json({ error: 'Question not completed yet' });
     if (question.studentId.toString() !== req.userId) return res.status(403).json({ error: 'Not authorized' });
-    if (question.rating && question.rating.score) return res.status(400).json({ error: 'Already rated' });
 
     const { score, feedback } = req.body;
     if (score < 1 || score > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
 
+    // Allow update – overwrite existing rating
     question.rating = { score, feedback, createdAt: new Date() };
     await question.save();
 
-    // Update tutor's average rating
+    // Recalculate tutor's average rating
     const tutor = await User.findById(question.tutorId);
-    const allRatings = await Question.find({ tutorId: tutor._id, status: 'completed', 'rating.score': { $exists: true } });
+    const allRatings = await Question.find({
+      tutorId: tutor._id,
+      status: 'completed',
+      'rating.score': { $exists: true }
+    });
     const avg = allRatings.reduce((sum, q) => sum + q.rating.score, 0) / allRatings.length;
     tutor.tutorProfile.rating = parseFloat(avg.toFixed(2));
     await tutor.save();
 
-    res.json({ message: 'Rating submitted' });
+    res.json({ message: 'Rating updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

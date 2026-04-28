@@ -16,15 +16,30 @@ async function loadStudentDashboard() {
 
     if (q.status === 'pending' || q.status === 'assigned') {
       const viewBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
-      const row = `<tr><td>${safeTitle}</td><td>${safeTutor}</td><td>${safeStatus}</td><td>${budget}</td><td>${viewBtn}</td></tr>`;
+      const row = `<tr>
+        <td>${safeTitle}</td>
+        <td>${safeTutor}</td>
+        <td>${safeStatus}</td>
+        <td>${budget}</td>
+        <td>${viewBtn}</td>
+      </tr>`;
       activeTable.innerHTML += row;
     } else if (q.status === 'completed') {
-      let viewAnswerBtn = q.answerFile ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>` : '<span class="disabled">No answer</span>';
+      let viewAnswerBtn = q.answerFile
+        ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
+        : '<span class="disabled">No answer</span>';
       let rateBtn = '';
       if (!q.rating || !q.rating.score) {
-        rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">Rate Tutor</button>`;
+        rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">Rate Tutor</button>`;
       }
-      const row = `<tr><td>${safeTitle}</td><td>${safeTutor}${rateBtn}</td><td>${safeStatus}</td><td>${budget}</td><td>${viewAnswerBtn}</td></tr>`;
+      const actions = `${viewAnswerBtn} ${rateBtn}`;
+      const row = `<tr>
+        <td>${safeTitle}</td>
+        <td>${safeTutor}</td>
+        <td>${safeStatus}</td>
+        <td>${budget}</td>
+        <td>${actions}</td>
+      </tr>`;
       completedTable.innerHTML += row;
     }
   }
@@ -33,7 +48,7 @@ async function loadStudentDashboard() {
   await checkForFundsRequests(questions);
 }
 
-// ---------- RATING MODAL (NEW) ----------
+// ---------- RATING MODAL (Corrected with Event Delegation) ----------
 let currentRatingQuestionId = null;
 
 window.showRatingModal = function(questionId, tutorName) {
@@ -41,12 +56,16 @@ window.showRatingModal = function(questionId, tutorName) {
   document.getElementById('ratingModalTutorName').innerText = tutorName;
   document.getElementById('ratingModal').style.display = 'block';
   document.getElementById('ratingFeedback').value = '';
-  document.querySelectorAll('.star').forEach(star => star.classList.remove('selected'));
+  // Reset stars
+  document.querySelectorAll('#ratingModal .star').forEach(star => star.classList.remove('selected'));
 };
 
 window.submitRating = async function() {
-  const selectedStar = document.querySelector('.star.selected');
-  if (!selectedStar) { showToast('Select a star rating', 'error'); return; }
+  const selectedStar = document.querySelector('#ratingModal .star.selected');
+  if (!selectedStar) {
+    showToast('Select a star rating', 'error');
+    return;
+  }
   const score = parseInt(selectedStar.dataset.value);
   const feedback = document.getElementById('ratingFeedback').value;
   try {
@@ -54,7 +73,7 @@ window.submitRating = async function() {
       method: 'POST',
       body: JSON.stringify({ score, feedback })
     });
-    showToast('Thank you for rating!', 'success');
+    showToast('Rating submitted!', 'success');
     document.getElementById('ratingModal').style.display = 'none';
     loadStudentDashboard(); // refresh to remove rate button
   } catch (err) {
@@ -62,23 +81,26 @@ window.submitRating = async function() {
   }
 };
 
-// Star selection (attach after modal opens)
-document.addEventListener('DOMContentLoaded', () => {
-  const starContainer = document.querySelector('#ratingModal .star');
-  if (starContainer) {
-    document.querySelectorAll('.star').forEach(star => {
-      star.addEventListener('click', function() {
-        const val = this.dataset.value;
-        document.querySelectorAll('.star').forEach(s => s.classList.remove('selected'));
-        for (let i = 1; i <= val; i++) {
-          document.querySelector(`.star[data-value='${i}']`).classList.add('selected');
-        }
-      });
-    });
+// Event delegation for star selection (works even after modal is opened)
+document.getElementById('ratingModal')?.addEventListener('click', (e) => {
+  const star = e.target.closest('.star');
+  if (!star) return;
+  const value = parseInt(star.dataset.value);
+  // Remove selected from all stars
+  document.querySelectorAll('#ratingModal .star').forEach(s => s.classList.remove('selected'));
+  // Select current and all lower stars
+  for (let i = 1; i <= value; i++) {
+    const s = document.querySelector(`#ratingModal .star[data-value='${i}']`);
+    if (s) s.classList.add('selected');
   }
 });
 
-// ---------- RESPOND TO ADDITIONAL FUNDS REQUEST (NEW) ----------
+// Close modal function (already defined in HTML, but safe to have)
+window.closeRatingModal = function() {
+  document.getElementById('ratingModal').style.display = 'none';
+};
+
+// ---------- RESPOND TO ADDITIONAL FUNDS REQUEST ----------
 async function checkForFundsRequests(questions) {
   for (const q of questions) {
     if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
@@ -115,7 +137,7 @@ window.respondToFunds = async function(questionId, accept) {
   }
 };
 
-// ---------- Budget Suggestion System (unchanged from your original) ----------
+// ---------- Budget Suggestion System ----------
 async function checkForSuggestions(questions) {
   const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
   for (const q of pendingWithSuggestion) {
@@ -151,7 +173,7 @@ window.acceptSuggestion = async (questionId) => {
   }
 };
 
-// ---------- Add Funds with Paystack (unchanged) ----------
+// ---------- Add Funds with Paystack ----------
 async function addFunds(event) {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
