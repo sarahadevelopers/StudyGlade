@@ -7,6 +7,8 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const crypto = require('crypto');
+const axios = require('axios');
 
 const app = express();
 
@@ -67,8 +69,69 @@ const commentRoutes = require('./routes/comments');
 // Models for cron jobs (these do NOT depend on upload)
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
+const Transaction = require('./models/Transaction');
+const User = require('./models/User');
 
-// ---------- 4. CORS CONFIGURATION ----------
+// ---------- 4. PAYSTACK WEBHOOK (must be BEFORE express.json() to get raw body) ----------
+app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+  if (hash !== req.headers['x-paystack-signature']) {
+    console.error('Invalid Paystack signature');
+    return res.status(401).send('Unauthorized');
+  }
+  const event = req.body;
+  if (event.event === 'charge.success') {
+    const { reference, metadata } = event.data;
+    const { userId, amount } = metadata;
+
+    // Duplicate prevention
+    const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
+    if (existingTx) {
+      console.log(`Duplicate webhook ignored for ref ${reference}`);
+      return res.sendStatus(200);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User ${userId} not found for webhook`);
+      return res.status(404).send('User not found');
+    }
+
+    // Verify via Paystack API
+    try {
+      const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+        headers: { Authorization: `Bearer ${secret}` }
+      });
+      if (verifyRes.data.data.status !== 'success') {
+        console.error(`Verification failed for ref ${reference}`);
+        return res.status(400).send('Verification failed');
+      }
+      const verifiedAmount = verifyRes.data.data.amount / 100;
+      if (parseFloat(amount) !== verifiedAmount) {
+        console.error(`Amount mismatch: expected ${amount}, got ${verifiedAmount}`);
+        return res.status(400).send('Amount mismatch');
+      }
+
+      // Credit wallet
+      user.walletBalance += verifiedAmount;
+      await user.save();
+      await Transaction.create({
+        userId: user._id,
+        type: 'deposit',
+        amount: verifiedAmount,
+        description: `Paystack deposit - Ref: ${reference}`
+      });
+      console.log(`Wallet credited: ${verifiedAmount} to user ${userId}`);
+    } catch (err) {
+      console.error('Webhook verification error:', err.message);
+      return res.status(500).send('Internal error');
+    }
+  }
+  res.sendStatus(200);
+});
+
+// ---------- 5. CORS CONFIGURATION ----------
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
@@ -87,17 +150,17 @@ app.use(cors({
   credentials: true
 }));
 
-// ---------- 5. STANDARD MIDDLEWARE ----------
+// ---------- 6. STANDARD MIDDLEWARE (after webhook) ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ---------- 6. DATABASE CONNECTION ----------
+// ---------- 7. DATABASE CONNECTION ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ---------- 7. API ROUTES ----------
+// ---------- 8. API ROUTES ----------
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -108,7 +171,7 @@ app.use('/api/comments', commentRoutes);
 // Health check
 app.get('/health', (req, res) => res.send('OK'));
 
-// ---------- 8. STATIC FRONTEND (docs folder) ----------
+// ---------- 9. STATIC FRONTEND (docs folder) ----------
 app.use(express.static(path.join(__dirname, 'docs')));
 
 // Catch-all for client-side routing
@@ -116,7 +179,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'index.html'));
 });
 
-// ---------- 9. CRON JOBS ----------
+// ---------- 10. CRON JOBS ----------
 // Budget suggestion (every hour)
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
@@ -153,12 +216,12 @@ cron.schedule('0 0 * * *', () => {
   updateTutorLevels().catch(console.error);
 });
 
-// ---------- 10. GLOBAL ERROR HANDLER ----------
+// ---------- 11. GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   res.status(500).json({ error: err.message });
 });
 
-// ---------- 11. START SERVER ----------
+// ---------- 12. START SERVER ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
