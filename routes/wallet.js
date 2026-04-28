@@ -87,7 +87,6 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;
 
-    // Duplicate prevention
     const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
     if (existingTx) {
       console.log(`Duplicate webhook ignored for ref ${reference}`);
@@ -100,7 +99,6 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       return res.status(404).send('User not found');
     }
 
-    // Verify via Paystack API
     const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${secret}` }
     });
@@ -114,7 +112,6 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       return res.status(400).send('Amount mismatch');
     }
 
-    // Credit wallet
     user.walletBalance += verifiedAmount;
     await user.save();
     await Transaction.create({
@@ -138,11 +135,9 @@ router.post('/withdraw', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     if (user.walletBalance < amount) return res.status(400).json({ error: 'Insufficient balance' });
 
-    // Deduct immediately (virtual hold)
     user.walletBalance -= amount;
     await user.save();
 
-    // Create withdrawal request for admin
     const withdrawal = new Withdrawal({
       userId: user._id,
       amount,
@@ -152,7 +147,6 @@ router.post('/withdraw', auth, async (req, res) => {
     });
     await withdrawal.save();
 
-    // Record transaction
     await Transaction.create({
       userId: req.userId,
       type: 'withdraw',
@@ -168,16 +162,19 @@ router.post('/withdraw', auth, async (req, res) => {
   }
 });
 
-// ---------- Get total withdrawals amount (for dashboard stats) ----------
+// ---------- Get total withdrawals amount (for dashboard stats) – FIXED: convert userId to string ----------
 router.get('/withdrawals-total', auth, async (req, res) => {
   try {
+    // Convert req.userId to string for consistent comparison (transactions may store userId as string or ObjectId)
+    const userIdStr = req.userId.toString();
     const result = await Transaction.aggregate([
-      { $match: { userId: req.userId, type: 'withdraw' } },
+      { $match: { userId: userIdStr, type: 'withdraw' } },
       { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
     ]);
     const total = result[0]?.total || 0;
     res.json({ total });
   } catch (err) {
+    console.error('Withdrawals total error:', err);
     res.status(500).json({ error: err.message });
   }
 });

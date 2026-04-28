@@ -48,7 +48,7 @@ async function loadStudentDashboard() {
   await checkForFundsRequests(questions);
 }
 
-// ---------- RATING MODAL (Corrected with Event Delegation) ----------
+// ---------- RATING MODAL – Fixed with Direct Onclick Handlers ----------
 let currentRatingQuestionId = null;
 
 window.showRatingModal = function(questionId, tutorName) {
@@ -56,8 +56,24 @@ window.showRatingModal = function(questionId, tutorName) {
   document.getElementById('ratingModalTutorName').innerText = tutorName;
   document.getElementById('ratingModal').style.display = 'block';
   document.getElementById('ratingFeedback').value = '';
-  // Reset stars
-  document.querySelectorAll('#ratingModal .star').forEach(star => star.classList.remove('selected'));
+
+  // Reset stars visually
+  const stars = document.querySelectorAll('#ratingModal .star');
+  stars.forEach(star => star.classList.remove('selected'));
+
+  // Attach direct onclick handler to each star (ensures correct value)
+  stars.forEach(star => {
+    star.onclick = function() {
+      const value = parseInt(this.getAttribute('data-value'));
+      // Remove selected from all
+      stars.forEach(s => s.classList.remove('selected'));
+      // Add selected to this and all lower stars
+      for (let i = 1; i <= value; i++) {
+        const target = document.querySelector(`#ratingModal .star[data-value='${i}']`);
+        if (target) target.classList.add('selected');
+      }
+    };
+  });
 };
 
 window.submitRating = async function() {
@@ -66,8 +82,11 @@ window.submitRating = async function() {
     showToast('Select a star rating', 'error');
     return;
   }
-  const score = parseInt(selectedStar.dataset.value);
+  const score = parseInt(selectedStar.getAttribute('data-value'));
   const feedback = document.getElementById('ratingFeedback').value;
+
+  console.log('⭐ Submitting rating:', score);  // Debug: log the score
+
   try {
     await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
@@ -81,21 +100,6 @@ window.submitRating = async function() {
   }
 };
 
-// Event delegation for star selection (works even after modal is opened)
-document.getElementById('ratingModal')?.addEventListener('click', (e) => {
-  const star = e.target.closest('.star');
-  if (!star) return;
-  const value = parseInt(star.dataset.value);
-  // Remove selected from all stars
-  document.querySelectorAll('#ratingModal .star').forEach(s => s.classList.remove('selected'));
-  // Select current and all lower stars
-  for (let i = 1; i <= value; i++) {
-    const s = document.querySelector(`#ratingModal .star[data-value='${i}']`);
-    if (s) s.classList.add('selected');
-  }
-});
-
-// Close modal function (already defined in HTML, but safe to have)
 window.closeRatingModal = function() {
   document.getElementById('ratingModal').style.display = 'none';
 };

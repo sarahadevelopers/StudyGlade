@@ -81,9 +81,10 @@ async function loadTutorDashboard() {
     safeSetHtml('tutorRating', `${ratingValue} ⭐`);
     safeSetText('tutorLevel', user.tutorProfile?.level || 'Entry-Level');
 
-    // Fetch total withdrawals
+    // Fetch total withdrawals (with debug log)
     try {
       const withdrawData = await apiFetch('/wallet/withdrawals-total');
+      console.log('💰 Withdrawals API response:', withdrawData); // 👈 Debug log
       safeSetText('totalWithdrawals', formatMoney(withdrawData.total));
     } catch (err) {
       console.error('Failed to load withdrawals total', err);
@@ -206,7 +207,7 @@ window.changePage = (delta) => {
   loadPendingQuestions();
 };
 
-// ---------- Bid and action functions (unchanged) ----------
+// ---------- Bid and action functions ----------
 async function placeBid(questionId) {
   const amountInput = document.getElementById(`bid-${questionId}`);
   if (!amountInput) return;
