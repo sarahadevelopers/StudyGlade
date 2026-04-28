@@ -16,7 +16,7 @@ async function loadStudentDashboard() {
 
     if (q.status === 'pending' || q.status === 'assigned') {
       const viewBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
-      const row = `<tr>
+      const row = `<table>
         <td>${safeTitle}</td>
         <td>${safeTutor}</td>
         <td>${safeStatus}</td>
@@ -28,9 +28,10 @@ async function loadStudentDashboard() {
       let viewAnswerBtn = q.answerFile
         ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
         : '<span class="disabled">No answer</span>';
-    let rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`; }
+      // Always show the button – text changes if already rated
+      const rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
       const actions = `${viewAnswerBtn} ${rateBtn}`;
-      const row = `<tr>
+      const row = `<table>
         <td>${safeTitle}</td>
         <td>${safeTutor}</td>
         <td>${safeStatus}</td>
@@ -43,9 +44,9 @@ async function loadStudentDashboard() {
 
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
+}
 
-
-// ---------- RATING MODAL – Fixed with Direct Onclick Handlers ----------
+// ---------- RATING MODAL (Simplified & Reliable) ----------
 let currentRatingQuestionId = null;
 
 window.showRatingModal = function(questionId, tutorName) {
@@ -53,18 +54,14 @@ window.showRatingModal = function(questionId, tutorName) {
   document.getElementById('ratingModalTutorName').innerText = tutorName;
   document.getElementById('ratingModal').style.display = 'block';
   document.getElementById('ratingFeedback').value = '';
-
-  // Reset stars visually
   const stars = document.querySelectorAll('#ratingModal .star');
   stars.forEach(star => star.classList.remove('selected'));
 
-  // Attach direct onclick handler to each star (ensures correct value)
+  // Direct click handlers (no event delegation needed)
   stars.forEach(star => {
     star.onclick = function() {
       const value = parseInt(this.getAttribute('data-value'));
-      // Remove selected from all
       stars.forEach(s => s.classList.remove('selected'));
-      // Add selected to this and all lower stars
       for (let i = 1; i <= value; i++) {
         const target = document.querySelector(`#ratingModal .star[data-value='${i}']`);
         if (target) target.classList.add('selected');
@@ -81,9 +78,6 @@ window.submitRating = async function() {
   }
   const score = parseInt(selectedStar.getAttribute('data-value'));
   const feedback = document.getElementById('ratingFeedback').value;
-
-  console.log('⭐ Submitting rating:', score);  // Debug: log the score
-
   try {
     await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
@@ -91,7 +85,7 @@ window.submitRating = async function() {
     });
     showToast('Rating submitted!', 'success');
     document.getElementById('ratingModal').style.display = 'none';
-    loadStudentDashboard(); // refresh to remove rate button
+    loadStudentDashboard();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -101,7 +95,7 @@ window.closeRatingModal = function() {
   document.getElementById('ratingModal').style.display = 'none';
 };
 
-// ---------- RESPOND TO ADDITIONAL FUNDS REQUEST ----------
+// ---------- Additional Funds Request ----------
 async function checkForFundsRequests(questions) {
   for (const q of questions) {
     if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
@@ -238,13 +232,17 @@ window.closeTransactionModal = function() {
 };
 document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
 
-// ---------- Poll for suggestions & funds requests every 30 seconds ----------
+// ---------- Polling for suggestions & funds requests (every 30s) ----------
 setInterval(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
   if (user && user.role === 'student') {
-    const questions = await apiFetch('/questions/my-questions');
-    await checkForSuggestions(questions);
-    await checkForFundsRequests(questions);
+    try {
+      const questions = await apiFetch('/questions/my-questions');
+      await checkForSuggestions(questions);
+      await checkForFundsRequests(questions);
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
   }
 }, 30000);
 
@@ -259,5 +257,7 @@ function escapeHtml(str) {
   });
 }
 
-// Start dashboard
-loadStudentDashboard();
+// Start dashboard when DOM is ready (avoids top‑level await issues)
+document.addEventListener('DOMContentLoaded', () => {
+  loadStudentDashboard();
+});
