@@ -28,10 +28,9 @@ async function loadStudentDashboard() {
       let viewAnswerBtn = q.answerFile
         ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
         : '<span class="disabled">No answer</span>';
-      // Always show the button – text changes if already rated
       const rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
       const actions = `${viewAnswerBtn} ${rateBtn}`;
-      const row = `<table>
+      const row = `</td>
         <td>${safeTitle}</td>
         <td>${safeTutor}</td>
         <td>${safeStatus}</td>
@@ -46,52 +45,55 @@ async function loadStudentDashboard() {
   await checkForFundsRequests(questions);
 }
 
-// ---------- RATING MODAL (Simplified & Reliable) ----------
+// ---------- RATING MODAL (Reliable: stores selected value, event delegation) ----------
 let currentRatingQuestionId = null;
+let selectedRatingValue = 0;
 
 window.showRatingModal = function(questionId, tutorName) {
   currentRatingQuestionId = questionId;
+  selectedRatingValue = 0;
   document.getElementById('ratingModalTutorName').innerText = tutorName;
   document.getElementById('ratingModal').style.display = 'block';
   document.getElementById('ratingFeedback').value = '';
-  const stars = document.querySelectorAll('#ratingModal .star');
-  stars.forEach(star => star.classList.remove('selected'));
-
-  // Direct click handlers (no event delegation needed)
-  stars.forEach(star => {
-    star.onclick = function() {
-      const value = parseInt(this.getAttribute('data-value'));
-      stars.forEach(s => s.classList.remove('selected'));
-      for (let i = 1; i <= value; i++) {
-        const target = document.querySelector(`#ratingModal .star[data-value='${i}']`);
-        if (target) target.classList.add('selected');
-      }
-    };
-  });
+  // Reset all stars
+  document.querySelectorAll('#ratingModal .star').forEach(star => star.classList.remove('selected'));
 };
 
+// Event delegation for star clicks – attached once to the modal
+document.getElementById('ratingModal')?.addEventListener('click', (e) => {
+  const star = e.target.closest('.star');
+  if (!star) return;
+  const value = parseInt(star.getAttribute('data-value'));
+  selectedRatingValue = value;
+  // Highlight stars up to the clicked value
+  const allStars = document.querySelectorAll('#ratingModal .star');
+  allStars.forEach((s, idx) => {
+    if (idx < value) s.classList.add('selected');
+    else s.classList.remove('selected');
+  });
+});
+
 window.submitRating = async function() {
-  const selectedStar = document.querySelector('#ratingModal .star.selected');
-  if (!selectedStar) {
+  if (selectedRatingValue === 0) {
     showToast('Select a star rating', 'error');
     return;
   }
-  const score = parseInt(selectedStar.getAttribute('data-value'));
   const feedback = document.getElementById('ratingFeedback').value;
+  const score = selectedRatingValue;
   
-  console.log('⭐ Submitting rating:', score, 'for question:', currentRatingQuestionId);  // 👈 DEBUG
-
+  console.log('⭐ Submitting rating:', score, 'for question:', currentRatingQuestionId);
+  
   try {
     const response = await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
       body: JSON.stringify({ score, feedback })
     });
-    console.log('✅ Rating API response:', response); // 👈 DEBUG
+    console.log('✅ Rating API response:', response);
     showToast('Rating submitted!', 'success');
     document.getElementById('ratingModal').style.display = 'none';
-    loadStudentDashboard();
+    loadStudentDashboard();  // refresh to update the button text
   } catch (err) {
-    console.error('❌ Rating error:', err); // 👈 DEBUG
+    console.error('❌ Rating error:', err);
     showToast(err.message, 'error');
   }
 };
@@ -262,7 +264,7 @@ function escapeHtml(str) {
   });
 }
 
-// Start dashboard when DOM is ready (avoids top‑level await issues)
+// Start dashboard when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   loadStudentDashboard();
 });
