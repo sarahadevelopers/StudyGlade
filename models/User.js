@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   tutorApplication: {
     qualifications: { type: String },
     subjects: [String],
-    essay: { type: String },               // ✅ required removed
+    essay: { type: String },
     essayFormat: { type: String, enum: ['APA', 'MLA'], default: 'APA' },
     portfolioUrl: { type: String },
     quizAnswers: { type: Object },
@@ -39,6 +39,17 @@ const userSchema = new mongoose.Schema({
     appliedAt: { type: Date, default: Date.now },
     reviewedAt: Date,
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+  // ✅ NEW: Payment details for tutor payouts
+  paymentDetails: {
+    preferredMethod: { type: String, enum: ['paypal', 'mpesa', 'bank'], default: 'paypal' },
+    paypalEmail: { type: String, default: '' },
+    mpesaPhone: { type: String, default: '' },
+    bankAccount: {
+      bankName: { type: String, default: '' },
+      accountName: { type: String, default: '' },
+      accountNumber: { type: String, default: '' }
+    }
   },
   refreshToken: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },

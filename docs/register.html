@@ -118,6 +118,30 @@
             <label><input type="radio" name="quiz3" value="False"> False</label>
           </div>
 
+          <!-- Payment Details (for payouts) -->
+          <h4>Payment Details (for payouts)</h4>
+          <div class="form-group">
+            <label>Preferred Payout Method</label>
+            <select id="preferredMethod">
+              <option value="paypal">PayPal</option>
+              <option value="mpesa">Mpesa</option>
+              <option value="bank">Bank Transfer</option>
+            </select>
+          </div>
+          <div id="paypalField" class="form-group">
+            <label>PayPal Email</label>
+            <input type="email" id="paypalEmail">
+          </div>
+          <div id="mpesaField" class="form-group" style="display:none;">
+            <label>Mpesa Phone Number</label>
+            <input type="tel" id="mpesaPhone">
+          </div>
+          <div id="bankField" class="form-group" style="display:none;">
+            <label>Bank Name</label><input type="text" id="bankName"><br>
+            <label>Account Name</label><input type="text" id="accountName"><br>
+            <label>Account Number</label><input type="text" id="accountNumber">
+          </div>
+
           <!-- 7. Agreement to Platform Rules -->
           <div class="form-group">
             <label>
@@ -146,7 +170,21 @@
       }
     });
 
-    // Form submission with FormData (to handle file upload)
+    // Payment method toggling
+    const methodSelect = document.getElementById('preferredMethod');
+    function togglePaymentFields() {
+      const method = methodSelect.value;
+      document.getElementById('paypalField').style.display = method === 'paypal' ? 'block' : 'none';
+      document.getElementById('mpesaField').style.display = method === 'mpesa' ? 'block' : 'none';
+      document.getElementById('bankField').style.display = method === 'bank' ? 'block' : 'none';
+    }
+    methodSelect.addEventListener('change', togglePaymentFields);
+    // Also call when role becomes tutor (so fields are shown if default method is paypal)
+    roleSelect.addEventListener('change', function() {
+      if (roleSelect.value === 'tutor') togglePaymentFields();
+    });
+
+    // Form submission with FormData
     const form = document.getElementById('registerForm');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -160,7 +198,6 @@
 
       const role = roleSelect.value;
       if (role === 'tutor') {
-        // Validate required tutor fields
         const essay = document.getElementById('essay').value.trim();
         if (essay.length < 500) {
           alert('Essay must be at least 500 words.');
@@ -170,7 +207,6 @@
           alert('You must agree to the platform rules.');
           return;
         }
-        // Validate quiz answers (all questions must be answered)
         const quiz1 = document.querySelector('input[name="quiz1"]:checked');
         const quiz2 = document.querySelector('input[name="quiz2"]:checked');
         const quiz3 = document.querySelector('input[name="quiz3"]:checked');
@@ -178,7 +214,6 @@
           alert('Please answer all quiz questions.');
           return;
         }
-        // Optional: check correct answers later on backend, but frontend can also enforce passing
         if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
           alert('You failed the platform rules quiz. Please review the rules and try again.');
           return;
@@ -199,13 +234,25 @@
         formData.append('essayFormat', document.getElementById('essayFormat').value);
         const portfolioFile = document.getElementById('portfolio').files[0];
         if (portfolioFile) formData.append('portfolio', portfolioFile);
-        // Quiz answers (store as JSON string)
         const quizAnswers = {
           q1: document.querySelector('input[name="quiz1"]:checked').value,
           q2: document.querySelector('input[name="quiz2"]:checked').value,
           q3: document.querySelector('input[name="quiz3"]:checked').value
         };
         formData.append('quizAnswers', JSON.stringify(quizAnswers));
+
+        // Payment details
+        const preferredMethod = methodSelect.value;
+        formData.append('preferredMethod', preferredMethod);
+        if (preferredMethod === 'paypal') {
+          formData.append('paypalEmail', document.getElementById('paypalEmail').value);
+        } else if (preferredMethod === 'mpesa') {
+          formData.append('mpesaPhone', document.getElementById('mpesaPhone').value);
+        } else if (preferredMethod === 'bank') {
+          formData.append('bankName', document.getElementById('bankName').value);
+          formData.append('accountName', document.getElementById('accountName').value);
+          formData.append('accountNumber', document.getElementById('accountNumber').value);
+        }
       }
 
       const submitBtn = document.getElementById('submitBtn');

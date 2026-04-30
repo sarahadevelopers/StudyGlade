@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const Comment = require('../models/Comment');
 const Question = require('../models/Question');
 const User = require('../models/User');
-const { upload } = require('../server');   // <-- global upload with validation
+const { upload } = require('../server');   // global upload with validation
 
 const router = express.Router();
 
@@ -16,10 +16,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Get comments for a specific question
-router.get('/question/:questionId', async (req, res) => {
+// Get comments for a specific question (auth required to check role)
+router.get('/question/:questionId', auth, async (req, res) => {
   try {
-    const comments = await Comment.find({ questionId: req.params.questionId }).sort({ createdAt: 1 });
+    const user = await User.findById(req.userId);
+    const isAdmin = user.role === 'admin';
+    let filter = { questionId: req.params.questionId };
+    if (!isAdmin) {
+      filter.deleted = { $ne: true }; // hide deleted comments from non‑admins
+    }
+    const comments = await Comment.find(filter).sort({ createdAt: 1 });
     res.json(comments);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -58,7 +64,9 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       userRole: user.role,
       userName: user.fullName,
       text: text || '',
-      fileUrl
+      fileUrl,
+      deleted: false,       // explicit default
+      deletedAt: null
     });
     res.status(201).json(comment);
   } catch (err) {
@@ -68,17 +76,24 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
   }
 });
 
-// Delete comment (owner or admin)
+// Soft delete comment (owner or admin)
 router.delete('/:id', auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.id);
     if (!comment) return res.status(404).json({ error: 'Comment not found' });
     const user = await User.findById(req.userId);
-    if (comment.userId.toString() !== req.userId && user.role !== 'admin') {
+    const isOwner = comment.userId.toString() === req.userId;
+    const isAdmin = user.role === 'admin';
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    await comment.deleteOne();
-    res.json({ message: 'Comment deleted' });
+
+    // Soft delete instead of hard delete
+    comment.deleted = true;
+    comment.deletedAt = new Date();
+    await comment.save();
+
+    res.json({ message: 'Comment deleted (admin can still see it)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

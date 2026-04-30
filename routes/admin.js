@@ -9,6 +9,7 @@ const Withdrawal = require('../models/Withdrawal');
 const Bid = require('../models/Bid');
 const Breach = require('../models/Breach');
 const Announcement = require('../models/Announcement');
+const Comment = require('../models/Comment');
 const PDFDocument = require('pdfkit');
 const router = express.Router();
 
@@ -525,4 +526,19 @@ router.put('/tutors/:id/level', async (req, res) => {
   }
 });
 
+router.get('/questions/:id/full', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id)
+      .populate('studentId', 'fullName email')
+      .populate('tutorId', 'fullName email');
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+
+    const comments = await Comment.find({ questionId: question._id })
+      .populate('userId', 'fullName email')
+      .sort({ createdAt: 1 });
+    res.json({ question, comments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;

@@ -8,7 +8,9 @@ const commentSchema = new mongoose.Schema({
   text: { type: String, default: '' },                     // text is now optional (file can be provided instead)
   fileUrl: { type: String, default: null },               // URL of attached file (if any)
   createdAt: { type: Date, default: Date.now },
-  isEdited: { type: Boolean, default: false }
+  isEdited: { type: Boolean, default: false },
+  deleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null }
 });
 
 module.exports = mongoose.model('Comment', commentSchema);

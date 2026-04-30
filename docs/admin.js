@@ -130,7 +130,9 @@ async function loadTutorApplications() {
     }
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
-        <thead><tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr></thead>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
+        </thead>
         <tbody>
           ${pendingApps.map(t => `
             <tr>
@@ -202,7 +204,7 @@ function closeTutorModal() {
   currentReviewUserId = null;
 }
 
-// ----- Users Management (with Set Level button for tutors) -----
+// ----- Users Management (with Set Level button & View Dashboard) -----
 async function loadUsers() {
   try {
     const users = await apiFetch('/admin/users');
@@ -260,7 +262,7 @@ async function setTutorLevel(userId, currentLevel) {
 }
 window.setTutorLevel = setTutorLevel;
 
-// ----- All Questions Section -----
+// ----- All Questions Section (with View Full button) -----
 async function loadAllQuestions() {
   try {
     const questions = await apiFetch('/admin/questions');
@@ -272,7 +274,7 @@ async function loadAllQuestions() {
     container.innerHTML = `
       <table class="data-table" id="questionsTable">
         <thead>
-          <tr><th>Title</th><th>Student</th><th>Tutor</th><th>Budget</th><th>Status</th><th>Deadline</th><th>Created</th></tr>
+          <tr><th>Title</th><th>Student</th><th>Tutor</th><th>Budget</th><th>Status</th><th>Deadline</th><th>Actions</th></tr>
         </thead>
         <tbody>
           ${questions.map(q => `
@@ -283,7 +285,7 @@ async function loadAllQuestions() {
               <td>$${q.budget}</td>
               <td><span class="badge ${q.status === 'completed' ? 'badge-approved' : q.status === 'pending' ? 'badge-pending' : 'badge-rejected'}">${q.status}</span></td>
               <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
-              <td>${new Date(q.createdAt).toLocaleDateString()}</td>
+              <td><button class="btn-sm btn-primary" onclick="viewFullQuestion('${q._id}')">View Full</button></td>
             </tr>
           `).join('')}
         </tbody>
@@ -308,7 +310,7 @@ async function loadDocuments() {
         <tbody>
           ${unapproved.map(d => `
             <tr>
-              <td>${escapeHtml(d.title)}</td>
+              <td>${escapeHtml(d.title)}<table>
               <td>${escapeHtml(d.uploaderId?.fullName || 'Unknown')}</td>
               <td>${formatMoney(d.price)}</td>
               <td>
@@ -414,7 +416,7 @@ async function rejectWithdrawal(withdrawalId) {
   } catch (err) { alert(err.message); }
 }
 
-// ----- Breach Management (Phase 3) -----
+// ----- Breach Management (unchanged) -----
 async function loadBreaches() {
   try {
     const breaches = await apiFetch('/admin/breaches');
@@ -450,7 +452,7 @@ async function resolveBreach(breachId) {
 }
 window.resolveBreach = resolveBreach;
 
-// ----- Announcements (Phase 3) -----
+// ----- Announcements (unchanged) -----
 async function loadAnnouncements() {
   try {
     const announcements = await apiFetch('/admin/announcements');
@@ -458,7 +460,7 @@ async function loadAnnouncements() {
     container.innerHTML = `
       <table class="data-table" id="announcementsTable">
         <thead>
-          <table><th>Title</th><th>Message</th><th>Active</th><th>Expires</th><th>Created</th><th>Actions</th></tr>
+          <tr><th>Title</th><th>Message</th><th>Active</th><th>Expires</th><th>Created</th><th>Actions</th></tr>
         </thead>
         <tbody>
           ${announcements.map(a => `
@@ -534,7 +536,7 @@ window.saveAnnouncement = saveAnnouncement;
 window.showCreateAnnouncementModal = showCreateAnnouncementModal;
 window.closeAnnouncementModal = closeAnnouncementModal;
 
-// ----- User Dashboard Modal (unchanged) -----
+// ----- User Dashboard Modal (with Payment Details for tutors) -----
 async function showUserDashboard(userId) {
   try {
     const data = await apiFetch(`/admin/users/${userId}/dashboard`);
@@ -555,6 +557,18 @@ async function showUserDashboard(userId) {
           <p><strong>Rating:</strong> ${user.tutorProfile?.rating || 0} ⭐</p>
           <p><strong>Completed Questions:</strong> ${user.tutorProfile?.completedQuestions || 0}</p>
           <p><strong>Total Earnings:</strong> ${formatMoney(user.tutorProfile?.totalEarnings || 0)}</p>
+          ${user.paymentDetails ? `
+            <hr>
+            <h5>Payment Details (for payouts)</h5>
+            <p><strong>Preferred Method:</strong> ${user.paymentDetails.preferredMethod}</p>
+            ${user.paymentDetails.preferredMethod === 'paypal' ? `<p><strong>PayPal Email:</strong> ${escapeHtml(user.paymentDetails.paypalEmail)}</p>` : ''}
+            ${user.paymentDetails.preferredMethod === 'mpesa' ? `<p><strong>Mpesa Phone:</strong> ${escapeHtml(user.paymentDetails.mpesaPhone)}</p>` : ''}
+            ${user.paymentDetails.preferredMethod === 'bank' && user.paymentDetails.bankAccount ? `
+              <p><strong>Bank Name:</strong> ${escapeHtml(user.paymentDetails.bankAccount.bankName)}</p>
+              <p><strong>Account Name:</strong> ${escapeHtml(user.paymentDetails.bankAccount.accountName)}</p>
+              <p><strong>Account Number:</strong> ${escapeHtml(user.paymentDetails.bankAccount.accountNumber)}</p>
+            ` : ''}
+          ` : ''}
         ` : ''}
       </div>
     `;
@@ -621,7 +635,75 @@ function closeUserDashboardModal() {
   document.getElementById('userDashboardModal').style.display = 'none';
 }
 
-// ----- Notifications (unchanged) -----
+// ----- Full Question Modal (Admin view) -----
+async function viewFullQuestion(questionId) {
+  try {
+    const data = await apiFetch(`/admin/questions/${questionId}/full`);
+    const { question, comments } = data;
+
+    let html = `
+      <div style="margin-bottom: 1rem;">
+        <h4>${escapeHtml(question.title)}</h4>
+        <p><strong>Student:</strong> ${escapeHtml(question.studentId?.fullName)} (${escapeHtml(question.studentId?.email)})</p>
+        <p><strong>Tutor:</strong> ${escapeHtml(question.tutorId?.fullName || 'Not assigned')}</p>
+        <p><strong>Description:</strong> ${escapeHtml(question.description)}</p>
+        <p><strong>Budget:</strong> $${question.budget} | <strong>Status:</strong> ${question.status} | <strong>Deadline:</strong> ${new Date(question.deadline).toLocaleString()}</p>
+        ${question.files?.length ? `<p><strong>Attached files:</strong> ${question.files.map(f => `<a href="${f}" target="_blank">Download</a>`).join(', ')}</p>` : ''}
+        ${question.answerFile ? `<p><strong>Answer:</strong> <a href="${question.answerFile}" target="_blank">Download answer</a></p>` : ''}
+      </div>
+      <hr>
+      <h5>Discussion Thread</h5>
+      <div style="max-height: 400px; overflow-y: auto;">
+    `;
+
+    comments.forEach(c => {
+      const deletedBadge = c.deleted ? '<span class="badge" style="background:#e2e3e5;">Deleted</span>' : '';
+      html += `
+        <div style="border-left: 2px solid #ccc; padding-left: 0.5rem; margin-bottom: 1rem;">
+          <strong>${escapeHtml(c.userName)} (${c.userRole})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small> ${deletedBadge}
+          ${c.deleted ? `<p><em>This comment was deleted by the user on ${new Date(c.deletedAt).toLocaleString()}</em></p>` : `<p>${escapeHtml(c.text)}</p>`}
+          ${c.fileUrl ? `<p><a href="${c.fileUrl}" target="_blank">📎 View attached file</a></p>` : ''}
+        </div>
+      `;
+    });
+
+    html += `
+      </div>
+      <hr>
+      <div>
+        <textarea id="adminCommentText" rows="3" placeholder="Write a comment as admin..."></textarea>
+        <button class="btn-sm btn-primary" onclick="postAdminComment('${question._id}')">Post Comment</button>
+      </div>
+    `;
+
+    document.getElementById('fullQuestionBody').innerHTML = html;
+    document.getElementById('fullQuestionModal').style.display = 'flex';
+  } catch (err) {
+    alert('Error loading question: ' + err.message);
+  }
+}
+
+async function postAdminComment(questionId) {
+  const text = document.getElementById('adminCommentText').value;
+  if (!text) return;
+  try {
+    await apiFetch('/comments', {
+      method: 'POST',
+      body: JSON.stringify({ questionId, text })
+    });
+    document.getElementById('adminCommentText').value = '';
+    viewFullQuestion(questionId); // refresh modal
+    showToast('Comment posted as admin', 'success');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function closeFullQuestionModal() {
+  document.getElementById('fullQuestionModal').style.display = 'none';
+}
+
+// ----- Notifications (Polling) -----
 let notificationInterval;
 async function loadNotifications() {
   try {
@@ -672,7 +754,7 @@ function initSidebar() {
   });
 }
 
-// ----- Expose global functions -----
+// ----- Expose global functions for inline buttons -----
 window.approveDoc = approveDoc;
 window.approveWithdrawal = approveWithdrawal;
 window.rejectWithdrawal = rejectWithdrawal;
@@ -692,6 +774,10 @@ window.openNotificationModal = openNotificationModal;
 window.closeNotificationModal = closeNotificationModal;
 window.handleNotificationClick = handleNotificationClick;
 window.downloadReport = downloadReport;
+window.viewFullQuestion = viewFullQuestion;
+window.postAdminComment = postAdminComment;
+window.closeFullQuestionModal = closeFullQuestionModal;
+window.setTutorLevel = setTutorLevel;
 
 // ----- Event listeners -----
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });

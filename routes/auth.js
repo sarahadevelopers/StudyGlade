@@ -98,10 +98,9 @@ function getRefreshCookieOptions() {
   };
 }
 
-// ----------------- Register (supports tutor application) -----------------
+// ----------------- Register (supports tutor application + payment details) -----------------
 router.post('/register', upload.single('portfolio'), async (req, res) => {
   try {
-    // Basic fields (sent as text fields even with multipart)
     const { fullName, email, password, role } = req.body;
 
     if (password.length < 6) {
@@ -112,7 +111,6 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Prepare user object
     const userData = {
       email,
       password: hashed,
@@ -121,16 +119,13 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
       isApproved: role === 'student' || role === 'admin' ? true : false
     };
 
-    // If role is tutor, collect application data
     if (role === 'tutor') {
       const { qualifications, subjects, essay, essayFormat, quizAnswers } = req.body;
 
-      // Validate required tutor fields
       if (!essay || essay.length < 500) {
         return res.status(400).json({ error: 'Essay must be at least 500 words.' });
       }
 
-      // Parse quiz answers (sent as JSON string)
       let parsedQuiz = null;
       try {
         parsedQuiz = JSON.parse(quizAnswers);
@@ -138,21 +133,17 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
         return res.status(400).json({ error: 'Invalid quiz answers format.' });
       }
 
-      // Optional: validate quiz answers (correct answers expected)
-      // q1 should be 'A', q2 'B', q3 'False'
       if (parsedQuiz.q1 !== 'A' || parsedQuiz.q2 !== 'B' || parsedQuiz.q3 !== 'False') {
         return res.status(400).json({ error: 'You failed the platform rules quiz. Please review the rules and try again.' });
       }
 
-      // Handle portfolio file upload (optional)
       let portfolioUrl = null;
       if (req.file) {
         const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/tutor_applications' });
         portfolioUrl = result.secure_url;
-        await fs.unlink(req.file.path); // remove temp file
+        await fs.unlink(req.file.path);
       }
 
-      // Store tutor application data
       userData.tutorApplication = {
         qualifications,
         subjects: subjects ? subjects.split(',').map(s => s.trim()) : [],
@@ -160,8 +151,21 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
         essayFormat: essayFormat || 'APA',
         portfolioUrl,
         quizAnswers: parsedQuiz,
-        status: 'pending',  // pending admin review
+        status: 'pending',
         appliedAt: new Date()
+      };
+
+      // ✅ NEW: Save payment details for tutor
+      const { preferredMethod, paypalEmail, mpesaPhone, bankName, accountName, accountNumber } = req.body;
+      userData.paymentDetails = {
+        preferredMethod: preferredMethod || 'paypal',
+        paypalEmail: paypalEmail || '',
+        mpesaPhone: mpesaPhone || '',
+        bankAccount: {
+          bankName: bankName || '',
+          accountName: accountName || '',
+          accountNumber: accountNumber || ''
+        }
       };
     }
 
@@ -173,7 +177,6 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
-    // Return user info (including application status if tutor)
     const responseUser = {
       id: user._id,
       email: user.email,
@@ -187,7 +190,6 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
     res.json({ user: responseUser });
   } catch (err) {
     console.error('Register error:', err);
-    // Clean up uploaded file if exists
     if (req.file) await fs.unlink(req.file.path).catch(() => {});
     res.status(400).json({ error: err.message });
   }
