@@ -1,34 +1,602 @@
+// Helper: format money
+function formatMoney(amount) {
+  return `$${parseFloat(amount).toFixed(2)}`;
+}
+
+// Helper: escape HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+}
+
+// ----- Export CSV -----
+function exportTableToCSV(tableId, filename) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const rows = table.querySelectorAll('tr');
+  let csv = [];
+  rows.forEach(row => {
+    const cols = row.querySelectorAll('td, th');
+    const rowData = Array.from(cols).map(col => `"${col.innerText.replace(/"/g, '""')}"`).join(',');
+    csv.push(rowData);
+  });
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+// ----- Charts -----
+let revenueChart, topTutorsChart;
+
+async function loadCharts() {
+  try {
+    // Revenue timeline
+    const revenueData = await apiFetch('/admin/revenue-timeline');
+    const labels = revenueData.map(r => `${r._id.month}/${r._id.year}`);
+    const amounts = revenueData.map(r => r.total);
+    if (revenueChart) revenueChart.destroy();
+    const ctx = document.getElementById('revenueChart')?.getContext('2d');
+    if (ctx) {
+      revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Revenue ($)', data: amounts, borderColor: '#2563eb', fill: false }] }
+      });
+    }
+
+    // Top tutors by earnings
+    const topTutors = await apiFetch('/admin/top-tutors');
+    const tutorNames = topTutors.map(t => t.fullName);
+    const tutorEarnings = topTutors.map(t => t.tutorProfile?.totalEarnings || 0);
+    if (topTutorsChart) topTutorsChart.destroy();
+    const ctx2 = document.getElementById('topTutorsChart')?.getContext('2d');
+    if (ctx2) {
+      topTutorsChart = new Chart(ctx2, {
+        type: 'bar',
+        data: { labels: tutorNames, datasets: [{ label: 'Earnings ($)', data: tutorEarnings, backgroundColor: '#10b981' }] }
+      });
+    }
+  } catch (err) { console.error('Chart error:', err); }
+}
+
+// ----- Load all dashboard sections -----
 async function loadAdminDashboard() {
-  const analytics = await apiFetch('/admin/analytics');
-  document.getElementById('analytics').innerText = JSON.stringify(analytics, null, 2);
+  await loadOverview();
+  await loadTutorApplications();
+  await loadUsers();
+  await loadAllQuestions();
+  await loadDocuments();
+  await loadWithdrawals();
+  await loadCharts();
+}
+
+// ----- Overview Section -----
+async function loadOverview() {
+  try {
+    const analytics = await apiFetch('/admin/analytics');
+    const users = await apiFetch('/admin/users');
+    const withdrawals = await apiFetch('/admin/withdrawals');
+    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
+    const pendingTutors = users.filter(u => u.role === 'tutor' && u.tutorApplication?.status === 'pending').length;
+
+    const stats = [
+      { label: 'Total Users', value: analytics.totalUsers || 0 },
+      { label: 'Tutors', value: analytics.totalTutors || 0 },
+      { label: 'Students', value: analytics.totalStudents || 0 },
+      { label: 'Questions', value: analytics.totalQuestions || 0 },
+      { label: 'Completed', value: analytics.completedQuestions || 0 },
+      { label: 'Documents', value: analytics.totalDocuments || 0 },
+      { label: 'Revenue', value: formatMoney(analytics.totalRevenue || 0) },
+      { label: 'Pending Tutors', value: pendingTutors },
+      { label: 'Pending Withdrawals', value: pendingWithdrawals }
+    ];
+
+    const statsGrid = document.getElementById('statsGrid');
+    statsGrid.innerHTML = stats.map(s => `
+      <div class="stat-card">
+        <h4>${s.label}</h4>
+        <div class="value">${s.value}</div>
+      </div>
+    `).join('');
+
+    // Recent activity (simplified – show last 5 users)
+    const recent = users.slice(-5).reverse().map(u => `
+      <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+        ${u.fullName} (${u.role}) joined ${new Date(u.createdAt).toLocaleDateString()}
+      </div>
+    `).join('');
+    document.getElementById('recentActivity').innerHTML = recent || 'No recent activity.';
+  } catch (err) {
+    console.error('Overview error:', err);
+    document.getElementById('statsGrid').innerHTML = '<p>Error loading stats</p>';
+  }
+}
+
+// ----- Tutor Applications Section -----
+async function loadTutorApplications() {
+  try {
+    const users = await apiFetch('/admin/users');
+    const pendingApps = users.filter(u => u.role === 'tutor' && u.tutorApplication?.status === 'pending');
+    const container = document.getElementById('tutorApplicationsList');
+    if (!pendingApps.length) {
+      container.innerHTML = '<div class="card">No pending tutor applications.</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table" id="tutorAppsTable">
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          ${pendingApps.map(t => `
+            <tr>
+              <td>${escapeHtml(t.fullName)}</td>
+              <td>${escapeHtml(t.email)}</td>
+              <td>${new Date(t.tutorApplication.appliedAt).toLocaleDateString()}</td>
+              <td>${escapeHtml(t.tutorApplication.subjects?.join(', ') || '—')}</td>
+              <td><button class="btn-sm btn-primary" onclick="showTutorReview('${t._id}')">Review</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('tutorApplicationsList').innerHTML = '<p>Error loading applications.</p>';
+  }
+}
+
+let currentReviewUserId = null;
+async function showTutorReview(userId) {
   const users = await apiFetch('/admin/users');
-  const pendingTutors = users.filter(u => u.role === 'tutor' && !u.isApproved);
-  document.getElementById('pendingTutors').innerHTML = pendingTutors.map(t => `
-    <div class="card">
-      ${t.fullName} (${t.email})
-      <button onclick="approveTutor('${t._id}', true)" class="btn">Approve</button>
-      <button onclick="approveTutor('${t._id}', false)" class="btn btn-outline">Reject</button>
-    </div>
-  `).join('');
-  document.getElementById('allUsers').innerHTML = `<pre>${JSON.stringify(users, null, 2)}</pre>`;
-  const docs = await apiFetch('/admin/documents');
-  const unapproved = docs.filter(d => !d.isApproved);
-  document.getElementById('documents').innerHTML = unapproved.map(d => `
-    <div class="card">
-      ${d.title} by ${d.uploaderId?.fullName} - $${d.price}
-      <button onclick="approveDoc('${d._id}')" class="btn">Approve</button>
-    </div>
-  `).join('');
+  const tutor = users.find(u => u._id === userId);
+  if (!tutor) return;
+  currentReviewUserId = userId;
+
+  const app = tutor.tutorApplication;
+  const modalBody = document.getElementById('tutorReviewBody');
+  modalBody.innerHTML = `
+    <p><strong>Full Name:</strong> ${escapeHtml(tutor.fullName)}</p>
+    <p><strong>Email:</strong> ${escapeHtml(tutor.email)}</p>
+    <p><strong>Qualifications:</strong><br>${escapeHtml(app.qualifications || 'Not provided')}</p>
+    <p><strong>Subjects:</strong> ${escapeHtml(app.subjects?.join(', ') || '—')}</p>
+    <p><strong>Essay Format:</strong> ${app.essayFormat || 'APA'}</p>
+    <p><strong>Essay (500-1000 words):</strong></p>
+    <div style="background:#f9fafb; padding:1rem; border-radius:0.5rem; white-space:pre-wrap;">${escapeHtml(app.essay || '')}</div>
+    <p><strong>Quiz Answers:</strong> Q1: ${app.quizAnswers?.q1 || '?'}, Q2: ${app.quizAnswers?.q2 || '?'}, Q3: ${app.quizAnswers?.q3 || '?'}</p>
+    ${app.portfolioUrl ? `<p><strong>Portfolio:</strong> <a href="${app.portfolioUrl}" target="_blank">Download file</a></p>` : ''}
+  `;
+  document.getElementById('tutorReviewModal').style.display = 'flex';
 }
 
-async function approveTutor(id, approve) {
-  await apiFetch(`/admin/users/${id}/approve`, { method: 'PUT', body: JSON.stringify({ isApproved: approve }) });
+async function approveTutorApplication() {
+  if (!currentReviewUserId) return;
+  try {
+    await apiFetch(`/admin/users/${currentReviewUserId}/approve-tutor`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved: true })
+    });
+    alert('Tutor approved. They can now log in.');
+    closeTutorModal();
+    loadAdminDashboard();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function rejectTutorApplication() {
+  if (!currentReviewUserId) return;
+  const feedback = prompt('Reason for rejection (will be sent to tutor):');
+  if (feedback === null) return;
+  try {
+    await apiFetch(`/admin/users/${currentReviewUserId}/approve-tutor`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved: false, feedback })
+    });
+    alert('Tutor rejected.');
+    closeTutorModal();
+    loadAdminDashboard();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function closeTutorModal() {
+  document.getElementById('tutorReviewModal').style.display = 'none';
+  currentReviewUserId = null;
+}
+
+// ----- Users Management -----
+async function loadUsers() {
+  try {
+    const users = await apiFetch('/admin/users');
+    const container = document.getElementById('usersList');
+    container.innerHTML = `
+      <table class="data-table" id="usersTable">
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Approved</th><th>Suspended</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          ${users.map(u => `
+            <tr>
+              <td>${escapeHtml(u.fullName)}</td>
+              <td>${escapeHtml(u.email)}</td>
+              <td>${u.role}</td>
+              <td>${u.isApproved ? '✅' : '❌'}</td>
+              <td>${u.isSuspended ? '🚫' : '✅'}</td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
+                <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
+                  ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('usersList').innerHTML = '<p>Error loading users.</p>';
+  }
+}
+
+async function toggleSuspend(userId, suspend) {
+  try {
+    await apiFetch(`/admin/users/${userId}/suspend`, {
+      method: 'PUT',
+      body: JSON.stringify({ isSuspended: suspend })
+    });
+    loadUsers();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// ----- All Questions Section -----
+async function loadAllQuestions() {
+  try {
+    const questions = await apiFetch('/admin/questions');
+    const container = document.getElementById('questionsList');
+    if (!questions.length) {
+      container.innerHTML = '<div class="card">No questions found.</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table" id="questionsTable">
+        <thead>
+          <tr><th>Title</th><th>Student</th><th>Tutor</th><th>Budget</th><th>Status</th><th>Deadline</th><th>Created</th></tr>
+        </thead>
+        <tbody>
+          ${questions.map(q => `
+            <tr>
+              <td>${escapeHtml(q.title)}</td>
+              <td>${escapeHtml(q.studentId?.fullName || '—')}</td>
+              <td>${escapeHtml(q.tutorId?.fullName || '—')}</td>
+              <td>$${q.budget}</td>
+              <td><span class="badge ${q.status === 'completed' ? 'badge-approved' : q.status === 'pending' ? 'badge-pending' : 'badge-rejected'}">${q.status}</span></td>
+              <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
+              <td>${new Date(q.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('questionsList').innerHTML = '<p>Error loading questions.</p>';
+  }
+}
+
+// ----- Document Approval (with Edit & Delete) -----
+async function loadDocuments() {
+  try {
+    const docs = await apiFetch('/admin/documents');
+    const unapproved = docs.filter(d => !d.isApproved);
+    const container = document.getElementById('documentsList');
+    if (!unapproved.length) {
+      container.innerHTML = '<div class="card">No pending documents.</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Uploader</th><th>Price</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${unapproved.map(d => `
+            <tr>
+              <td>${escapeHtml(d.title)}</td>
+              <td>${escapeHtml(d.uploaderId?.fullName || 'Unknown')}</td>
+              <td>${formatMoney(d.price)}</td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="editDocument('${d._id}', '${escapeHtml(d.title)}', ${d.price}, '${escapeHtml(d.description)}')">Edit</button>
+                <button class="btn-sm btn-danger" onclick="deleteDocument('${d._id}')">Delete</button>
+                <button class="btn-sm btn-secondary" onclick="approveDoc('${d._id}')">Approve</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('documentsList').innerHTML = '<p>Error loading documents.</p>';
+  }
+}
+
+async function approveDoc(docId) {
+  try {
+    await apiFetch(`/admin/documents/${docId}/approve`, { method: 'PUT' });
+    loadDocuments();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function editDocument(docId, currentTitle, currentPrice, currentDescription) {
+  document.getElementById('editDocId').value = docId;
+  document.getElementById('editDocTitle').value = currentTitle;
+  document.getElementById('editDocPrice').value = currentPrice;
+  document.getElementById('editDocDescription').value = currentDescription;
+  document.getElementById('editDocumentModal').style.display = 'flex';
+}
+
+async function saveDocumentEdit() {
+  const docId = document.getElementById('editDocId').value;
+  const title = document.getElementById('editDocTitle').value;
+  const price = parseFloat(document.getElementById('editDocPrice').value);
+  const description = document.getElementById('editDocDescription').value;
+  try {
+    await apiFetch(`/admin/documents/${docId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ title, price, description })
+    });
+    closeEditDocModal();
+    loadDocuments();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function closeEditDocModal() {
+  document.getElementById('editDocumentModal').style.display = 'none';
+}
+
+async function deleteDocument(docId) {
+  if (confirm('Delete this document permanently?')) {
+    await apiFetch(`/admin/documents/${docId}`, { method: 'DELETE' });
+    loadDocuments();
+  }
+}
+
+// ----- Withdrawal Requests -----
+async function loadWithdrawals() {
+  try {
+    const withdrawals = await apiFetch('/admin/withdrawals');
+    const pending = withdrawals.filter(w => w.status === 'pending');
+    const container = document.getElementById('withdrawalsList');
+    if (!pending.length) {
+      container.innerHTML = '<div class="card">No pending withdrawals.</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Requested</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${pending.map(w => `
+            <tr>
+              <td>${escapeHtml(w.userId?.fullName || 'Unknown')}</td>
+              <td>${formatMoney(w.amount)}</td>
+              <td>${w.method}</td>
+              <td>${new Date(w.createdAt).toLocaleDateString()}</td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="approveWithdrawal('${w._id}')">Approve</button>
+                <button class="btn-sm btn-danger" onclick="rejectWithdrawal('${w._id}')">Reject</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<p>Error loading withdrawals.</p>';
+  }
+}
+
+async function approveWithdrawal(withdrawalId) {
+  try {
+    await apiFetch(`/admin/withdrawals/${withdrawalId}/approve`, { method: 'PUT' });
+    loadWithdrawals();
+    loadOverview();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function rejectWithdrawal(withdrawalId) {
+  if (!confirm('Reject this withdrawal? Funds will be refunded to user wallet.')) return;
+  try {
+    await apiFetch(`/admin/withdrawals/${withdrawalId}/reject`, { method: 'PUT' });
+    loadWithdrawals();
+    loadOverview();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// ----- User Dashboard Modal -----
+async function showUserDashboard(userId) {
+  try {
+    const data = await apiFetch(`/admin/users/${userId}/dashboard`);
+    const user = data.user;
+    const questions = data.questions;
+    const transactions = data.transactions;
+    const bids = data.bids || [];
+
+    let html = `
+      <div style="margin-bottom: 1rem;">
+        <h4>Profile</h4>
+        <p><strong>Name:</strong> ${escapeHtml(user.fullName)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
+        <p><strong>Role:</strong> ${user.role}</p>
+        <p><strong>Wallet Balance:</strong> ${formatMoney(user.walletBalance)}</p>
+        ${user.role === 'tutor' ? `
+          <p><strong>Tutor Level:</strong> ${user.tutorProfile?.level || 'Entry-Level'}</p>
+          <p><strong>Rating:</strong> ${user.tutorProfile?.rating || 0} ⭐</p>
+          <p><strong>Completed Questions:</strong> ${user.tutorProfile?.completedQuestions || 0}</p>
+          <p><strong>Total Earnings:</strong> ${formatMoney(user.tutorProfile?.totalEarnings || 0)}</p>
+        ` : ''}
+      </div>
+    `;
+
+    if (questions.length) {
+      html += `<h4>Questions ${user.role === 'tutor' ? '(As Tutor)' : '(Posted by Student)'}</h4>
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Budget</th><th>Status</th><th>Deadline</th></tr></thead>
+        <tbody>
+          ${questions.map(q => `
+            <tr>
+              <td>${escapeHtml(q.title)}</td>
+              <td>$${q.budget}</td>
+              <td>${q.status}</td>
+              <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+    } else {
+      html += `<p>No questions found.</p>`;
+    }
+
+    if (transactions.length) {
+      html += `<h4>Recent Transactions</h4>
+      <table class="data-table">
+        <thead><tr><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
+        <tbody>
+          ${transactions.slice(0, 10).map(t => `
+            <tr>
+              <td>${t.type}</td>
+              <td>${formatMoney(Math.abs(t.amount))}</td>
+              <td>${escapeHtml(t.description)}</td>
+              <td>${new Date(t.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    if (bids.length) {
+      html += `<h4>Bids Placed</h4>
+      <table class="data-table">
+        <thead><tr><th>Question</th><th>Bid Amount</th></tr></thead>
+        <tbody>
+          ${bids.map(b => `
+            <tr>
+              <td>${escapeHtml(b.questionId?.title || 'Deleted question')}</td>
+              <td>${formatMoney(b.amount)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    document.getElementById('userDashboardBody').innerHTML = html;
+    document.getElementById('userDashboardModal').style.display = 'flex';
+  } catch (err) {
+    alert('Error loading dashboard: ' + err.message);
+  }
+}
+
+function closeUserDashboardModal() {
+  document.getElementById('userDashboardModal').style.display = 'none';
+}
+
+// ----- Notifications (Polling) -----
+let notificationInterval;
+async function loadNotifications() {
+  try {
+    const notifs = await apiFetch('/admin/notifications');
+    const badge = document.getElementById('notificationBadge');
+    if (badge) badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
+    const listDiv = document.getElementById('notificationList');
+    if (listDiv) {
+      listDiv.innerHTML = notifs.map(n => `
+        <div style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem;">
+          <div>${escapeHtml(n.message)}</div>
+          <small>${new Date(n.createdAt).toLocaleString()}</small>
+          <a href="#" onclick="handleNotificationClick('${n.link}'); return false;">View</a>
+        </div>
+      `).join('');
+      if (notifs.length === 0) listDiv.innerHTML = '<p>No new notifications.</p>';
+    }
+  } catch (err) { console.error(err); }
+}
+
+function handleNotificationClick(link) {
+  closeNotificationModal();
+  const sectionId = link.substring(1);
+  const menuItem = document.querySelector(`.sidebar-menu li[data-section="${sectionId}"]`);
+  if (menuItem) menuItem.click();
+}
+
+function openNotificationModal() {
+  document.getElementById('notificationModal').style.display = 'flex';
+  loadNotifications();
+}
+function closeNotificationModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+// ----- Sidebar navigation -----
+function initSidebar() {
+  const menuItems = document.querySelectorAll('.sidebar-menu li');
+  const sections = document.querySelectorAll('.section');
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const sectionId = item.getAttribute('data-section');
+      menuItems.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      sections.forEach(s => s.classList.remove('active-section'));
+      document.getElementById(sectionId).classList.add('active-section');
+    });
+  });
+}
+
+// ----- Expose global functions for inline buttons -----
+window.approveDoc = approveDoc;
+window.approveWithdrawal = approveWithdrawal;
+window.rejectWithdrawal = rejectWithdrawal;
+window.showTutorReview = showTutorReview;
+window.approveTutorApplication = approveTutorApplication;
+window.rejectTutorApplication = rejectTutorApplication;
+window.toggleSuspend = toggleSuspend;
+window.closeTutorModal = closeTutorModal;
+window.showUserDashboard = showUserDashboard;
+window.closeUserDashboardModal = closeUserDashboardModal;
+window.editDocument = editDocument;
+window.closeEditDocModal = closeEditDocModal;
+window.saveDocumentEdit = saveDocumentEdit;
+window.deleteDocument = deleteDocument;
+window.exportTableToCSV = exportTableToCSV;
+window.openNotificationModal = openNotificationModal;
+window.closeNotificationModal = closeNotificationModal;
+window.handleNotificationClick = handleNotificationClick;
+
+// ----- Event Listeners -----
+document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
+document.querySelector('.notification-icon')?.addEventListener('click', openNotificationModal);
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+  localStorage.clear();
+  window.location.href = 'login.html';
+});
+
+// ----- Start -----
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar();
   loadAdminDashboard();
-}
-
-async function approveDoc(id) {
-  await apiFetch(`/admin/documents/${id}/approve`, { method: 'PUT' });
-  loadAdminDashboard();
-}
-
-loadAdminDashboard();
+  loadNotifications();
+  if (notificationInterval) clearInterval(notificationInterval);
+  notificationInterval = setInterval(loadNotifications, 30000);
+});
