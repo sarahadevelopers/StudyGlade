@@ -1,12 +1,23 @@
 // ---------- Load Student Dashboard ----------
+// ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
-  document.getElementById('walletBalance').innerText = `$${user.walletBalance}`;
+  if (!user || !user.id) {
+    // Not logged in – redirect to login
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Safely update wallet balance
+  const walletEl = document.getElementById('walletBalance');
+  if (walletEl) walletEl.innerText = `$${user.walletBalance}`;
+
   const questions = await apiFetch('/questions/my-questions');
+  
   const activeTable = document.getElementById('activeQuestions');
   const completedTable = document.getElementById('completedQuestions');
-  activeTable.innerHTML = '';
-  completedTable.innerHTML = '';
+  if (activeTable) activeTable.innerHTML = '';
+  if (completedTable) completedTable.innerHTML = '';
 
   for (const q of questions) {
     const safeTitle = escapeHtml(q.title);
@@ -16,34 +27,36 @@ async function loadStudentDashboard() {
 
     if (q.status === 'pending' || q.status === 'assigned') {
       const viewBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
-      const row = `<table>
+      const row = `<tr>
         <td>${safeTitle}</td>
         <td>${safeTutor}</td>
         <td>${safeStatus}</td>
         <td>${budget}</td>
         <td>${viewBtn}</td>
       </tr>`;
-      activeTable.innerHTML += row;
+      if (activeTable) activeTable.innerHTML += row;
     } else if (q.status === 'completed') {
       let viewAnswerBtn = q.answerFile
         ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
         : '<span class="disabled">No answer</span>';
       const rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
       const actions = `${viewAnswerBtn} ${rateBtn}`;
-      const row = `</td>
+      const row = `<table>
         <td>${safeTitle}</td>
         <td>${safeTutor}</td>
         <td>${safeStatus}</td>
         <td>${budget}</td>
         <td>${actions}</td>
-      </tr>`;
-      completedTable.innerHTML += row;
+      </table>`;
+      if (completedTable) completedTable.innerHTML += row;
     }
   }
 
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
 }
+
+// ... (the rest of student.js remains unchanged, but ensure escapeHtml is defined)
 
 // ---------- RATING MODAL (Reliable: stores selected value, event delegation) ----------
 let currentRatingQuestionId = null;

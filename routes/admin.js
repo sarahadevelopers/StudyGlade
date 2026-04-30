@@ -7,12 +7,26 @@ const Document = require('../models/Document');
 const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
 const Bid = require('../models/Bid');
-const Breach = require('../models/Breach');           // ✅ Phase 3
-const Announcement = require('../models/Announcement'); // ✅ Phase 3
-const PDFDocument = require('pdfkit');               // ✅ Phase 3 (install pdfkit)
+const Breach = require('../models/Breach');
+const Announcement = require('../models/Announcement');
+const PDFDocument = require('pdfkit');
 const router = express.Router();
 
-// All admin routes require admin role
+// ========== PUBLIC ROUTE (no authentication required) – MUST BE FIRST ==========
+router.get('/public/announcements', async (req, res) => {
+  try {
+    const now = new Date();
+    const announcements = await Announcement.find({
+      isActive: true,
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+    }).sort({ createdAt: -1 });
+    res.json(announcements);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== ALL ADMIN ROUTES BELOW REQUIRE AUTH ==========
 router.use(auth, roleCheck('admin'));
 
 // ========== USERS ==========
@@ -303,7 +317,7 @@ router.get('/users/:id/dashboard', async (req, res) => {
   }
 });
 
-// ========== BREACH MANAGEMENT (Phase 3) ==========
+// ========== BREACH MANAGEMENT ==========
 router.get('/breaches', async (req, res) => {
   try {
     const breaches = await Breach.find().populate('userId', 'fullName email').sort({ createdAt: -1 });
@@ -318,9 +332,6 @@ router.post('/breaches', async (req, res) => {
     const { userId, type, reason, severity, expiresAt } = req.body;
     const breach = await Breach.create({ userId, type, reason, severity, expiresAt });
     if (type === 'suspension') {
-      // Also suspend the user via the existing suspend endpoint
-      const expiryDays = expiresAt ? Math.ceil((new Date(expiresAt) - Date.now()) / (1000*60*60*24)) : null;
-      // We need to call suspend endpoint – we can directly update user or call internal function
       const user = await User.findById(userId);
       if (user) {
         user.isSuspended = true;
@@ -349,8 +360,7 @@ router.put('/breaches/:id/resolve', async (req, res) => {
   }
 });
 
-// ========== PDF REPORTS (Phase 3) ==========
-// Helper: Generate PDF buffer
+// ========== PDF REPORTS ==========
 async function generateTutorPerformancePDF() {
   const tutors = await User.find({ role: 'tutor', isApproved: true })
     .select('fullName email tutorProfile.rating tutorProfile.completedQuestions tutorProfile.totalEarnings');
@@ -447,7 +457,7 @@ router.get('/reports/top-documents', async (req, res) => {
   }
 });
 
-// ========== ANNOUNCEMENTS (Phase 3) ==========
+// ========== ANNOUNCEMENTS (admin CRUD) ==========
 router.get('/announcements', async (req, res) => {
   try {
     const announcements = await Announcement.find().sort({ createdAt: -1 });
@@ -492,21 +502,7 @@ router.delete('/announcements/:id', async (req, res) => {
   }
 });
 
-// Public endpoint for active announcements (no auth required)
-router.get('/public/announcements', async (req, res) => {
-  try {
-    const now = new Date();
-    const announcements = await Announcement.find({
-      isActive: true,
-      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
-    }).sort({ createdAt: -1 });
-    res.json(announcements);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ========== MANUAL TUTOR LEVEL OVERRIDE (Phase 3) ==========
+// ========== MANUAL TUTOR LEVEL OVERRIDE ==========
 router.put('/tutors/:id/level', async (req, res) => {
   try {
     const { level, reason } = req.body;
@@ -517,7 +513,6 @@ router.put('/tutors/:id/level', async (req, res) => {
     if (!tutor.tutorProfile.levelHistory) tutor.tutorProfile.levelHistory = [];
     tutor.tutorProfile.levelHistory.push({ level, date: new Date() });
     await tutor.save();
-    // Log a breach record for manual override
     await Breach.create({
       userId: tutor._id,
       type: 'manual_override',
