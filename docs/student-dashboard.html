@@ -46,6 +46,9 @@
   </nav>
 
   <div class="container" style="padding: 2rem 0;">
+    <!-- Announcement Banner -->
+    <div id="announcementBanner" style="display: none; background: #2563eb; color: white; padding: 0.75rem; text-align: center; border-radius: 8px; margin-bottom: 1rem;"></div>
+
     <h1>Student Dashboard</h1>
 
     <!-- Wallet Card -->
@@ -64,7 +67,7 @@
     <!-- Active Questions -->
     <div class="card" style="overflow-x: auto;">
       <h3>Active Questions</h3>
-      <table>
+      </table>
         <thead>
           <tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th><th>Actions</th></tr>
         </thead>
@@ -80,13 +83,13 @@
           <tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th><th>Actions</th></tr>
         </thead>
         <tbody id="completedQuestions"></tbody>
-      </table>
+      </td>
     </div>
 
     <a href="post-question.html" class="btn" style="margin-top: 1rem;">+ Post New Question</a>
   </div>
 
-  <!-- Transaction History Modal (unchanged) -->
+  <!-- Transaction History Modal -->
   <div id="transactionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
     <div style="background:white; max-width:600px; margin:4rem auto; border-radius:1rem; padding:1.5rem;">
       <h3>Transaction History</h3>
@@ -96,7 +99,7 @@
     </div>
   </div>
 
-  <!-- Rating Modal (NEW) -->
+  <!-- Rating Modal -->
   <div id="ratingModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
     <div style="background:white; max-width:500px; margin:10% auto; border-radius:1rem; padding:1.5rem;">
       <span style="float:right; cursor:pointer;" onclick="closeRatingModal()">&times;</span>
@@ -127,6 +130,34 @@
       });
     }
 
+    // Helper: escape HTML (should already be in student.js, but define if missing)
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Fetch and display active announcements
+    async function loadAnnouncements() {
+      try {
+        const res = await fetch('/api/admin/public/announcements');
+        const announcements = await res.json();
+        const banner = document.getElementById('announcementBanner');
+        if (announcements.length > 0) {
+          banner.style.display = 'block';
+          banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Announcement error:', err);
+      }
+    }
+
     // Bid notification logic (checks for pending questions)
     async function checkForBidNotifications() {
       const questions = await apiFetch('/questions/my-questions');
@@ -144,7 +175,7 @@
       }
     }
 
-    // Extend the original loadStudentDashboard to show bid notification
+    // Extend the original loadStudentDashboard to show bid notification and announcements
     const originalLoad = window.loadStudentDashboard;
     if (originalLoad) {
       window.loadStudentDashboard = async function() {
@@ -169,6 +200,13 @@
     window.closeRatingModal = function() {
       document.getElementById('ratingModal').style.display = 'none';
     };
+
+    // Load announcements after dashboard loads
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadAnnouncements);
+    } else {
+      loadAnnouncements();
+    }
   </script>
 </body>
 </html>

@@ -27,12 +27,17 @@ function exportTableToCSV(tableId, filename) {
   link.click();
 }
 
+// ----- PDF Reports -----
+async function downloadReport(type) {
+  window.open(`/api/admin/reports/${type}`, '_blank');
+}
+window.downloadReport = downloadReport;
+
 // ----- Charts -----
 let revenueChart, topTutorsChart;
 
 async function loadCharts() {
   try {
-    // Revenue timeline
     const revenueData = await apiFetch('/admin/revenue-timeline');
     const labels = revenueData.map(r => `${r._id.month}/${r._id.year}`);
     const amounts = revenueData.map(r => r.total);
@@ -45,7 +50,6 @@ async function loadCharts() {
       });
     }
 
-    // Top tutors by earnings
     const topTutors = await apiFetch('/admin/top-tutors');
     const tutorNames = topTutors.map(t => t.fullName);
     const tutorEarnings = topTutors.map(t => t.tutorProfile?.totalEarnings || 0);
@@ -68,6 +72,8 @@ async function loadAdminDashboard() {
   await loadAllQuestions();
   await loadDocuments();
   await loadWithdrawals();
+  await loadBreaches();
+  await loadAnnouncements();
   await loadCharts();
 }
 
@@ -100,7 +106,6 @@ async function loadOverview() {
       </div>
     `).join('');
 
-    // Recent activity (simplified – show last 5 users)
     const recent = users.slice(-5).reverse().map(u => `
       <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
         ${u.fullName} (${u.role}) joined ${new Date(u.createdAt).toLocaleDateString()}
@@ -113,7 +118,7 @@ async function loadOverview() {
   }
 }
 
-// ----- Tutor Applications Section -----
+// ----- Tutor Applications Section (unchanged) -----
 async function loadTutorApplications() {
   try {
     const users = await apiFetch('/admin/users');
@@ -125,9 +130,7 @@ async function loadTutorApplications() {
     }
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
-        <thead>
-          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
-        </thead>
+        <thead><tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr></thead>
         <tbody>
           ${pendingApps.map(t => `
             <tr>
@@ -141,10 +144,7 @@ async function loadTutorApplications() {
         </tbody>
       </table>
     `;
-  } catch (err) {
-    console.error(err);
-    document.getElementById('tutorApplicationsList').innerHTML = '<p>Error loading applications.</p>';
-  }
+  } catch (err) { console.error(err); }
 }
 
 let currentReviewUserId = null;
@@ -153,7 +153,6 @@ async function showTutorReview(userId) {
   const tutor = users.find(u => u._id === userId);
   if (!tutor) return;
   currentReviewUserId = userId;
-
   const app = tutor.tutorApplication;
   const modalBody = document.getElementById('tutorReviewBody');
   modalBody.innerHTML = `
@@ -180,9 +179,7 @@ async function approveTutorApplication() {
     alert('Tutor approved. They can now log in.');
     closeTutorModal();
     loadAdminDashboard();
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  } catch (err) { alert('Error: ' + err.message); }
 }
 
 async function rejectTutorApplication() {
@@ -197,9 +194,7 @@ async function rejectTutorApplication() {
     alert('Tutor rejected.');
     closeTutorModal();
     loadAdminDashboard();
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  } catch (err) { alert('Error: ' + err.message); }
 }
 
 function closeTutorModal() {
@@ -207,7 +202,7 @@ function closeTutorModal() {
   currentReviewUserId = null;
 }
 
-// ----- Users Management -----
+// ----- Users Management (with Set Level button for tutors) -----
 async function loadUsers() {
   try {
     const users = await apiFetch('/admin/users');
@@ -227,6 +222,7 @@ async function loadUsers() {
               <td>${u.isSuspended ? '🚫' : '✅'}</td>
               <td>
                 <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
+                ${u.role === 'tutor' ? `<button class="btn-sm btn-secondary" onclick="setTutorLevel('${u._id}', '${u.tutorProfile?.level || 'Entry-Level'}')">Set Level</button>` : ''}
                 <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
                   ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
                 </button>
@@ -236,10 +232,7 @@ async function loadUsers() {
         </tbody>
       </table>
     `;
-  } catch (err) {
-    console.error(err);
-    document.getElementById('usersList').innerHTML = '<p>Error loading users.</p>';
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function toggleSuspend(userId, suspend) {
@@ -249,10 +242,23 @@ async function toggleSuspend(userId, suspend) {
       body: JSON.stringify({ isSuspended: suspend })
     });
     loadUsers();
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  } catch (err) { alert('Error: ' + err.message); }
 }
+
+async function setTutorLevel(userId, currentLevel) {
+  const newLevel = prompt(`Current level: ${currentLevel}\nEnter new level: Entry-Level, Skilled, Expert, Premium`, currentLevel);
+  if (!newLevel) return;
+  const reason = prompt('Reason for manual override:');
+  if (!reason) return;
+  try {
+    await apiFetch(`/admin/tutors/${userId}/level`, {
+      method: 'PUT',
+      body: JSON.stringify({ level: newLevel, reason })
+    });
+    loadUsers();
+  } catch (err) { alert('Error: ' + err.message); }
+}
+window.setTutorLevel = setTutorLevel;
 
 // ----- All Questions Section -----
 async function loadAllQuestions() {
@@ -283,13 +289,10 @@ async function loadAllQuestions() {
         </tbody>
       </table>
     `;
-  } catch (err) {
-    console.error(err);
-    document.getElementById('questionsList').innerHTML = '<p>Error loading questions.</p>';
-  }
+  } catch (err) { console.error(err); }
 }
 
-// ----- Document Approval (with Edit & Delete) -----
+// ----- Document Approval (unchanged) -----
 async function loadDocuments() {
   try {
     const docs = await apiFetch('/admin/documents');
@@ -318,19 +321,14 @@ async function loadDocuments() {
         </tbody>
       </table>
     `;
-  } catch (err) {
-    console.error(err);
-    document.getElementById('documentsList').innerHTML = '<p>Error loading documents.</p>';
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function approveDoc(docId) {
   try {
     await apiFetch(`/admin/documents/${docId}/approve`, { method: 'PUT' });
     loadDocuments();
-  } catch (err) {
-    alert(err.message);
-  }
+  } catch (err) { alert(err.message); }
 }
 
 async function editDocument(docId, currentTitle, currentPrice, currentDescription) {
@@ -353,9 +351,7 @@ async function saveDocumentEdit() {
     });
     closeEditDocModal();
     loadDocuments();
-  } catch (err) {
-    alert(err.message);
-  }
+  } catch (err) { alert(err.message); }
 }
 
 function closeEditDocModal() {
@@ -369,7 +365,7 @@ async function deleteDocument(docId) {
   }
 }
 
-// ----- Withdrawal Requests -----
+// ----- Withdrawal Requests (unchanged) -----
 async function loadWithdrawals() {
   try {
     const withdrawals = await apiFetch('/admin/withdrawals');
@@ -398,10 +394,7 @@ async function loadWithdrawals() {
         </tbody>
       </table>
     `;
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = '<p>Error loading withdrawals.</p>';
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function approveWithdrawal(withdrawalId) {
@@ -409,9 +402,7 @@ async function approveWithdrawal(withdrawalId) {
     await apiFetch(`/admin/withdrawals/${withdrawalId}/approve`, { method: 'PUT' });
     loadWithdrawals();
     loadOverview();
-  } catch (err) {
-    alert(err.message);
-  }
+  } catch (err) { alert(err.message); }
 }
 
 async function rejectWithdrawal(withdrawalId) {
@@ -420,12 +411,130 @@ async function rejectWithdrawal(withdrawalId) {
     await apiFetch(`/admin/withdrawals/${withdrawalId}/reject`, { method: 'PUT' });
     loadWithdrawals();
     loadOverview();
-  } catch (err) {
-    alert(err.message);
+  } catch (err) { alert(err.message); }
+}
+
+// ----- Breach Management (Phase 3) -----
+async function loadBreaches() {
+  try {
+    const breaches = await apiFetch('/admin/breaches');
+    const container = document.getElementById('breachesList');
+    container.innerHTML = `
+      <table class="data-table" id="breachesTable">
+        <thead>
+          <tr><th>User</th><th>Type</th><th>Reason</th><th>Severity</th><th>Date</th><th>Expires</th><th>Resolved</th></tr>
+        </thead>
+        <tbody>
+          ${breaches.map(b => `
+            <tr>
+              <td>${escapeHtml(b.userId?.fullName || 'Deleted')}</td>
+              <td>${b.type}</td>
+              <td>${escapeHtml(b.reason)}</td>
+              <td>${b.severity}</td>
+              <td>${new Date(b.createdAt).toLocaleDateString()}</td>
+              <td>${b.expiresAt ? new Date(b.expiresAt).toLocaleDateString() : '—'}</td>
+              <td>${b.resolved ? '✅' : `<button class="btn-sm btn-primary" onclick="resolveBreach('${b._id}')">Resolve</button>`}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) { console.error(err); }
+}
+
+async function resolveBreach(breachId) {
+  try {
+    await apiFetch(`/admin/breaches/${breachId}/resolve`, { method: 'PUT' });
+    loadBreaches();
+  } catch (err) { alert(err.message); }
+}
+window.resolveBreach = resolveBreach;
+
+// ----- Announcements (Phase 3) -----
+async function loadAnnouncements() {
+  try {
+    const announcements = await apiFetch('/admin/announcements');
+    const container = document.getElementById('announcementsList');
+    container.innerHTML = `
+      <table class="data-table" id="announcementsTable">
+        <thead>
+          <table><th>Title</th><th>Message</th><th>Active</th><th>Expires</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          ${announcements.map(a => `
+            <tr>
+              <td>${escapeHtml(a.title)}</td>
+              <td>${escapeHtml(a.message)}</td>
+              <td>${a.isActive ? '✅' : '❌'}</td>
+              <td>${a.expiresAt ? new Date(a.expiresAt).toLocaleDateString() : '—'}</td>
+              <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="editAnnouncement('${a._id}', '${escapeHtml(a.title)}', '${escapeHtml(a.message)}', '${a.expiresAt || ''}', ${a.isActive})">Edit</button>
+                <button class="btn-sm btn-danger" onclick="deleteAnnouncement('${a._id}')">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) { console.error(err); }
+}
+
+function showCreateAnnouncementModal() {
+  document.getElementById('announcementModalTitle').innerText = 'Create Announcement';
+  document.getElementById('announcementId').value = '';
+  document.getElementById('announcementTitle').value = '';
+  document.getElementById('announcementMessage').value = '';
+  document.getElementById('announcementExpires').value = '';
+  document.getElementById('announcementActive').checked = true;
+  document.getElementById('announcementModal').style.display = 'flex';
+}
+
+async function editAnnouncement(id, title, message, expires, isActive) {
+  document.getElementById('announcementModalTitle').innerText = 'Edit Announcement';
+  document.getElementById('announcementId').value = id;
+  document.getElementById('announcementTitle').value = title;
+  document.getElementById('announcementMessage').value = message;
+  document.getElementById('announcementExpires').value = expires ? expires.split('T')[0] + 'T' + expires.split('T')[1]?.slice(0,5) : '';
+  document.getElementById('announcementActive').checked = isActive;
+  document.getElementById('announcementModal').style.display = 'flex';
+}
+
+async function saveAnnouncement() {
+  const id = document.getElementById('announcementId').value;
+  const title = document.getElementById('announcementTitle').value;
+  const message = document.getElementById('announcementMessage').value;
+  const expiresAt = document.getElementById('announcementExpires').value || null;
+  const isActive = document.getElementById('announcementActive').checked;
+  const method = id ? 'PUT' : 'POST';
+  const url = id ? `/admin/announcements/${id}` : '/admin/announcements';
+  try {
+    await apiFetch(url, {
+      method,
+      body: JSON.stringify({ title, message, expiresAt, isActive })
+    });
+    closeAnnouncementModal();
+    loadAnnouncements();
+  } catch (err) { alert(err.message); }
+}
+
+async function deleteAnnouncement(id) {
+  if (confirm('Delete this announcement?')) {
+    await apiFetch(`/admin/announcements/${id}`, { method: 'DELETE' });
+    loadAnnouncements();
   }
 }
 
-// ----- User Dashboard Modal -----
+function closeAnnouncementModal() {
+  document.getElementById('announcementModal').style.display = 'none';
+}
+window.editAnnouncement = editAnnouncement;
+window.deleteAnnouncement = deleteAnnouncement;
+window.saveAnnouncement = saveAnnouncement;
+window.showCreateAnnouncementModal = showCreateAnnouncementModal;
+window.closeAnnouncementModal = closeAnnouncementModal;
+
+// ----- User Dashboard Modal (unchanged) -----
 async function showUserDashboard(userId) {
   try {
     const data = await apiFetch(`/admin/users/${userId}/dashboard`);
@@ -512,7 +621,7 @@ function closeUserDashboardModal() {
   document.getElementById('userDashboardModal').style.display = 'none';
 }
 
-// ----- Notifications (Polling) -----
+// ----- Notifications (unchanged) -----
 let notificationInterval;
 async function loadNotifications() {
   try {
@@ -563,7 +672,7 @@ function initSidebar() {
   });
 }
 
-// ----- Expose global functions for inline buttons -----
+// ----- Expose global functions -----
 window.approveDoc = approveDoc;
 window.approveWithdrawal = approveWithdrawal;
 window.rejectWithdrawal = rejectWithdrawal;
@@ -582,9 +691,11 @@ window.exportTableToCSV = exportTableToCSV;
 window.openNotificationModal = openNotificationModal;
 window.closeNotificationModal = closeNotificationModal;
 window.handleNotificationClick = handleNotificationClick;
+window.downloadReport = downloadReport;
 
-// ----- Event Listeners -----
+// ----- Event listeners -----
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
+document.getElementById('announcementForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveAnnouncement(); });
 document.querySelector('.notification-icon')?.addEventListener('click', openNotificationModal);
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});

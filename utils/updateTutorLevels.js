@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Breach = require('../models/Breach');   // new import
 
 async function updateTutorLevels() {
   console.log('🔄 Running tutor level progression check...');
@@ -33,11 +34,25 @@ async function updateTutorLevels() {
     }
 
     if (newLevel !== profile.level) {
+      const oldLevel = profile.level;
       profile.level = newLevel;
       if (!profile.levelHistory) profile.levelHistory = [];
       profile.levelHistory.push({ level: newLevel, date: new Date() });
+      
+      // If demotion (from Premium to Expert), log a breach
+      if (oldLevel === 'Premium' && newLevel === 'Expert') {
+        await Breach.create({
+          userId: tutor._id,
+          type: 'auto_demotion',
+          reason: `Automatic demotion from Premium to Expert. Criteria not met: completed=${completed}, rating=${avgRating}, onTime=${onTime}`,
+          severity: 'medium',
+          createdAt: new Date()
+        });
+        console.log(`⚠️ Breach recorded for tutor ${tutor.email} due to demotion`);
+      }
+      
       await tutor.save();
-      console.log(`📈 Tutor ${tutor.email} promoted/demoted to ${newLevel}`);
+      console.log(`📈 Tutor ${tutor.email} ${oldLevel} → ${newLevel}`);
       updatedCount++;
     }
   }
