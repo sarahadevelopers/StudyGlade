@@ -753,8 +753,93 @@ function initSidebar() {
     });
   });
 }
+// ----- Financial Report -----
+async function loadFinancialReport() {
+  const from = document.getElementById('reportFrom')?.value || '';
+  const to = document.getElementById('reportTo')?.value || '';
+  let url = '/admin/financial-report';
+  if (from || to) url += `?from=${from}&to=${to}`;
+  try {
+    const data = await apiFetch(url);
+    renderFinancialReport(data);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('financialContent').innerHTML = '<p>Error loading financial report.</p>';
+  }
+}
+
+function renderFinancialReport(data) {
+  const { summary, students, tutors, withdrawalHistory, refunds, transactions } = data;
+  let html = `
+    <div class="stats-grid">
+      <div class="stat-card"><h4>Total Deposits</h4><div class="value">${formatMoney(summary.totalDeposits)}</div></div>
+      <div class="stat-card"><h4>Total Withdrawals</h4><div class="value">${formatMoney(summary.totalWithdrawals)}</div></div>
+      <div class="stat-card"><h4>Platform Revenue</h4><div class="value">${formatMoney(summary.platformRevenue)}</div></div>
+      <div class="stat-card"><h4>Pending Withdrawals</h4><div class="value">${summary.pendingWithdrawals}</div></div>
+      <div class="stat-card"><h4>Pending Amount</h4><div class="value">${formatMoney(summary.pendingWithdrawalsAmount)}</div></div>
+    </div>
+    <h3>Students</h3>
+    <table class="data-table" id="financialStudentsTable">
+      <thead><tr><th>Name</th><th>Email</th><th>Funded</th><th>Spent</th><th>Balance</th></tr></thead>
+      <tbody>
+        ${students.map(s => `
+          <tr><td>${escapeHtml(s.fullName)}</td><td>${escapeHtml(s.email)}</td><td>${formatMoney(s.funded)}</td><td>${formatMoney(s.spent)}</td><td>${formatMoney(s.balance)}</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <h3>Tutors</h3>
+    <table class="data-table" id="financialTutorsTable">
+      <thead><tr><th>Name</th><th>Email</th><th>Earnings</th><th>Commission Deducted</th><th>Withdrawals</th><th>Balance</th><th>Level</th><th>Rating</th></tr></thead>
+      <tbody>
+        ${tutors.map(t => `
+          <tr><td>${escapeHtml(t.fullName)}</td><td>${escapeHtml(t.email)}</td><td>${formatMoney(t.earnings)}</td><td>${formatMoney(t.commissionDeducted)}</td><td>${formatMoney(t.withdrawals)}</td><td>${formatMoney(t.balance)}</td><td>${t.tutorProfile.level}</td><td>${t.tutorProfile.rating} ⭐</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <h3>Withdrawal History (approved)</h3>
+    <table class="data-table" id="financialWithdrawalsTable">
+      <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+      <tbody>
+        ${withdrawalHistory.map(w => `
+          <tr><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.email)}</td><td>${formatMoney(w.amount)}</td><td>${w.method}</td><td>${new Date(w.date).toLocaleDateString()}</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <h3>Refunds</h3>
+    <table class="data-table" id="financialRefundsTable">
+      <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
+      <tbody>
+        ${refunds.map(r => `
+          <tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.email)}</td><td>${formatMoney(r.amount)}</td><td>${escapeHtml(r.description)}</td><td>${new Date(r.date).toLocaleDateString()}</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <h3>All Transactions (last 500)</h3>
+    <table class="data-table" id="financialTransactionsTable">
+      <thead><tr><th>User</th><th>Email</th><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
+      <tbody>
+        ${transactions.map(t => `
+          <tr><td>${escapeHtml(t.user)}</td><td>${escapeHtml(t.email)}</td><td>${t.type}</td><td>${formatMoney(t.amount)}</td><td>${escapeHtml(t.description)}</td><td>${new Date(t.date).toLocaleDateString()}</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('financialContent').innerHTML = html;
+}
+
+function exportFinancialCSV() {
+  // Simple CSV generation from visible tables (you can implement multiple exports)
+  alert('CSV export will be implemented – you can use existing exportTableToCSV on each table id');
+}
+
+async function downloadFinancialPDF() {
+  window.open('/api/admin/reports/financial', '_blank');
+}
 
 // ----- Expose global functions for inline buttons -----
+window.loadFinancialReport = loadFinancialReport;
+window.exportFinancialCSV = exportFinancialCSV;
+window.downloadFinancialPDF = downloadFinancialPDF;
 window.approveDoc = approveDoc;
 window.approveWithdrawal = approveWithdrawal;
 window.rejectWithdrawal = rejectWithdrawal;
