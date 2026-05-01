@@ -543,6 +543,7 @@ router.get('/questions/:id/full', async (req, res) => {
 });
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
+// ========== COMPREHENSIVE FINANCIAL REPORT ==========
 router.get('/financial-report', async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -581,7 +582,7 @@ router.get('/financial-report', async (req, res) => {
 
     const platformRevenue = totalQuestionCommission + totalDocumentCommission;
 
-    // Pending withdrawals (not yet approved)
+    // Pending withdrawals
     const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
     const pendingWithdrawalsAmount = await Withdrawal.aggregate([
       { $match: { status: 'pending' } },
@@ -610,51 +611,46 @@ router.get('/financial-report', async (req, res) => {
       };
     }));
 
-    // ---------- Per-Tutor Breakdown ----------
-    const tutors = await User.find({ role: 'tutor', isApproved: true }).select('fullName email walletBalance tutorProfile.totalEarnings');
-   // ---------- Per-Tutor Breakdown ----------
-const tutors = await User.find({ role: 'tutor', isApproved: true }).select('fullName email walletBalance tutorProfile');
-const tutorData = await Promise.all(tutors.map(async (tutor) => {
-  // Earnings from completed questions (original budget * 0.76)
-  const questionEarnings = await Question.aggregate([
-    { $match: { tutorId: tutor._id, status: 'completed' } },
-    { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.76] } } } }
-  ]);
-  // Earnings from document sales (from transaction records)
-  const documentEarnings = await Transaction.aggregate([
-    { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-  const totalEarned = (questionEarnings[0]?.total || 0) + (documentEarnings[0]?.total || 0);
+    // ---------- Per-Tutor Breakdown (renamed to tutorsData) ----------
+    const tutorsData = await User.find({ role: 'tutor', isApproved: true }).select('fullName email walletBalance tutorProfile');
+    const tutorDetailedData = await Promise.all(tutorsData.map(async (tutor) => {
+      const questionEarnings = await Question.aggregate([
+        { $match: { tutorId: tutor._id, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.76] } } } }
+      ]);
+      const documentEarnings = await Transaction.aggregate([
+        { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+      const totalEarned = (questionEarnings[0]?.total || 0) + (documentEarnings[0]?.total || 0);
 
-  // Commission deducted by platform (24% of question budgets + 35% of document sales)
-  const questionCommissionDeducted = await Question.aggregate([
-    { $match: { tutorId: tutor._id, status: 'completed' } },
-    { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.24] } } } }
-  ]);
-  const docCommissionDeducted = await Transaction.aggregate([
-    { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
-    { $group: { _id: null, total: { $sum: { $multiply: ['$amount', 0.35 / 0.65] } } } } // because seller gets 65%, platform 35%
-  ]);
-  const totalCommissionDeducted = (questionCommissionDeducted[0]?.total || 0) + (docCommissionDeducted[0]?.total || 0);
+      const questionCommissionDeducted = await Question.aggregate([
+        { $match: { tutorId: tutor._id, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.24] } } } }
+      ]);
+      const docCommissionDeducted = await Transaction.aggregate([
+        { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
+        { $group: { _id: null, total: { $sum: { $multiply: ['$amount', 0.35 / 0.65] } } } }
+      ]);
+      const totalCommissionDeducted = (questionCommissionDeducted[0]?.total || 0) + (docCommissionDeducted[0]?.total || 0);
 
-  // Withdrawals
-  const withdrawals = await Transaction.aggregate([
-    { $match: { userId: tutor._id, type: 'withdraw' } },
-    { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
-  ]);
-  return {
-    id: tutor._id,
-    fullName: tutor.fullName,
-    email: tutor.email,
-    earnings: totalEarned,
-    commissionDeducted: totalCommissionDeducted,
-    withdrawals: withdrawals[0]?.total || 0,
-    balance: tutor.walletBalance,
-    tutorProfile: tutor.tutorProfile
-  };
-}));
-    // ---------- Detailed Withdrawal History (approved only) ----------
+      const withdrawals = await Transaction.aggregate([
+        { $match: { userId: tutor._id, type: 'withdraw' } },
+        { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+      ]);
+      return {
+        id: tutor._id,
+        fullName: tutor.fullName,
+        email: tutor.email,
+        earnings: totalEarned,
+        commissionDeducted: totalCommissionDeducted,
+        withdrawals: withdrawals[0]?.total || 0,
+        balance: tutor.walletBalance,
+        tutorProfile: tutor.tutorProfile
+      };
+    }));
+
+    // ---------- Withdrawal History (approved) ----------
     const withdrawalHistory = await Withdrawal.find({ status: 'approved' })
       .populate('userId', 'fullName email')
       .sort({ processedAt: -1 })
@@ -667,7 +663,7 @@ const tutorData = await Promise.all(tutors.map(async (tutor) => {
       date: w.processedAt || w.createdAt
     }));
 
-    // ---------- Refund History (transactions of type 'refund') ----------
+    // ---------- Refunds ----------
     const refunds = await Transaction.find({ type: 'refund' })
       .populate('userId', 'fullName email')
       .sort({ createdAt: -1 })
@@ -680,7 +676,7 @@ const tutorData = await Promise.all(tutors.map(async (tutor) => {
       date: r.createdAt
     }));
 
-    // ---------- All Transactions (with user info, paginated) ----------
+    // ---------- All Transactions ----------
     const allTransactions = await Transaction.find(transactionMatch)
       .populate('userId', 'fullName email')
       .sort({ createdAt: -1 })
@@ -694,7 +690,6 @@ const tutorData = await Promise.all(tutors.map(async (tutor) => {
       date: t.createdAt
     }));
 
-    // ---------- Assemble response ----------
     res.json({
       summary: {
         totalDeposits,
@@ -706,7 +701,7 @@ const tutorData = await Promise.all(tutors.map(async (tutor) => {
         pendingWithdrawalsAmount: pendingWithdrawalsSum
       },
       students: studentData,
-      tutors: tutorData,
+      tutors: tutorDetailedData,   // renamed
       withdrawalHistory: withdrawalList,
       refunds: refundList,
       transactions: transactionList
