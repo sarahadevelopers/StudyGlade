@@ -4,7 +4,7 @@ const breachSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   type: { 
     type: String, 
-    enum: ['warning', 'suspension', 'permanent_ban', 'auto_demotion'], 
+    enum: ['warning', 'suspension', 'permanent_ban', 'auto_demotion', 'manual_override'], 
     required: true 
   },
   reason: { type: String, required: true },

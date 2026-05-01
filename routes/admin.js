@@ -280,19 +280,29 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
 // ========== NOTIFICATIONS (recent events) ==========
 router.get('/notifications', async (req, res) => {
   try {
-    const tutorApps = await User.find({ 'tutorApplication.status': 'pending' })
-      .select('fullName email createdAt').limit(5).sort({ createdAt: -1 });
-    const withdrawals = await Withdrawal.find({ status: 'pending' })
-      .populate('userId', 'fullName').limit(5).sort({ createdAt: -1 });
-    const documents = await Document.find({ isApproved: false })
-      .populate('uploaderId', 'fullName').limit(5).sort({ createdAt: -1 });
+    const since = req.query.since ? new Date(req.query.since) : new Date(0);
+    const tutorApps = await User.find({ 
+      'tutorApplication.status': 'pending', 
+      createdAt: { $gt: since } 
+    }).select('fullName email createdAt').limit(10).sort({ createdAt: -1 });
+    
+    const withdrawals = await Withdrawal.find({ 
+      status: 'pending', 
+      createdAt: { $gt: since } 
+    }).populate('userId', 'fullName').limit(10).sort({ createdAt: -1 });
+    
+    const documents = await Document.find({ 
+      isApproved: false, 
+      createdAt: { $gt: since } 
+    }).populate('uploaderId', 'fullName').limit(10).sort({ createdAt: -1 });
+    
     const notifications = [
       ...tutorApps.map(app => ({ type: 'tutor_application', message: `${app.fullName} applied as tutor`, createdAt: app.createdAt, link: '#tutor-apps' })),
       ...withdrawals.map(w => ({ type: 'withdrawal', message: `${w.userId.fullName} requested $${w.amount} withdrawal`, createdAt: w.createdAt, link: '#withdrawals' })),
       ...documents.map(d => ({ type: 'document', message: `${d.uploaderId.fullName} uploaded "${d.title}"`, createdAt: d.createdAt, link: '#documents' }))
     ];
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json(notifications.slice(0, 20));
+    res.json(notifications.slice(0, 50));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

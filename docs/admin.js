@@ -8,6 +8,15 @@ function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
+// ----- Notification last viewed helpers -----
+function getLastNotificationView() {
+  const last = localStorage.getItem('lastNotificationView');
+  return last ? new Date(last).toISOString() : new Date(0).toISOString();
+}
+
+function updateLastNotificationView() {
+  localStorage.setItem('lastNotificationView', new Date().toISOString());
+}
 
 // ----- Export CSV -----
 function exportTableToCSV(tableId, filename) {
@@ -222,13 +231,13 @@ async function loadUsers() {
               <td>${u.role}</td>
               <td>${u.isApproved ? '✅' : '❌'}</td>
               <td>${u.isSuspended ? '🚫' : '✅'}</td>
-              <td>
-                <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
-                ${u.role === 'tutor' ? `<button class="btn-sm btn-secondary" onclick="setTutorLevel('${u._id}', '${u.tutorProfile?.level || 'Entry-Level'}')">Set Level</button>` : ''}
-                <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
-                  ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
-                </button>
-              </td>
+             <td>
+  <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
+  <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
+    ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
+  </button>
+  ${u.role === 'tutor' ? `<button class="btn-sm btn-secondary" onclick="setTutorLevel('${u._id}', '${u.tutorProfile?.level || 'Entry-Level'}')">Set Level</button>` : ''}
+</td>
             </tr>
           `).join('')}
         </tbody>
@@ -707,7 +716,8 @@ function closeFullQuestionModal() {
 let notificationInterval;
 async function loadNotifications() {
   try {
-    const notifs = await apiFetch('/admin/notifications');
+    const since = getLastNotificationView();
+    const notifs = await apiFetch(`/admin/notifications?since=${encodeURIComponent(since)}`);
     const badge = document.getElementById('notificationBadge');
     if (badge) badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
     const listDiv = document.getElementById('notificationList');
@@ -733,7 +743,12 @@ function handleNotificationClick(link) {
 
 function openNotificationModal() {
   document.getElementById('notificationModal').style.display = 'flex';
-  loadNotifications();
+  loadNotifications().then(() => {
+    // Mark notifications as viewed after loading the modal
+    updateLastNotificationView();
+    // Reload badge with new count (since we now have a new "since" time)
+    loadNotifications(); // this will fetch again, but will now exclude older notifications
+  });
 }
 function closeNotificationModal() {
   document.getElementById('notificationModal').style.display = 'none';
@@ -750,6 +765,11 @@ function initSidebar() {
       item.classList.add('active');
       sections.forEach(s => s.classList.remove('active-section'));
       document.getElementById(sectionId).classList.add('active-section');
+
+      // If the activated section is the financial report, load the data
+      if (sectionId === 'financial') {
+        loadFinancialReport();
+      }
     });
   });
 }
@@ -876,7 +896,7 @@ function renderFinancialReport(data) {
       </tbody>
     </table>
 
-    <h3>All Transactions (paginated)</h3>
+    <h3>All Transactions</h3>
     <table class="data-table" id="transactionsTable">
       <thead><tr><th>User</th><th>Email</th><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
       <tbody>
