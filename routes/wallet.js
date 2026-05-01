@@ -166,9 +166,18 @@ router.post('/withdraw', auth, async (req, res) => {
 // ---------- Get total withdrawals amount – sum only APPROVED withdrawals ----------
 router.get('/withdrawals-total', auth, async (req, res) => {
   try {
+    // Convert req.userId to string for reliable matching
+    const userIdStr = req.userId.toString();
     const result = await Withdrawal.aggregate([
-      { $match: { userId: req.userId, status: 'approved' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
+      {
+        $match: {
+          $expr: {
+            $eq: [{ $toString: "$userId" }, userIdStr]
+          }
+        }
+      },
+      { $match: { status: "approved" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
     const total = result[0]?.total || 0;
     res.json({ total });
