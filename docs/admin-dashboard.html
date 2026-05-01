@@ -266,6 +266,9 @@
         white-space: nowrap;
       }
     }
+    .text-success { color: #10b981 !important; }
+  .text-danger { color: #ef4444 !important; }
+  .text-warning { color: #f59e0b !important; }
   </style>
 </head>
 <body>
@@ -372,7 +375,7 @@
       <label>From: <input type="date" id="reportFrom"></label>
       <label>To: <input type="date" id="reportTo"></label>
       <button class="btn-sm btn-primary" onclick="loadFinancialReport()">Apply Filter</button>
-      <button class="btn-sm btn-secondary" onclick="exportFinancialCSV()">Export CSV</button>
+      <button class="btn-sm btn-secondary" onclick="exportTableToCSV('studentsTable', 'students.csv')">Export Students CSV</button>
       <button class="btn-sm btn-secondary" onclick="downloadFinancialPDF()">Download PDF</button>
     </div>
     <div id="financialContent">Loading...</div>

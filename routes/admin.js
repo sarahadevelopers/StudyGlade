@@ -544,171 +544,233 @@ router.get('/questions/:id/full', async (req, res) => {
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
-router.get('/financial-report', async (req, res) => {
-  try {
-    const { from, to } = req.query;
-    const dateFilter = {};
-    if (from) dateFilter.$gte = new Date(from);
-    if (to) dateFilter.$lte = new Date(to);
-    const transactionMatch = {};
-    if (from || to) transactionMatch.createdAt = dateFilter;
+// ========== COMPREHENSIVE FINANCIAL REPORT (with pagination) ==========
+// Helper function to fetch financial data (used by both JSON and PDF endpoints)
+async function fetchFinancialReportData(userId, from, to, page = 1, limit = 20) {
+  const dateFilter = {};
+  if (from) dateFilter.$gte = new Date(from);
+  if (to) dateFilter.$lte = new Date(to);
+  const transactionMatch = {};
+  if (from || to) transactionMatch.createdAt = dateFilter;
 
-    // ---------- Platform Summary ----------
-    const allDeposits = await Transaction.aggregate([
-      { $match: { type: 'deposit', ...transactionMatch } },
+  // ---------- Platform Summary ----------
+  const allDeposits = await Transaction.aggregate([
+    { $match: { type: 'deposit', ...transactionMatch } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const totalDeposits = allDeposits[0]?.total || 0;
+
+  const allWithdrawals = await Transaction.aggregate([
+    { $match: { type: 'withdraw', ...transactionMatch } },
+    { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+  ]);
+  const totalWithdrawals = allWithdrawals[0]?.total || 0;
+
+  const questionCommission = await Question.aggregate([
+    { $match: { status: 'completed' } },
+    { $group: { _id: null, totalCommission: { $sum: { $multiply: ['$budget', 0.24] } } } }
+  ]);
+  const totalQuestionCommission = questionCommission[0]?.totalCommission || 0;
+
+  const documentSales = await Transaction.aggregate([
+    { $match: { type: 'unlock_document', ...transactionMatch } },
+    { $group: { _id: null, totalCommission: { $sum: { $multiply: [{ $abs: '$amount' }, 0.35] } } } }
+  ]);
+  const totalDocumentCommission = documentSales[0]?.totalCommission || 0;
+  const platformRevenue = totalQuestionCommission + totalDocumentCommission;
+
+  const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
+  const pendingWithdrawalsAmount = await Withdrawal.aggregate([
+    { $match: { status: 'pending' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const pendingWithdrawalsSum = pendingWithdrawalsAmount[0]?.total || 0;
+
+  // ---------- Per-Student ----------
+  const students = await User.find({ role: 'student' }).select('fullName email walletBalance');
+  const studentData = await Promise.all(students.map(async (student) => {
+    const funded = await Transaction.aggregate([
+      { $match: { userId: student._id, type: 'deposit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
-    const totalDeposits = allDeposits[0]?.total || 0;
-
-    const allWithdrawals = await Transaction.aggregate([
-      { $match: { type: 'withdraw', ...transactionMatch } },
+    const spent = await Transaction.aggregate([
+      { $match: { userId: student._id, type: { $in: ['post_question', 'unlock_document'] } } },
       { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
     ]);
-    const totalWithdrawals = allWithdrawals[0]?.total || 0;
+    return {
+      id: student._id,
+      fullName: student.fullName,
+      email: student.email,
+      funded: funded[0]?.total || 0,
+      spent: spent[0]?.total || 0,
+      balance: student.walletBalance
+    };
+  }));
 
-    // Commission from questions (24% of budget for each completed question)
-    const questionCommission = await Question.aggregate([
-      { $match: { status: 'completed' } },
-      { $group: { _id: null, totalCommission: { $sum: { $multiply: ['$budget', 0.24] } } } }
+  // ---------- Per-Tutor ----------
+  const tutorsData = await User.find({ role: 'tutor', isApproved: true }).select('fullName email walletBalance tutorProfile');
+  const tutorDetailedData = await Promise.all(tutorsData.map(async (tutor) => {
+    const questionEarnings = await Question.aggregate([
+      { $match: { tutorId: tutor._id, status: 'completed' } },
+      { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.76] } } } }
     ]);
-    const totalQuestionCommission = questionCommission[0]?.totalCommission || 0;
-
-    // Commission from document sales (35% of price for each unlock transaction)
-    const documentSales = await Transaction.aggregate([
-      { $match: { type: 'unlock_document', ...transactionMatch } },
-      { $group: { _id: null, totalCommission: { $sum: { $multiply: [{ $abs: '$amount' }, 0.35] } } } }
-    ]);
-    const totalDocumentCommission = documentSales[0]?.totalCommission || 0;
-
-    const platformRevenue = totalQuestionCommission + totalDocumentCommission;
-
-    // Pending withdrawals
-    const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
-    const pendingWithdrawalsAmount = await Withdrawal.aggregate([
-      { $match: { status: 'pending' } },
+    const documentEarnings = await Transaction.aggregate([
+      { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
-    const pendingWithdrawalsSum = pendingWithdrawalsAmount[0]?.total || 0;
+    const totalEarned = (questionEarnings[0]?.total || 0) + (documentEarnings[0]?.total || 0);
 
-    // ---------- Per-Student Breakdown ----------
-    const students = await User.find({ role: 'student' }).select('fullName email walletBalance');
-    const studentData = await Promise.all(students.map(async (student) => {
-      const funded = await Transaction.aggregate([
-        { $match: { userId: student._id, type: 'deposit' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
-      const spent = await Transaction.aggregate([
-        { $match: { userId: student._id, type: { $in: ['post_question', 'unlock_document'] } } },
-        { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
-      ]);
-      return {
-        id: student._id,
-        fullName: student.fullName,
-        email: student.email,
-        funded: funded[0]?.total || 0,
-        spent: spent[0]?.total || 0,
-        balance: student.walletBalance
-      };
-    }));
+    const questionCommissionDeducted = await Question.aggregate([
+      { $match: { tutorId: tutor._id, status: 'completed' } },
+      { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.24] } } } }
+    ]);
+    const docCommissionDeducted = await Transaction.aggregate([
+      { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
+      { $group: { _id: null, total: { $sum: { $multiply: ['$amount', 0.35 / 0.65] } } } }
+    ]);
+    const totalCommissionDeducted = (questionCommissionDeducted[0]?.total || 0) + (docCommissionDeducted[0]?.total || 0);
 
-    // ---------- Per-Tutor Breakdown (renamed to tutorsData) ----------
-    const tutorsData = await User.find({ role: 'tutor', isApproved: true }).select('fullName email walletBalance tutorProfile');
-    const tutorDetailedData = await Promise.all(tutorsData.map(async (tutor) => {
-      const questionEarnings = await Question.aggregate([
-        { $match: { tutorId: tutor._id, status: 'completed' } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.76] } } } }
-      ]);
-      const documentEarnings = await Transaction.aggregate([
-        { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
-      const totalEarned = (questionEarnings[0]?.total || 0) + (documentEarnings[0]?.total || 0);
+    const withdrawals = await Transaction.aggregate([
+      { $match: { userId: tutor._id, type: 'withdraw' } },
+      { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+    ]);
+    return {
+      id: tutor._id,
+      fullName: tutor.fullName,
+      email: tutor.email,
+      earnings: totalEarned,
+      commissionDeducted: totalCommissionDeducted,
+      withdrawals: withdrawals[0]?.total || 0,
+      balance: tutor.walletBalance,
+      tutorProfile: tutor.tutorProfile
+    };
+  }));
 
-      const questionCommissionDeducted = await Question.aggregate([
-        { $match: { tutorId: tutor._id, status: 'completed' } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$budget', 0.24] } } } }
-      ]);
-      const docCommissionDeducted = await Transaction.aggregate([
-        { $match: { userId: tutor._id, type: 'tutor_payment', description: { $regex: /Document sale/ } } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$amount', 0.35 / 0.65] } } } }
-      ]);
-      const totalCommissionDeducted = (questionCommissionDeducted[0]?.total || 0) + (docCommissionDeducted[0]?.total || 0);
+  // ---------- Withdrawal History ----------
+  const withdrawalHistory = await Withdrawal.find({ status: 'approved' })
+    .populate('userId', 'fullName email')
+    .sort({ processedAt: -1 })
+    .limit(100);
+  const withdrawalList = withdrawalHistory.map(w => ({
+    name: w.userId?.fullName,
+    email: w.userId?.email,
+    amount: w.amount,
+    method: w.method,
+    date: w.processedAt || w.createdAt
+  }));
 
-      const withdrawals = await Transaction.aggregate([
-        { $match: { userId: tutor._id, type: 'withdraw' } },
-        { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
-      ]);
-      return {
-        id: tutor._id,
-        fullName: tutor.fullName,
-        email: tutor.email,
-        earnings: totalEarned,
-        commissionDeducted: totalCommissionDeducted,
-        withdrawals: withdrawals[0]?.total || 0,
-        balance: tutor.walletBalance,
-        tutorProfile: tutor.tutorProfile
-      };
-    }));
+  // ---------- Refunds ----------
+  const refunds = await Transaction.find({ type: 'refund' })
+    .populate('userId', 'fullName email')
+    .sort({ createdAt: -1 })
+    .limit(100);
+  const refundList = refunds.map(r => ({
+    name: r.userId?.fullName,
+    email: r.userId?.email,
+    amount: Math.abs(r.amount),
+    description: r.description,
+    date: r.createdAt
+  }));
 
-    // ---------- Withdrawal History (approved) ----------
-    const withdrawalHistory = await Withdrawal.find({ status: 'approved' })
-      .populate('userId', 'fullName email')
-      .sort({ processedAt: -1 })
-      .limit(100);
-    const withdrawalList = withdrawalHistory.map(w => ({
-      name: w.userId?.fullName,
-      email: w.userId?.email,
-      amount: w.amount,
-      method: w.method,
-      date: w.processedAt || w.createdAt
-    }));
+  // ---------- Paginated Transactions ----------
+  const skip = (page - 1) * limit;
+  const transactionsQuery = Transaction.find(transactionMatch)
+    .populate('userId', 'fullName email')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+  const totalTransactions = await Transaction.countDocuments(transactionMatch);
+  const allTransactions = await transactionsQuery;
+  const transactionList = allTransactions.map(t => ({
+    user: t.userId?.fullName || 'System',
+    email: t.userId?.email,
+    type: t.type,
+    amount: t.amount,
+    description: t.description,
+    date: t.createdAt
+  }));
 
-    // ---------- Refunds ----------
-    const refunds = await Transaction.find({ type: 'refund' })
-      .populate('userId', 'fullName email')
-      .sort({ createdAt: -1 })
-      .limit(100);
-    const refundList = refunds.map(r => ({
-      name: r.userId?.fullName,
-      email: r.userId?.email,
-      amount: Math.abs(r.amount),
-      description: r.description,
-      date: r.createdAt
-    }));
+  return {
+    summary: {
+      totalDeposits,
+      totalWithdrawals,
+      platformRevenue,
+      totalQuestionCommission,
+      totalDocumentCommission,
+      pendingWithdrawals,
+      pendingWithdrawalsAmount: pendingWithdrawalsSum
+    },
+    students: studentData,
+    tutors: tutorDetailedData,
+    withdrawalHistory: withdrawalList,
+    refunds: refundList,
+    transactions: transactionList,
+    pagination: {
+      page,
+      limit,
+      total: totalTransactions,
+      pages: Math.ceil(totalTransactions / limit)
+    }
+  };
+}
 
-    // ---------- All Transactions ----------
-    const allTransactions = await Transaction.find(transactionMatch)
-      .populate('userId', 'fullName email')
-      .sort({ createdAt: -1 })
-      .limit(500);
-    const transactionList = allTransactions.map(t => ({
-      user: t.userId?.fullName || 'System',
-      email: t.userId?.email,
-      type: t.type,
-      amount: t.amount,
-      description: t.description,
-      date: t.createdAt
-    }));
-
-    res.json({
-      summary: {
-        totalDeposits,
-        totalWithdrawals,
-        platformRevenue,
-        totalQuestionCommission,
-        totalDocumentCommission,
-        pendingWithdrawals,
-        pendingWithdrawalsAmount: pendingWithdrawalsSum
-      },
-      students: studentData,
-      tutors: tutorDetailedData,   // renamed
-      withdrawalHistory: withdrawalList,
-      refunds: refundList,
-      transactions: transactionList
-    });
+// JSON endpoint with pagination
+router.get('/financial-report', async (req, res) => {
+  try {
+    const { from, to, page = 1, limit = 20 } = req.query;
+    const data = await fetchFinancialReportData(req.userId, from, to, parseInt(page), parseInt(limit));
+    res.json(data);
   } catch (err) {
     console.error('Financial report error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// PDF Financial Report (reuses helper)
+router.get('/reports/financial', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const data = await fetchFinancialReportData(req.userId, from, to, 1, 1000); // get many for PDF
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=financial_report.pdf');
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Financial Report', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(14).text('Summary', { underline: true });
+    doc.fontSize(10);
+    doc.text(`Total Deposits: $${data.summary.totalDeposits.toFixed(2)}`);
+    doc.text(`Total Withdrawals: $${data.summary.totalWithdrawals.toFixed(2)}`);
+    doc.text(`Platform Revenue: $${data.summary.platformRevenue.toFixed(2)}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('Students', { underline: true });
+    doc.fontSize(10);
+    data.students.forEach(s => {
+      doc.text(`${s.fullName} (${s.email}): Funded $${s.funded.toFixed(2)}, Spent $${s.spent.toFixed(2)}, Balance $${s.balance.toFixed(2)}`);
+    });
+    doc.moveDown();
+
+    doc.fontSize(14).text('Tutors', { underline: true });
+    doc.fontSize(10);
+    data.tutors.forEach(t => {
+      doc.text(`${t.fullName} (${t.email}): Earnings $${t.earnings.toFixed(2)}, Commission $${t.commissionDeducted.toFixed(2)}, Withdrawals $${t.withdrawals.toFixed(2)}, Balance $${t.balance.toFixed(2)}`);
+    });
+    doc.moveDown();
+
+    doc.fontSize(14).text('Transactions (last 1000)', { underline: true });
+    doc.fontSize(10);
+    data.transactions.slice(0, 100).forEach(tx => {
+      doc.text(`${tx.user} - ${tx.type}: $${Math.abs(tx.amount).toFixed(2)} (${new Date(tx.date).toLocaleDateString()})`);
+    });
+
+    doc.end();
+  } catch (err) {
+    console.error('PDF error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

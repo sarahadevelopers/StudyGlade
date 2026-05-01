@@ -754,18 +754,48 @@ function initSidebar() {
   });
 }
 // ----- Financial Report -----
-async function loadFinancialReport() {
+// ----- Financial Report (with pagination & color coding) -----
+let currentTransactionPage = 1;
+let totalTransactionPages = 1;
+
+async function loadFinancialReport(page = 1) {
   const from = document.getElementById('reportFrom')?.value || '';
   const to = document.getElementById('reportTo')?.value || '';
-  let url = '/admin/financial-report';
-  if (from || to) url += `?from=${from}&to=${to}`;
+  let url = `/admin/financial-report?page=${page}&limit=20`;
+  if (from) url += `&from=${from}`;
+  if (to) url += `&to=${to}`;
   try {
     const data = await apiFetch(url);
+    currentTransactionPage = data.pagination.page;
+    totalTransactionPages = data.pagination.pages;
     renderFinancialReport(data);
+    renderTransactionPagination();
   } catch (err) {
     console.error(err);
     document.getElementById('financialContent').innerHTML = '<p>Error loading financial report.</p>';
   }
+}
+
+function renderTransactionPagination() {
+  const container = document.getElementById('transactionsPagination');
+  if (!container) return;
+  let html = '<div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem;">';
+  if (currentTransactionPage > 1) {
+    html += `<button class="btn-sm btn-secondary" onclick="loadFinancialReport(${currentTransactionPage - 1})">Previous</button>`;
+  }
+  html += `<span>Page ${currentTransactionPage} of ${totalTransactionPages}</span>`;
+  if (currentTransactionPage < totalTransactionPages) {
+    html += `<button class="btn-sm btn-secondary" onclick="loadFinancialReport(${currentTransactionPage + 1})">Next</button>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function getTransactionColorClass(type, amount) {
+  if (type === 'withdraw') return 'text-danger';
+  if (type === 'deposit' || type === 'tutor_payment') return 'text-success';
+  if (type === 'refund') return 'text-warning';
+  return '';
 }
 
 function renderFinancialReport(data) {
@@ -778,64 +808,113 @@ function renderFinancialReport(data) {
       <div class="stat-card"><h4>Pending Withdrawals</h4><div class="value">${summary.pendingWithdrawals}</div></div>
       <div class="stat-card"><h4>Pending Amount</h4><div class="value">${formatMoney(summary.pendingWithdrawalsAmount)}</div></div>
     </div>
+
     <h3>Students</h3>
-    <table class="data-table" id="financialStudentsTable">
+    <table class="data-table" id="studentsTable">
       <thead><tr><th>Name</th><th>Email</th><th>Funded</th><th>Spent</th><th>Balance</th></tr></thead>
       <tbody>
         ${students.map(s => `
-          <tr><td>${escapeHtml(s.fullName)}</td><td>${escapeHtml(s.email)}</td><td>${formatMoney(s.funded)}</td><td>${formatMoney(s.spent)}</td><td>${formatMoney(s.balance)}</td></tr>
+          <tr>
+            <td>${escapeHtml(s.fullName)}</td>
+            <td>${escapeHtml(s.email)}</td>
+            <td>${formatMoney(s.funded)}</td>
+            <td>${formatMoney(s.spent)}</td>
+            <td>${formatMoney(s.balance)}</td>
+          </tr>
         `).join('')}
       </tbody>
     </table>
+
     <h3>Tutors</h3>
-    <table class="data-table" id="financialTutorsTable">
+    <table class="data-table" id="tutorsTable">
       <thead><tr><th>Name</th><th>Email</th><th>Earnings</th><th>Commission Deducted</th><th>Withdrawals</th><th>Balance</th><th>Level</th><th>Rating</th></tr></thead>
       <tbody>
         ${tutors.map(t => `
-          <tr><td>${escapeHtml(t.fullName)}</td><td>${escapeHtml(t.email)}</td><td>${formatMoney(t.earnings)}</td><td>${formatMoney(t.commissionDeducted)}</td><td>${formatMoney(t.withdrawals)}</td><td>${formatMoney(t.balance)}</td><td>${t.tutorProfile.level}</td><td>${t.tutorProfile.rating} ⭐</td></tr>
+          <tr>
+            <td>${escapeHtml(t.fullName)}</td>
+            <td>${escapeHtml(t.email)}</td>
+            <td>${formatMoney(t.earnings)}</td>
+            <td>${formatMoney(t.commissionDeducted)}</td>
+            <td>${formatMoney(t.withdrawals)}</td>
+            <td>${formatMoney(t.balance)}</td>
+            <td>${t.tutorProfile.level}</td>
+            <td>${t.tutorProfile.rating} ⭐</td>
+          </tr>
         `).join('')}
       </tbody>
     </table>
+
     <h3>Withdrawal History (approved)</h3>
-    <table class="data-table" id="financialWithdrawalsTable">
+    <table class="data-table" id="withdrawalsTable">
       <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
       <tbody>
         ${withdrawalHistory.map(w => `
-          <tr><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.email)}</td><td>${formatMoney(w.amount)}</td><td>${w.method}</td><td>${new Date(w.date).toLocaleDateString()}</td></tr>
+          <tr>
+            <td>${escapeHtml(w.name)}</td>
+            <td>${escapeHtml(w.email)}</td>
+            <td class="${getTransactionColorClass('withdraw', w.amount)}">${formatMoney(w.amount)}</td>
+            <td>${w.method}</td>
+            <td>${new Date(w.date).toLocaleDateString()}</td>
+          </tr>
         `).join('')}
       </tbody>
     </table>
+
     <h3>Refunds</h3>
-    <table class="data-table" id="financialRefundsTable">
+    <table class="data-table" id="refundsTable">
       <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
       <tbody>
         ${refunds.map(r => `
-          <tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.email)}</td><td>${formatMoney(r.amount)}</td><td>${escapeHtml(r.description)}</td><td>${new Date(r.date).toLocaleDateString()}</td></tr>
+          <tr>
+            <td>${escapeHtml(r.name)}</td>
+            <td>${escapeHtml(r.email)}</td>
+            <td class="${getTransactionColorClass('refund', r.amount)}">${formatMoney(r.amount)}</td>
+            <td>${escapeHtml(r.description)}</td>
+            <td>${new Date(r.date).toLocaleDateString()}</td>
+          </tr>
         `).join('')}
       </tbody>
     </table>
-    <h3>All Transactions (last 500)</h3>
-    <table class="data-table" id="financialTransactionsTable">
+
+    <h3>All Transactions (paginated)</h3>
+    <table class="data-table" id="transactionsTable">
       <thead><tr><th>User</th><th>Email</th><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
       <tbody>
         ${transactions.map(t => `
-          <tr><td>${escapeHtml(t.user)}</td><td>${escapeHtml(t.email)}</td><td>${t.type}</td><td>${formatMoney(t.amount)}</td><td>${escapeHtml(t.description)}</td><td>${new Date(t.date).toLocaleDateString()}</td></tr>
+          <tr>
+            <td>${escapeHtml(t.user)}</td>
+            <td>${escapeHtml(t.email)}</td>
+            <td>${t.type}</td>
+            <td class="${getTransactionColorClass(t.type, t.amount)}">${formatMoney(t.amount)}</td>
+            <td>${escapeHtml(t.description)}</td>
+            <td>${new Date(t.date).toLocaleDateString()}</td>
+          </tr>
         `).join('')}
       </tbody>
     </table>
+    <div id="transactionsPagination"></div>
   `;
   document.getElementById('financialContent').innerHTML = html;
 }
 
 function exportFinancialCSV() {
-  // Simple CSV generation from visible tables (you can implement multiple exports)
-  alert('CSV export will be implemented – you can use existing exportTableToCSV on each table id');
+  // Export each table separately using existing exportTableToCSV
+  exportTableToCSV('studentsTable', 'students.csv');
+  exportTableToCSV('tutorsTable', 'tutors.csv');
+  exportTableToCSV('withdrawalsTable', 'withdrawals.csv');
+  exportTableToCSV('refundsTable', 'refunds.csv');
+  exportTableToCSV('transactionsTable', 'transactions.csv');
+  alert('CSV exports have been initiated. Check your downloads folder.');
 }
 
 async function downloadFinancialPDF() {
-  window.open('/api/admin/reports/financial', '_blank');
+  const from = document.getElementById('reportFrom')?.value || '';
+  const to = document.getElementById('reportTo')?.value || '';
+  let url = `/api/admin/reports/financial?`;
+  if (from) url += `from=${from}&`;
+  if (to) url += `to=${to}`;
+  window.open(url, '_blank');
 }
-
 // ----- Expose global functions for inline buttons -----
 window.loadFinancialReport = loadFinancialReport;
 window.exportFinancialCSV = exportFinancialCSV;
