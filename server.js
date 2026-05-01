@@ -40,7 +40,12 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'text/plain'
+    'text/plain',
+    // existing types plus:
+  'text/csv',                    // CSV files
+  'application/zip',             // ZIP archives
+  'video/mp4', 'video/webm',     // video explanations
+  'image/webp'                   
   ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);

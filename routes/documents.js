@@ -17,6 +17,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Helper: extract preview text from uploaded file
 async function extractPreviewText(filePath, originalName) {
   try {
     const ext = originalName.split('.').pop().toLowerCase();
@@ -39,6 +40,7 @@ async function extractPreviewText(filePath, originalName) {
   }
 }
 
+// ---------- Upload document (tutor or admin) ----------
 router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'), async (req, res) => {
   try {
     const { title, description, subject, subcategory, level, type, price } = req.body;
@@ -80,22 +82,69 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
   }
 });
 
+// ---------- Get approved documents with pagination, filtering, sorting ----------
 router.get('/', async (req, res) => {
   try {
-    const { subject, level, type, search } = req.query;
+    const { 
+      subject, 
+      level, 
+      type, 
+      search, 
+      minPrice, 
+      maxPrice, 
+      sort = 'newest',
+      page = 1, 
+      limit = 20 
+    } = req.query;
+
+    // Build filter object
     let filter = { isApproved: true };
     if (subject) filter.subject = subject;
     if (level) filter.level = level;
     if (type) filter.type = type;
     if (search) filter.title = { $regex: search, $options: 'i' };
-    const docs = await Document.find(filter).sort({ createdAt: -1 });
-    res.json(docs);
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    // Sorting
+    let sortOption = { createdAt: -1 };
+    switch (sort) {
+      case 'price_asc': sortOption = { price: 1 }; break;
+      case 'price_desc': sortOption = { price: -1 }; break;
+      case 'popular': sortOption = { downloads: -1 }; break;
+      default: sortOption = { createdAt: -1 };
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const docs = await Document.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNum);
+    const total = await Document.countDocuments(filter);
+
+    res.json({
+      documents: docs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (err) {
+    console.error('Error fetching documents:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ UPDATED /unlock route: now updates seller's totalEarnings
+// ---------- Unlock document (purchase) – updates seller earnings ----------
 router.post('/:id/unlock', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -103,9 +152,11 @@ router.post('/:id/unlock', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     if (user.walletBalance < doc.price) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
+    // Deduct from buyer
     user.walletBalance -= doc.price;
     await user.save();
 
+    // Pay seller 65% of price
     const seller = await User.findById(doc.uploaderId);
     const sellerEarnings = doc.price * 0.65;
     seller.walletBalance += sellerEarnings;
@@ -116,18 +167,34 @@ router.post('/:id/unlock', auth, async (req, res) => {
     }
     await seller.save();
 
+    // Increment download count
     doc.downloads += 1;
     await doc.save();
 
-    await Transaction.create({ userId: req.userId, type: 'unlock_document', amount: -doc.price, description: `Unlocked: ${doc.title}`, referenceId: doc._id });
-    await Transaction.create({ userId: doc.uploaderId, type: 'tutor_payment', amount: sellerEarnings, description: `Document sale: ${doc.title}`, referenceId: doc._id });
+    // Record transactions
+    await Transaction.create({ 
+      userId: req.userId, 
+      type: 'unlock_document', 
+      amount: -doc.price, 
+      description: `Unlocked: ${doc.title}`, 
+      referenceId: doc._id 
+    });
+    await Transaction.create({ 
+      userId: doc.uploaderId, 
+      type: 'tutor_payment', 
+      amount: sellerEarnings, 
+      description: `Document sale: ${doc.title}`, 
+      referenceId: doc._id 
+    });
 
     res.json({ message: 'Document unlocked', fileUrl: doc.fileUrl });
   } catch (err) {
+    console.error('Unlock error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
+// ---------- Public preview page (SEO friendly) ----------
 router.get('/preview/:id', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -176,11 +243,12 @@ router.get('/preview/:id', async (req, res) => {
     `;
     res.send(html);
   } catch (err) {
-    console.error(err);
+    console.error('Preview error:', err);
     res.status(500).send('Server error');
   }
 });
 
+// Helper: escape HTML for preview page
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');

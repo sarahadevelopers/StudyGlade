@@ -14,6 +14,7 @@
         <div class="form-group"><label>Title</label><input type="text" name="title" required></div>
         <div class="form-group"><label>Description</label><textarea name="description"></textarea></div>
         <div class="form-group"><label>Subject</label><input type="text" name="subject" required></div>
+        <div class="form-group"><label>Subcategory (optional)</label><input type="text" name="subcategory" placeholder="e.g., Calculus, Essay Writing"></div>
         <div class="form-group"><label>Level</label>
           <select name="level">
             <option>High School</option><option>College</option><option>Masters</option><option>PhD</option>
@@ -25,42 +26,44 @@
           </select>
         </div>
         <div class="form-group"><label>Price ($)</label><input type="number" name="price" min="0" step="0.5" required></div>
-        <div class="form-group"><label>File (PDF, DOC, etc.)</label><input type="file" name="file" required></div>
+        <div class="form-group"><label>File</label><input type="file" name="file" required>
+          <small style="display: block; margin-top: 0.25rem;">Allowed: PDF, Word, Excel, PowerPoint, Images, Text, ZIP, MP4 (max 10MB)</small>
+        </div>
         <button type="submit" class="btn">Upload</button>
       </form>
     </div>
   </div>
- <script src="api.js"></script>
-<script>
-  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Uploading...';
+  <script src="api.js"></script>
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> Uploading...';
 
-    const formData = new FormData(e.target);
-    try {
-      const res = await fetch(`${window.API_BASE}/documents/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showToast('Upload successful! Waiting for admin approval.', 'success');
-        window.location.href = 'tutor-dashboard.html';
-      } else {
-        showToast(data.error || 'Upload failed', 'error');
+      const formData = new FormData(e.target);
+      try {
+        const res = await fetch(`${window.API_BASE}/documents/upload`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Upload successful! Waiting for admin approval.', 'success');
+          window.location.href = 'tutor-dashboard.html';
+        } else {
+          showToast(data.error || 'Upload failed', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      } catch (err) {
+        showToast('Upload failed: ' + err.message, 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
       }
-    } catch (err) {
-      showToast('Upload failed: ' + err.message, 'error');
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalText;
-    }
-  });
-</script>
+    });
+  </script>
 </body>
 </html>
