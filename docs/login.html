@@ -133,6 +133,7 @@
   </div>
 </div>
 <script src="api.js"></script>
+<script src="api.js"></script>
 <script>
   const form = document.getElementById('loginForm');
   const loginBtn = document.getElementById('loginBtn');
@@ -155,7 +156,16 @@
         if (returnTo) {
           window.location.href = returnTo;
         } else {
-          window.location.href = res.user.role === 'student' ? 'student-dashboard.html' : 'tutor-dashboard.html';
+          // ✅ Handle all roles
+          if (res.user.role === 'student') {
+            window.location.href = 'student-dashboard.html';
+          } else if (res.user.role === 'tutor') {
+            window.location.href = 'tutor-dashboard.html';
+          } else if (res.user.role === 'admin') {
+            window.location.href = 'admin-dashboard.html';
+          } else {
+            window.location.href = 'index.html';
+          }
         }
       } else {
         throw new Error('Invalid response');
