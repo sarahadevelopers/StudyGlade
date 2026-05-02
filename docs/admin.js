@@ -304,10 +304,10 @@ async function loadAllQuestions() {
   } catch (err) { console.error(err); }
 }
 
-// ----- Document Approval (Updated: shows ALL documents with Edit Preview) -----
+// ----- Document Approval (shows ALL documents with Edit/Preview buttons) -----
 async function loadDocuments() {
   try {
-    const docs = await apiFetch('/admin/documents'); // fetches all documents (approved + pending)
+    const docs = await apiFetch('/admin/documents');
     const container = document.getElementById('documentsList');
     if (!docs.length) {
       container.innerHTML = '<div class="card">No documents found.</div>';
@@ -326,8 +326,8 @@ async function loadDocuments() {
               <td>${formatMoney(d.price)}</td>
               <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
               <td>
-                <button class="btn-sm btn-primary" onclick="editDocument('${d._id}', '${escapeHtml(d.title)}', ${d.price}, '${escapeHtml(d.description)}')">Edit</button>
-                <button class="btn-sm btn-secondary" onclick="showPreviewModal('${d._id}', '${escapeHtml(d.previewText || '').replace(/'/g, "\\'")}')">Edit Preview</button>
+                <button class="btn-sm btn-primary" onclick="editDocument(${JSON.stringify(d._id)}, ${JSON.stringify(d.title)}, ${d.price}, ${JSON.stringify(d.description)})">Edit</button>
+                <button class="btn-sm btn-secondary" onclick="showPreviewModal(${JSON.stringify(d._id)}, ${JSON.stringify(d.previewText || '')})">Edit Preview</button>
                 ${!d.isApproved ? `<button class="btn-sm btn-success" onclick="approveDoc('${d._id}')">Approve</button>` : ''}
                 <button class="btn-sm btn-danger" onclick="deleteDocument('${d._id}')">Delete</button>
               </td>
@@ -347,15 +347,24 @@ async function approveDoc(docId) {
   } catch (err) { alert(err.message); }
 }
 
-async function editDocument(docId, currentTitle, currentPrice, currentDescription) {
+async function deleteDocument(docId) {
+  if (confirm('Delete this document permanently?')) {
+    await apiFetch(`/admin/documents/${docId}`, { method: 'DELETE' });
+    loadDocuments();
+  }
+}
+
+// ----- Edit Document Modal functions (global) -----
+window.editDocument = async function(docId, currentTitle, currentPrice, currentDescription) {
+  console.log("editDocument called", docId, currentTitle);
   document.getElementById('editDocId').value = docId;
   document.getElementById('editDocTitle').value = currentTitle;
   document.getElementById('editDocPrice').value = currentPrice;
   document.getElementById('editDocDescription').value = currentDescription;
   document.getElementById('editDocumentModal').style.display = 'flex';
-}
+};
 
-async function saveDocumentEdit() {
+window.saveDocumentEdit = async function() {
   const docId = document.getElementById('editDocId').value;
   const title = document.getElementById('editDocTitle').value;
   const price = parseFloat(document.getElementById('editDocPrice').value);
@@ -367,36 +376,31 @@ async function saveDocumentEdit() {
     });
     closeEditDocModal();
     loadDocuments();
-  } catch (err) { alert(err.message); }
-}
-
-function closeEditDocModal() {
-  document.getElementById('editDocumentModal').style.display = 'none';
-}
-
-async function deleteDocument(docId) {
-  if (confirm('Delete this document permanently?')) {
-    await apiFetch(`/admin/documents/${docId}`, { method: 'DELETE' });
-    loadDocuments();
+    showToast('Document updated', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
   }
-}
+};
 
-// ----- NEW: Edit Preview Text Modal functions -----
-function showPreviewModal(docId, currentPreviewText) {
+window.closeEditDocModal = function() {
+  document.getElementById('editDocumentModal').style.display = 'none';
+};
+
+// ----- Edit Preview Modal functions (global) -----
+window.showPreviewModal = function(docId, currentPreviewText) {
+  console.log("showPreviewModal called", docId);
   document.getElementById('editPreviewDocId').value = docId;
   const textarea = document.getElementById('editPreviewText');
   textarea.value = currentPreviewText || '';
-  // Update character counter
-  const charCount = textarea.value.length;
-  document.getElementById('previewCharCount').innerText = charCount;
+  document.getElementById('previewCharCount').innerText = textarea.value.length;
   document.getElementById('editPreviewModal').style.display = 'flex';
-}
+};
 
-function closePreviewModal() {
+window.closePreviewModal = function() {
   document.getElementById('editPreviewModal').style.display = 'none';
-}
+};
 
-async function savePreviewText() {
+window.savePreviewText = async function() {
   const docId = document.getElementById('editPreviewDocId').value;
   const newPreviewText = document.getElementById('editPreviewText').value.trim();
   if (!docId) return;
@@ -409,16 +413,16 @@ async function savePreviewText() {
       method: 'PUT',
       body: JSON.stringify({ previewText: newPreviewText })
     });
-    alert('Preview text updated successfully!');
+    showToast('Preview text updated', 'success');
     closePreviewModal();
-    loadDocuments(); // refresh the list
+    loadDocuments();
   } catch (err) {
-    alert('Error: ' + err.message);
+    showToast(err.message, 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.innerText = originalText;
   }
-}
+};
 
 // ----- Withdrawal Requests -----
 async function loadWithdrawals() {
@@ -443,7 +447,7 @@ async function loadWithdrawals() {
               <td>
                 <button class="btn-sm btn-primary" onclick="approveWithdrawal('${w._id}')">Approve</button>
                 <button class="btn-sm btn-danger" onclick="rejectWithdrawal('${w._id}')">Reject</button>
-               </td>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -526,7 +530,7 @@ async function loadAnnouncements() {
               <td>
                 <button class="btn-sm btn-primary" onclick="editAnnouncement('${a._id}', '${escapeHtml(a.title)}', '${escapeHtml(a.message)}', '${a.expiresAt || ''}', ${a.isActive})">Edit</button>
                 <button class="btn-sm btn-danger" onclick="deleteAnnouncement('${a._id}')">Delete</button>
-               </td>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -876,7 +880,7 @@ function renderFinancialReport(data) {
             <td>${escapeHtml(t.fullName)}</td>
             <td>${escapeHtml(t.email)}</td>
             <td>${formatMoney(t.earnings)}</td>
-            <td>${formatMoney(t.commissionDeducted)}</td>
+            <td>${formatMoney(t.commissionDeducted)}<tr>
             <td>${formatMoney(t.withdrawals)}</td>
             <td>${formatMoney(t.balance)}</td>
             <td>${t.tutorProfile.level}</td>
@@ -884,7 +888,7 @@ function renderFinancialReport(data) {
           </tr>
         `).join('')}
       </tbody>
-    <td>
+    </table>
 
     <h3>Withdrawal History (approved)</h3>
     <table class="data-table" id="withdrawalsTable">
@@ -957,7 +961,7 @@ async function downloadFinancialPDF() {
   window.open(url, '_blank');
 }
 
-// ----- Expose global functions for inline buttons -----
+// ----- Expose remaining global functions for inline buttons -----
 window.loadFinancialReport = loadFinancialReport;
 window.exportFinancialCSV = exportFinancialCSV;
 window.downloadFinancialPDF = downloadFinancialPDF;
@@ -971,9 +975,6 @@ window.toggleSuspend = toggleSuspend;
 window.closeTutorModal = closeTutorModal;
 window.showUserDashboard = showUserDashboard;
 window.closeUserDashboardModal = closeUserDashboardModal;
-window.editDocument = editDocument;
-window.closeEditDocModal = closeEditDocModal;
-window.saveDocumentEdit = saveDocumentEdit;
 window.deleteDocument = deleteDocument;
 window.exportTableToCSV = exportTableToCSV;
 window.openNotificationModal = openNotificationModal;
@@ -984,9 +985,6 @@ window.viewFullQuestion = viewFullQuestion;
 window.postAdminComment = postAdminComment;
 window.closeFullQuestionModal = closeFullQuestionModal;
 window.setTutorLevel = setTutorLevel;
-window.showPreviewModal = showPreviewModal;
-window.closePreviewModal = closePreviewModal;
-window.savePreviewText = savePreviewText;
 
 // ----- Event listeners -----
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
