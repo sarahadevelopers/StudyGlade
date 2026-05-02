@@ -76,14 +76,18 @@ const User = require('./models/User');
 const Document = require('./models/Document'); // Needed for /document/:slug
 
 // ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
+// ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+  // Use the raw body buffer directly – do NOT JSON.stringify(req.body)
+  const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
     console.error('Invalid Paystack signature');
+    console.error('Expected:', req.headers['x-paystack-signature']);
+    console.error('Computed:', hash);
     return res.status(401).send('Unauthorized');
   }
-  const event = req.body;
+  const event = JSON.parse(req.body.toString());
   if (event.event === 'charge.success') {
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;

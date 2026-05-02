@@ -457,6 +457,23 @@
     const messageBox = document.getElementById('message');
     const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
 
+    // Helper: fetch latest user data (wallet, etc.)
+async function refreshUser() {
+  try {
+    const response = await fetch('/api/auth/me', {
+      credentials: 'include'
+    });
+    if (response.ok) {
+      const userData = await response.json();
+      localStorage.setItem('user', JSON.stringify(userData));
+      return userData;
+    }
+  } catch (err) {
+    console.error('Failed to refresh user:', err);
+  }
+  return null;
+}
+
    async function handleUnlock() {
   if (!unlockBtn) return;
   unlockBtn.disabled = true;
