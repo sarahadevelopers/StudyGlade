@@ -62,6 +62,10 @@ async function loadDocuments(reset = true) {
     docs.forEach(doc => {
       const card = document.createElement('div');
       card.className = 'document-card';
+      
+      // ✅ Use slug for the preview link (SEO-friendly)
+      const previewUrl = doc.slug ? `/document/${doc.slug}` : `/api/documents/preview/${doc._id}`;
+      
       card.innerHTML = `
         <div>
           <div class="document-title">${escapeHtml(doc.title)}</div>
@@ -73,7 +77,7 @@ async function loadDocuments(reset = true) {
           <div class="document-downloads">📥 ${doc.downloads || 0} purchases</div>
         </div>
         <div>
-          <a href="/api/documents/preview/${doc._id}" class="btn-sm btn-outline" target="_blank">Preview</a>
+          <a href="${previewUrl}" class="btn-sm btn-outline" target="_blank">Preview</a>
           ${user ? `<button class="btn-sm btn-primary btn-unlock" data-id="${doc._id}" data-price="${doc.price}">Unlock</button>` : ''}
         </div>
       `;
@@ -121,7 +125,7 @@ async function unlockHandler(e) {
     showToast('Document unlocked! Download will start shortly.', 'success');
     // Trigger download
     window.open(result.fileUrl, '_blank');
-    // Refresh wallet balance (if dashboard shows it)
+    // Refresh wallet balance (if exists)
     const user = JSON.parse(localStorage.getItem('user'));
     if (user) {
       const freshUser = await apiFetch('/auth/me');

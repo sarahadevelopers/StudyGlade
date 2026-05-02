@@ -13,10 +13,29 @@ const documentSchema = new mongoose.Schema({
   uploaderName: String,
   downloads: { type: Number, default: 0 },
   isApproved: { type: Boolean, default: false },
-  previewText: { type: String, default: '' },        // first 500 characters
-  previewImageUrl: { type: String, default: '' },    // first page as image (PDFs)
+  previewText: { type: String, default: '' },
+  previewImageUrl: { type: String, default: '' },
+  slug: { type: String, required: true, unique: true, index: true }, // ✅ ADD THIS
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+});
+
+// Auto-generate slug before saving (if not provided)
+documentSchema.pre('save', async function(next) {
+  if (!this.slug && this.title) {
+    let baseSlug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    let slug = baseSlug;
+    let counter = 1;
+    while (await mongoose.model('Document').findOne({ slug, _id: { $ne: this._id } })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+    this.slug = slug;
+  }
+  next();
 });
 
 module.exports = mongoose.model('Document', documentSchema);

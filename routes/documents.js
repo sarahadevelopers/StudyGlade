@@ -40,7 +40,13 @@ async function extractPreviewText(filePath, originalName) {
   }
 }
 
-// ---------- Upload document (tutor or admin) ----------
+// Helper: escape HTML for preview page
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+}
+
+// ---------- 1. Upload document (tutor or admin) ----------
 router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'), async (req, res) => {
   try {
     const { title, description, subject, subcategory, level, type, price } = req.body;
@@ -60,6 +66,18 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
     await fs.unlink(req.file.path);
 
     const user = await User.findById(req.userId);
+    
+    // Generate slug from title (SEO-friendly URL)
+    let baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Document.findOne({ slug })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
     const doc = await Document.create({
       title,
       description,
@@ -73,7 +91,8 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
       uploaderName: user.fullName,
       isApproved: user.role === 'admin' ? true : false,
       previewText,
-      previewImageUrl
+      previewImageUrl,
+      slug                                    // ✅ store slug
     });
     res.status(201).json(doc);
   } catch (err) {
@@ -82,7 +101,7 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
   }
 });
 
-// ---------- Get approved documents with pagination, filtering, sorting ----------
+// ---------- 2. Get approved documents with pagination, filtering, sorting (returns slug) ----------
 router.get('/', async (req, res) => {
   try {
     const { 
@@ -123,7 +142,9 @@ router.get('/', async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
+    // ✅ Explicitly select fields including slug
     const docs = await Document.find(filter)
+      .select('title description subject level type price slug previewImageUrl downloads createdAt uploaderName')
       .sort(sortOption)
       .skip(skip)
       .limit(limitNum);
@@ -144,7 +165,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ---------- Unlock document (purchase) – updates seller earnings ----------
+// ---------- 3. Unlock document (purchase) – updates seller earnings ----------
 router.post('/:id/unlock', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -194,7 +215,7 @@ router.post('/:id/unlock', auth, async (req, res) => {
   }
 });
 
-// ---------- Public preview page (SEO friendly) ----------
+// ---------- 4. Public preview page (SEO friendly – fallback for old links) ----------
 router.get('/preview/:id', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -247,11 +268,5 @@ router.get('/preview/:id', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
-// Helper: escape HTML for preview page
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-}
 
 module.exports = router;

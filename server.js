@@ -19,7 +19,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 Created uploads folder');
 }
 
-// ---------- 2. MULTER CONFIGURATION (exported for routes) ----------
+// ---------- 2. MULTER CONFIGURATION ----------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -41,16 +41,15 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
-    // existing types plus:
-  'text/csv',                    // CSV files
-  'application/zip',             // ZIP archives
-  'video/mp4', 'video/webm',     // video explanations
-  'image/webp'                   
+    'text/csv',
+    'application/zip',
+    'video/mp4', 'video/webm',
+    'image/webp'
   ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Allowed: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG, GIF, TXT'), false);
+    cb(new Error('Invalid file type'), false);
   }
 };
 
@@ -60,10 +59,9 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-// ✅ EXPORT IMMEDIATELY – before any route requires
 module.exports.upload = upload;
 
-// ---------- 3. NOW REQUIRE ROUTES (they can import the upload) ----------
+// ---------- 3. REQUIRE ROUTES & MODELS ----------
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const documentRoutes = require('./routes/documents');
@@ -71,13 +69,13 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
 
-// Models for cron jobs (these do NOT depend on upload)
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
+const Document = require('./models/Document'); // <-- Needed for /document/:slug
 
-// ---------- 4. PAYSTACK WEBHOOK (must be BEFORE express.json() to get raw body) ----------
+// ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
@@ -90,7 +88,6 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;
 
-    // Duplicate prevention
     const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
     if (existingTx) {
       console.log(`Duplicate webhook ignored for ref ${reference}`);
@@ -99,11 +96,10 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
 
     const user = await User.findById(userId);
     if (!user) {
-      console.error(`User ${userId} not found for webhook`);
+      console.error(`User ${userId} not found`);
       return res.status(404).send('User not found');
     }
 
-    // Verify via Paystack API
     try {
       const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
         headers: { Authorization: `Bearer ${secret}` }
@@ -118,7 +114,6 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
         return res.status(400).send('Amount mismatch');
       }
 
-      // Credit wallet
       user.walletBalance += verifiedAmount;
       await user.save();
       await Transaction.create({
@@ -136,7 +131,7 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ---------- 5. CORS CONFIGURATION ----------
+// ---------- 5. CORS ----------
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
@@ -155,17 +150,73 @@ app.use(cors({
   credentials: true
 }));
 
-// ---------- 6. STANDARD MIDDLEWARE (after webhook) ----------
+// ---------- 6. STANDARD MIDDLEWARE ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ---------- 7. DATABASE CONNECTION ----------
+// ---------- 7. EJS SETUP ----------
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// ---------- 8. DATABASE CONNECTION ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ---------- 8. API ROUTES ----------
+// ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
+// IMPORTANT: This must come BEFORE the catch-all static route
+app.get('/document/:slug', async (req, res) => {
+  try {
+    const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
+    if (!document) {
+      return res.status(404).send('Document not found');
+    }
+
+    // Check if user is logged in (via token from cookie)
+    let user = null;
+    const token = req.cookies.token;
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        user = await User.findById(decoded.userId).select('-password');
+      } catch (err) {
+        // invalid token, user stays null
+      }
+    }
+
+    res.render('document', { document, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+// ---------- 10. SITEMAP.XML ----------
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
+    let urls = documents.map(doc => `
+      <url>
+        <loc>https://studyglade.onrender.com/document/${doc.slug}</loc>
+        <lastmod>${doc.updatedAt.toISOString()}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+      </url>
+    `).join('');
+    
+    res.header('Content-Type', 'application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${urls}
+</urlset>`);
+  } catch (err) {
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+// ---------- 11. API ROUTES ----------
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -176,16 +227,15 @@ app.use('/api/comments', commentRoutes);
 // Health check
 app.get('/health', (req, res) => res.send('OK'));
 
-// ---------- 9. STATIC FRONTEND (docs folder) ----------
+// ---------- 12. STATIC FRONTEND (docs folder) ----------
 app.use(express.static(path.join(__dirname, 'docs')));
 
-// Catch-all for client-side routing
+// Catch-all for client-side routing (must be after static and /document)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'index.html'));
 });
 
-// ---------- 10. CRON JOBS ----------
-// Budget suggestion (every hour)
+// ---------- 13. CRON JOBS ----------
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -214,19 +264,18 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
-// Tutor level progression (every midnight)
 const updateTutorLevels = require('./utils/updateTutorLevels');
 cron.schedule('0 0 * * *', () => {
   console.log('Running tutor level update...');
   updateTutorLevels().catch(console.error);
 });
 
-// ---------- 11. GLOBAL ERROR HANDLER ----------
+// ---------- 14. GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   res.status(500).json({ error: err.message });
 });
 
-// ---------- 12. START SERVER ----------
+// ---------- 15. START SERVER ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
