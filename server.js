@@ -73,7 +73,7 @@ const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
-const Document = require('./models/Document'); // <-- Needed for /document/:slug
+const Document = require('./models/Document'); // Needed for /document/:slug
 
 // ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -229,6 +229,14 @@ app.get('/health', (req, res) => res.send('OK'));
 
 // ---------- 12. STATIC FRONTEND (docs folder) ----------
 app.use(express.static(path.join(__dirname, 'docs')));
+
+// Explicit routes for login/register (to preserve clean URLs with query strings)
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'register.html'));
+});
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'login.html'));
+});
 
 // Catch-all for client-side routing (must be after static and /document)
 app.get('*', (req, res) => {
