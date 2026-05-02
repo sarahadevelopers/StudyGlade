@@ -189,6 +189,7 @@ window.acceptSuggestion = async (questionId) => {
 };
 
 // ---------- Add Funds with Paystack ----------
+// ---------- Add Funds with Paystack (with returnTo support) ----------
 async function addFunds(event) {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -198,6 +199,14 @@ async function addFunds(event) {
   try {
     const btn = event?.target;
     if (btn) btn.disabled = true;
+
+    // Capture returnTo from current URL (e.g., ?returnTo=/document/sudah)
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnTo = urlParams.get('returnTo');
+    if (returnTo) {
+      sessionStorage.setItem('pendingReturnTo', returnTo);
+    }
+
     const { url } = await apiFetch('/wallet/paystack/initialize', {
       method: 'POST',
       body: JSON.stringify({ amount: parseFloat(amount) })
@@ -209,6 +218,26 @@ async function addFunds(event) {
   }
 }
 
+// ---------- Handle Payment Return (called on dashboard load) ----------
+async function handlePaymentReturn() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const reference = urlParams.get('reference');
+  const trxref = urlParams.get('trxref');
+  const pendingReturnTo = sessionStorage.getItem('pendingReturnTo');
+
+  if ((reference || trxref) && pendingReturnTo) {
+    // Payment likely completed – wait a moment for backend webhook to process
+    showToast('Payment successful! Redirecting...', 'success');
+    // Clear flag
+    sessionStorage.removeItem('pendingReturnTo');
+    // Remove query params from URL without reload (clean)
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Redirect back to the document page
+    setTimeout(() => {
+      window.location.href = pendingReturnTo;
+    }, 1500);
+  }
+}
 // ---------- Transaction History (pagination) ----------
 let transactionPage = 1;
 let transactionHasMore = true;
@@ -280,4 +309,5 @@ function escapeHtml(str) {
 // Start dashboard when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   loadStudentDashboard();
+   handlePaymentReturn();
 });

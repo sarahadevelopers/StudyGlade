@@ -267,7 +267,9 @@
 
         <div class="form-group">
           <label>
-            <input type="checkbox" id="agreeRules" required>
+            <!-- Change this line -->
+<input type="checkbox" id="agreeRules">
+<!-- remove the required attribute -->
             I agree to abide by StudyGlade's <a href="/terms.html" target="_blank">Terms & Conditions</a> and will not request personal information from students.
           </label>
         </div>
@@ -331,37 +333,38 @@
       return;
     }
 
-    const role = roleSelect.value;
-    if (role === 'tutor') {
-      const essay = document.getElementById('essay').value.trim();
-      if (essay.length < 500) {
-        document.getElementById('formError').innerText = 'Essay must be at least 500 words.';
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Sign Up';
-        return;
-      }
-      if (!document.getElementById('agreeRules').checked) {
-        document.getElementById('formError').innerText = 'You must agree to the platform rules.';
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Sign Up';
-        return;
-      }
-      const quiz1 = document.querySelector('input[name="quiz1"]:checked');
-      const quiz2 = document.querySelector('input[name="quiz2"]:checked');
-      const quiz3 = document.querySelector('input[name="quiz3"]:checked');
-      if (!quiz1 || !quiz2 || !quiz3) {
-        document.getElementById('formError').innerText = 'Please answer all quiz questions.';
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Sign Up';
-        return;
-      }
-      if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
-        document.getElementById('formError').innerText = 'You failed the platform rules quiz. Please review the rules and try again.';
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Sign Up';
-        return;
-      }
-    }
+  const role = roleSelect.value;
+if (role === 'tutor') {
+  const essay = document.getElementById('essay').value.trim();
+  if (essay.length < 500) {
+    document.getElementById('formError').innerText = 'Essay must be at least 500 words.';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Sign Up';
+    return;
+  }
+  // ✅ Check terms agreement only for tutors
+  if (!document.getElementById('agreeRules').checked) {
+    document.getElementById('formError').innerText = 'You must agree to the platform rules.';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Sign Up';
+    return;
+  }
+  const quiz1 = document.querySelector('input[name="quiz1"]:checked');
+  const quiz2 = document.querySelector('input[name="quiz2"]:checked');
+  const quiz3 = document.querySelector('input[name="quiz3"]:checked');
+  if (!quiz1 || !quiz2 || !quiz3) {
+    document.getElementById('formError').innerText = 'Please answer all quiz questions.';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Sign Up';
+    return;
+  }
+  if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
+    document.getElementById('formError').innerText = 'You failed the platform rules quiz. Please review the rules and try again.';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Sign Up';
+    return;
+  }
+}
 
     // Build FormData
     const formData = new FormData();

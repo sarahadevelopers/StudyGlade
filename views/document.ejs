@@ -457,34 +457,35 @@
     const messageBox = document.getElementById('message');
     const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
 
-    async function handleUnlock() {
-      if (!unlockBtn) return;
-      unlockBtn.disabled = true;
-      unlockBtn.innerText = 'Processing...';
-      
-      try {
-        const response = await fetch(`/api/documents/<%= document._id %>/unlock`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-          messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
-          if (unlockBtn) unlockBtn.style.display = 'none';
-          if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
-        } else {
-          messageBox.innerHTML = `<span style="color:#dc2626;">${escapeHtml(data.error) || 'Insufficient balance? Please add funds to your wallet.'}</span>`;
-          unlockBtn.disabled = false;
-          unlockBtn.innerText = 'Unlock';
-        }
-      } catch (err) {
-        console.error('Unlock error:', err);
-        messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
-        unlockBtn.disabled = false;
-        unlockBtn.innerText = 'Unlock';
-      }
+   async function handleUnlock() {
+  if (!unlockBtn) return;
+  unlockBtn.disabled = true;
+  unlockBtn.innerText = 'Processing...';
+  
+  try {
+    const response = await fetch(`/api/documents/<%= document._id %>/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    
+    if (response.ok) {
+      messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
+      if (unlockBtn) unlockBtn.style.display = 'none';
+      if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
+    } else {
+      // ✅ ADD THE "ADD FUNDS" LINK HERE
+      messageBox.innerHTML = `<span style="color:#dc2626;">${data.error || 'Insufficient balance.'} <a href="/student-dashboard.html?returnTo=${encodeURIComponent(window.location.pathname)}" style="color:#2563eb;">Add funds now</a></span>`;
+      unlockBtn.disabled = false;
+      unlockBtn.innerText = 'Unlock';
     }
+  } catch (err) {
+    console.error('Unlock error:', err);
+    messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
+    unlockBtn.disabled = false;
+    unlockBtn.innerText = 'Unlock';
+  }
+}
 
     if (unlockBtn) unlockBtn.addEventListener('click', handleUnlock);
     if (previewUnlockBtn) previewUnlockBtn.addEventListener('click', handleUnlock);
