@@ -165,7 +165,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('MongoDB error:', err));
 
 // ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
-// IMPORTANT: This must come BEFORE the catch-all static route
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -173,22 +172,34 @@ app.get('/document/:slug', async (req, res) => {
       return res.status(404).send('Document not found');
     }
 
-    // Check if user is logged in (via token from cookie)
-    let user = null;
+    // Debugging: log cookies and token presence
+    console.log(`[DEBUG] Request for document: ${req.params.slug}`);
+    console.log(`[DEBUG] Cookies received:`, req.cookies);
     const token = req.cookies.token;
+    console.log(`[DEBUG] Token present: ${token ? 'yes' : 'no'}`);
+
+    let user = null;
     if (token) {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log(`[DEBUG] Decoded token userId: ${decoded.userId}`);
         user = await User.findById(decoded.userId).select('-password');
+        if (user) {
+          console.log(`[DEBUG] User found: ${user.email} (role: ${user.role})`);
+        } else {
+          console.log(`[DEBUG] No user found with that ID`);
+        }
       } catch (err) {
-        // invalid token, user stays null
+        console.error(`[DEBUG] Token verification error:`, err.message);
       }
+    } else {
+      console.log(`[DEBUG] No token cookie - user is guest`);
     }
 
     res.render('document', { document, user });
   } catch (err) {
-    console.error(err);
+    console.error('Error in /document/:slug:', err);
     res.status(500).send('Server error');
   }
 });
