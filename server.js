@@ -165,6 +165,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('MongoDB error:', err));
 
 // ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
+// ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -172,19 +173,21 @@ app.get('/document/:slug', async (req, res) => {
       return res.status(404).send('Document not found');
     }
 
-    // Debugging: log cookies and token presence
     console.log(`[DEBUG] Request for document: ${req.params.slug}`);
     console.log(`[DEBUG] Cookies received:`, req.cookies);
-    const token = req.cookies.token;
-    console.log(`[DEBUG] Token present: ${token ? 'yes' : 'no'}`);
+
+    // Use the same cookie name as auth middleware
+    const token = req.cookies.accessToken;
+    console.log(`[DEBUG] AccessToken present: ${token ? 'yes' : 'no'}`);
 
     let user = null;
     if (token) {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(`[DEBUG] Decoded token userId: ${decoded.userId}`);
-        user = await User.findById(decoded.userId).select('-password');
+        // Note: your token payload uses 'id', not 'userId'
+        console.log(`[DEBUG] Decoded token id: ${decoded.id}`);
+        user = await User.findById(decoded.id).select('-password');
         if (user) {
           console.log(`[DEBUG] User found: ${user.email} (role: ${user.role})`);
         } else {
@@ -194,7 +197,7 @@ app.get('/document/:slug', async (req, res) => {
         console.error(`[DEBUG] Token verification error:`, err.message);
       }
     } else {
-      console.log(`[DEBUG] No token cookie - user is guest`);
+      console.log(`[DEBUG] No accessToken - user is guest`);
     }
 
     res.render('document', { document, user });
