@@ -1,290 +1,435 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Register - StudyGlade</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up | StudyGlade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
+      padding: 2rem;
+    }
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #0a0c10;
+    }
+    .sub {
+      color: #5b6e8c;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #1e293b;
+      font-size: 0.9rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 60px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      background: #fff;
+    }
+    textarea {
+      border-radius: 24px;
+      resize: vertical;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    small {
+      display: block;
+      font-size: 0.7rem;
+      color: #5b6e8c;
+      margin-top: 0.25rem;
+    }
+    .btn-primary {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.85rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .tutor-fields {
       display: none;
-      margin-top: 1rem;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 1rem;
+      margin-top: 1.5rem;
+      border-top: 1px solid #eef2f6;
+      padding-top: 1.5rem;
     }
     .tutor-fields.show {
       display: block;
     }
     .quiz-question {
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 1rem;
       margin-bottom: 1rem;
-      padding: 0.5rem;
-      background: #f9fafb;
-      border-radius: 0.5rem;
+    }
+    .quiz-question p {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
     }
     .quiz-question label {
-      font-weight: 500;
+      font-weight: normal;
+      margin-bottom: 0;
+      display: inline-block;
+      margin-right: 1rem;
     }
     .error-text {
-      color: #ef4444;
+      color: #dc2626;
       font-size: 0.8rem;
       margin-top: 0.25rem;
     }
+    hr {
+      margin: 1rem 0;
+      border: 0;
+      height: 1px;
+      background: #eef2f6;
+    }
+    .flex-row {
+      display: flex;
+      gap: 1rem;
+    }
+    .flex-row .form-group {
+      flex: 1;
+    }
+    a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="container" style="max-width: 600px; margin-top: 2rem; margin-bottom: 2rem;">
-    <div class="card">
-      <h2>Create Account</h2>
-      <form id="registerForm" enctype="multipart/form-data">
-        <!-- Basic fields -->
+<div class="container">
+  <div class="card">
+    <h2>Create account</h2>
+    <div class="sub">Join StudyGlade – unlock knowledge or share yours</div>
+    <form id="registerForm" enctype="multipart/form-data">
+      <!-- Basic fields -->
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="fullName" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" required>
+        <small>At least 6 characters</small>
+      </div>
+      <div class="form-group">
+        <label>I am a</label>
+        <select id="role">
+          <option value="student">Student – Browse & unlock documents</option>
+          <option value="tutor">Tutor – Earn by sharing knowledge</option>
+        </select>
+      </div>
+
+      <!-- Tutor-only fields (hidden initially) -->
+      <div id="tutorFields" class="tutor-fields">
+        <h3 style="margin-bottom: 1rem;">📘 Tutor Application</h3>
+        
         <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" id="fullName" required>
+          <label>Academic & Professional Qualifications</label>
+          <textarea id="qualifications" rows="3" placeholder="e.g., B.Sc. Mathematics, 3 years tutoring experience, TESOL certified"></textarea>
+          <small>List degrees, certifications, and relevant experience.</small>
         </div>
+
         <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="email" required>
+          <label>Subjects You Can Tutor</label>
+          <input type="text" id="subjects" placeholder="Math, Physics, English, etc. (comma separated)">
         </div>
+
         <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="password" required>
-          <small>At least 6 characters</small>
+          <label>Essay (500–1000 words)</label>
+          <textarea id="essay" rows="8" placeholder="Write an essay on: 'How technology is transforming education' or a topic of your choice. Follow APA or MLA formatting."></textarea>
+          <small>Your essay will be evaluated for grammar, structure, and critical thinking.</small>
         </div>
+
         <div class="form-group">
-          <label>Role</label>
-          <select id="role">
-            <option value="student">Student</option>
-            <option value="tutor">Tutor</option>
+          <label>Essay Format</label>
+          <select id="essayFormat">
+            <option value="APA">APA</option>
+            <option value="MLA">MLA</option>
           </select>
         </div>
 
-        <!-- Tutor-Only Fields (hidden by default) -->
-        <div id="tutorFields" class="tutor-fields">
-          <h3>Tutor Application Details</h3>
-          
-          <!-- 1. Academic / Professional Qualifications -->
-          <div class="form-group">
-            <label>Academic & Professional Qualifications</label>
-            <textarea id="qualifications" rows="3" placeholder="e.g., Bachelor's in Mathematics, 3 years tutoring experience, etc."></textarea>
-            <small>List your degrees, certifications, and relevant experience.</small>
-          </div>
+        <div class="form-group">
+          <label>Portfolio / Sample Work (Optional)</label>
+          <input type="file" id="portfolio" accept=".pdf,.doc,.docx,.jpg,.png,.zip">
+          <small>Max 10MB – show us your best work.</small>
+        </div>
 
-          <!-- 2. Subjects of Expertise -->
-          <div class="form-group">
-            <label>Subjects You Can Tutor</label>
-            <input type="text" id="subjects" placeholder="Math, Physics, Business, English, etc. (comma-separated)">
-            <small>Separate subjects with commas.</small>
-          </div>
+        <h4 style="margin: 1rem 0 0.5rem;">📝 Platform Rules Quiz</h4>
+        <div class="quiz-question">
+          <p>1. Which of the following is <em>not allowed</em> for tutors?</p>
+          <label><input type="radio" name="quiz1" value="A"> A) Asking the student for their phone number</label><br>
+          <label><input type="radio" name="quiz1" value="B"> B) Requesting clarification on a question via chat</label><br>
+          <label><input type="radio" name="quiz1" value="C"> C) Uploading a completed answer</label>
+        </div>
+        <div class="quiz-question">
+          <p>2. What happens if a tutor consistently delivers low-quality work?</p>
+          <label><input type="radio" name="quiz2" value="A"> A) They get a bonus</label><br>
+          <label><input type="radio" name="quiz2" value="B"> B) Their account may be suspended or banned</label><br>
+          <label><input type="radio" name="quiz2" value="C"> C) They are automatically promoted</label>
+        </div>
+        <div class="quiz-question">
+          <p>3. True or False: Tutors may share personal social media handles with students to build rapport.</p>
+          <label><input type="radio" name="quiz3" value="True"> True</label><br>
+          <label><input type="radio" name="quiz3" value="False"> False</label>
+        </div>
 
-          <!-- 3. Writing Competency Test (Essay) -->
-          <div class="form-group">
-            <label>Essay (500–1000 words)</label>
-            <textarea id="essay" rows="8" placeholder="Write an essay on the topic: 'How technology is transforming education' or a topic of your choice. Follow APA or MLA formatting."></textarea>
-            <small>Your essay will be evaluated for grammar, structure, and critical thinking.</small>
-          </div>
-
-          <!-- 4. Essay Format -->
-          <div class="form-group">
-            <label>Essay Format</label>
-            <select id="essayFormat">
-              <option value="APA">APA</option>
-              <option value="MLA">MLA</option>
-            </select>
-          </div>
-
-          <!-- 5. Portfolio / Sample Work (Optional) -->
-          <div class="form-group">
-            <label>Portfolio / Sample Work (Optional)</label>
-            <input type="file" id="portfolio" accept=".pdf,.doc,.docx,.jpg,.png,.zip">
-            <small>Upload a file demonstrating your tutoring abilities (e.g., solved assignment, teaching material). Max 10MB.</small>
-          </div>
-
-          <!-- 6. Short Quiz (Sample questions) -->
-          <h4>Platform Rules Quiz</h4>
-          <div class="quiz-question">
-            <p><strong>1.</strong> Which of the following is <em>not allowed</em> for tutors?</p>
-            <label><input type="radio" name="quiz1" value="A"> A) Asking the student for their phone number</label><br>
-            <label><input type="radio" name="quiz1" value="B"> B) Requesting clarification on a question via chat</label><br>
-            <label><input type="radio" name="quiz1" value="C"> C) Uploading a completed answer</label>
-          </div>
-          <div class="quiz-question">
-            <p><strong>2.</strong> What happens if a tutor consistently delivers low-quality work?</p>
-            <label><input type="radio" name="quiz2" value="A"> A) They get a bonus</label><br>
-            <label><input type="radio" name="quiz2" value="B"> B) Their account may be suspended or banned</label><br>
-            <label><input type="radio" name="quiz2" value="C"> C) They are automatically promoted</label>
-          </div>
-          <div class="quiz-question">
-            <p><strong>3.</strong> True or False: Tutors may share personal social media handles with students to build rapport.</p>
-            <label><input type="radio" name="quiz3" value="True"> True</label><br>
-            <label><input type="radio" name="quiz3" value="False"> False</label>
-          </div>
-
-          <!-- Payment Details (for payouts) -->
-          <h4>Payment Details (for payouts)</h4>
-          <div class="form-group">
-            <label>Preferred Payout Method</label>
-            <select id="preferredMethod">
-              <option value="paypal">PayPal</option>
-              <option value="mpesa">Mpesa</option>
-              <option value="bank">Bank Transfer</option>
-            </select>
-          </div>
-          <div id="paypalField" class="form-group">
-            <label>PayPal Email</label>
-            <input type="email" id="paypalEmail">
-          </div>
-          <div id="mpesaField" class="form-group" style="display:none;">
-            <label>Mpesa Phone Number</label>
-            <input type="tel" id="mpesaPhone">
-          </div>
-          <div id="bankField" class="form-group" style="display:none;">
-            <label>Bank Name</label><input type="text" id="bankName"><br>
-            <label>Account Name</label><input type="text" id="accountName"><br>
-            <label>Account Number</label><input type="text" id="accountNumber">
-          </div>
-
-          <!-- 7. Agreement to Platform Rules -->
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="agreeRules" required>
-              I agree to abide by StudyGlade's <a href="terms.html" target="_blank">Terms & Conditions</a> and will not request personal information from students.
-            </label>
+        <h4 style="margin: 1.5rem 0 0.5rem;">💳 Payment Details (for tutor payouts)</h4>
+        <div class="form-group">
+          <label>Preferred Payout Method</label>
+          <select id="preferredMethod">
+            <option value="paypal">PayPal</option>
+            <option value="mpesa">Mpesa</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </div>
+        <div id="paypalField" class="form-group">
+          <label>PayPal Email</label>
+          <input type="email" id="paypalEmail">
+        </div>
+        <div id="mpesaField" class="form-group" style="display:none;">
+          <label>Mpesa Phone Number</label>
+          <input type="tel" id="mpesaPhone">
+        </div>
+        <div id="bankField" class="form-group" style="display:none;">
+          <div class="flex-row">
+            <div class="form-group"><label>Bank Name</label><input type="text" id="bankName"></div>
+            <div class="form-group"><label>Account Name</label><input type="text" id="accountName"></div>
+            <div class="form-group"><label>Account Number</label><input type="text" id="accountNumber"></div>
           </div>
         </div>
 
-        <button type="submit" class="btn" id="submitBtn">Sign Up</button>
-      </form>
-      <p style="margin-top: 1rem;">Already have an account? <a href="login.html">Login</a></p>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="agreeRules" required>
+            I agree to abide by StudyGlade's <a href="/terms.html" target="_blank">Terms & Conditions</a> and will not request personal information from students.
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Sign Up</button>
+      <div id="formError" class="error-text" style="text-align:center; margin-top:1rem;"></div>
+    </form>
+    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">
+      Already have an account? <a href="login.html">Log in</a>
     </div>
   </div>
+</div>
 
-  <script src="api.js"></script>
-  <script>
-    // Toggle tutor fields visibility based on role selection
-    const roleSelect = document.getElementById('role');
-    const tutorFields = document.getElementById('tutorFields');
-    roleSelect.addEventListener('change', function() {
-      if (this.value === 'tutor') {
-        tutorFields.classList.add('show');
-      } else {
-        tutorFields.classList.remove('show');
-      }
-    });
+<script src="api.js"></script>
+<script>
+  // ----- Helper: get returnTo parameter -----
+  function getReturnTo() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('returnTo');
+  }
 
-    // Payment method toggling
-    const methodSelect = document.getElementById('preferredMethod');
-    function togglePaymentFields() {
-      const method = methodSelect.value;
-      document.getElementById('paypalField').style.display = method === 'paypal' ? 'block' : 'none';
-      document.getElementById('mpesaField').style.display = method === 'mpesa' ? 'block' : 'none';
-      document.getElementById('bankField').style.display = method === 'bank' ? 'block' : 'none';
+  // ----- Toggle tutor fields based on role -----
+  const roleSelect = document.getElementById('role');
+  const tutorFields = document.getElementById('tutorFields');
+  roleSelect.addEventListener('change', () => {
+    if (roleSelect.value === 'tutor') {
+      tutorFields.classList.add('show');
+      togglePaymentFields(); // ensure correct payment fields visible
+    } else {
+      tutorFields.classList.remove('show');
     }
-    methodSelect.addEventListener('change', togglePaymentFields);
-    // Also call when role becomes tutor (so fields are shown if default method is paypal)
-    roleSelect.addEventListener('change', function() {
-      if (roleSelect.value === 'tutor') togglePaymentFields();
-    });
+  });
 
-    // Form submission with FormData
-    const form = document.getElementById('registerForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // ----- Payment method toggling -----
+  const methodSelect = document.getElementById('preferredMethod');
+  function togglePaymentFields() {
+    const method = methodSelect.value;
+    document.getElementById('paypalField').style.display = method === 'paypal' ? 'block' : 'none';
+    document.getElementById('mpesaField').style.display = method === 'mpesa' ? 'block' : 'none';
+    document.getElementById('bankField').style.display = method === 'bank' ? 'block' : 'none';
+  }
+  methodSelect.addEventListener('change', togglePaymentFields);
+  
+  // ----- Form submission -----
+  const form = document.getElementById('registerForm');
+  const submitBtn = document.getElementById('submitBtn');
 
-      // Basic validations
-      const password = document.getElementById('password').value;
-      if (password.length < 6) {
-        alert('Password must be at least 6 characters long.');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Creating account...';
+    document.getElementById('formError').innerText = '';
+
+    // Basic validation
+    const password = document.getElementById('password').value;
+    if (password.length < 6) {
+      document.getElementById('formError').innerText = 'Password must be at least 6 characters.';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Sign Up';
+      return;
+    }
+
+    const role = roleSelect.value;
+    if (role === 'tutor') {
+      const essay = document.getElementById('essay').value.trim();
+      if (essay.length < 500) {
+        document.getElementById('formError').innerText = 'Essay must be at least 500 words.';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Sign Up';
         return;
       }
-
-      const role = roleSelect.value;
-      if (role === 'tutor') {
-        const essay = document.getElementById('essay').value.trim();
-        if (essay.length < 500) {
-          alert('Essay must be at least 500 words.');
-          return;
-        }
-        if (!document.getElementById('agreeRules').checked) {
-          alert('You must agree to the platform rules.');
-          return;
-        }
-        const quiz1 = document.querySelector('input[name="quiz1"]:checked');
-        const quiz2 = document.querySelector('input[name="quiz2"]:checked');
-        const quiz3 = document.querySelector('input[name="quiz3"]:checked');
-        if (!quiz1 || !quiz2 || !quiz3) {
-          alert('Please answer all quiz questions.');
-          return;
-        }
-        if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
-          alert('You failed the platform rules quiz. Please review the rules and try again.');
-          return;
-        }
+      if (!document.getElementById('agreeRules').checked) {
+        document.getElementById('formError').innerText = 'You must agree to the platform rules.';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Sign Up';
+        return;
       }
-
-      // Prepare FormData
-      const formData = new FormData();
-      formData.append('fullName', document.getElementById('fullName').value);
-      formData.append('email', document.getElementById('email').value);
-      formData.append('password', password);
-      formData.append('role', role);
-
-      if (role === 'tutor') {
-        formData.append('qualifications', document.getElementById('qualifications').value);
-        formData.append('subjects', document.getElementById('subjects').value);
-        formData.append('essay', document.getElementById('essay').value);
-        formData.append('essayFormat', document.getElementById('essayFormat').value);
-        const portfolioFile = document.getElementById('portfolio').files[0];
-        if (portfolioFile) formData.append('portfolio', portfolioFile);
-        const quizAnswers = {
-          q1: document.querySelector('input[name="quiz1"]:checked').value,
-          q2: document.querySelector('input[name="quiz2"]:checked').value,
-          q3: document.querySelector('input[name="quiz3"]:checked').value
-        };
-        formData.append('quizAnswers', JSON.stringify(quizAnswers));
-
-        // Payment details
-        const preferredMethod = methodSelect.value;
-        formData.append('preferredMethod', preferredMethod);
-        if (preferredMethod === 'paypal') {
-          formData.append('paypalEmail', document.getElementById('paypalEmail').value);
-        } else if (preferredMethod === 'mpesa') {
-          formData.append('mpesaPhone', document.getElementById('mpesaPhone').value);
-        } else if (preferredMethod === 'bank') {
-          formData.append('bankName', document.getElementById('bankName').value);
-          formData.append('accountName', document.getElementById('accountName').value);
-          formData.append('accountNumber', document.getElementById('accountNumber').value);
-        }
+      const quiz1 = document.querySelector('input[name="quiz1"]:checked');
+      const quiz2 = document.querySelector('input[name="quiz2"]:checked');
+      const quiz3 = document.querySelector('input[name="quiz3"]:checked');
+      if (!quiz1 || !quiz2 || !quiz3) {
+        document.getElementById('formError').innerText = 'Please answer all quiz questions.';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Sign Up';
+        return;
       }
+      if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
+        document.getElementById('formError').innerText = 'You failed the platform rules quiz. Please review the rules and try again.';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Sign Up';
+        return;
+      }
+    }
 
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+    // Build FormData
+    const formData = new FormData();
+    formData.append('fullName', document.getElementById('fullName').value);
+    formData.append('email', document.getElementById('email').value);
+    formData.append('password', password);
+    formData.append('role', role);
 
-      try {
-        const response = await fetch(`${window.API_BASE}/auth/register`, {
-          method: 'POST',
-          credentials: 'include',
-          body: formData
-        });
-        const data = await response.json();
-        if (response.ok) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-          if (data.user.role === 'student') {
-            window.location.href = 'student-dashboard.html';
-          } else {
-            alert('Your tutor application has been submitted. You will be notified once approved.');
-            window.location.href = 'login.html';
-          }
+    if (role === 'tutor') {
+      formData.append('qualifications', document.getElementById('qualifications').value);
+      formData.append('subjects', document.getElementById('subjects').value);
+      formData.append('essay', document.getElementById('essay').value);
+      formData.append('essayFormat', document.getElementById('essayFormat').value);
+      const portfolioFile = document.getElementById('portfolio').files[0];
+      if (portfolioFile) formData.append('portfolio', portfolioFile);
+      const quizAnswers = {
+        q1: document.querySelector('input[name="quiz1"]:checked').value,
+        q2: document.querySelector('input[name="quiz2"]:checked').value,
+        q3: document.querySelector('input[name="quiz3"]:checked').value
+      };
+      formData.append('quizAnswers', JSON.stringify(quizAnswers));
+
+      const preferredMethod = methodSelect.value;
+      formData.append('preferredMethod', preferredMethod);
+      if (preferredMethod === 'paypal') {
+        formData.append('paypalEmail', document.getElementById('paypalEmail').value);
+      } else if (preferredMethod === 'mpesa') {
+        formData.append('mpesaPhone', document.getElementById('mpesaPhone').value);
+      } else if (preferredMethod === 'bank') {
+        formData.append('bankName', document.getElementById('bankName').value);
+        formData.append('accountName', document.getElementById('accountName').value);
+        formData.append('accountNumber', document.getElementById('accountNumber').value);
+      }
+    }
+
+    try {
+      const response = await fetch(`${window.API_BASE}/auth/register`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        // Handle returnTo redirect
+        const returnTo = getReturnTo();
+        if (returnTo) {
+          window.location.href = returnTo;
+        } else if (data.user.role === 'student') {
+          window.location.href = 'student-dashboard.html';
         } else {
-          alert(data.error || 'Registration failed');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = 'Sign Up';
+          alert('Your tutor application has been submitted. You will be notified once approved.');
+          window.location.href = 'login.html';
         }
-      } catch (err) {
-        alert('Network error: ' + err.message);
+      } else {
+        document.getElementById('formError').innerText = data.error || 'Registration failed.';
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Sign Up';
       }
-    });
-  </script>
+    } catch (err) {
+      document.getElementById('formError').innerText = 'Network error: ' + err.message;
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Sign Up';
+    }
+  });
+
+  // Initialise payment fields if tutor selected by default (though default is student)
+  if (roleSelect.value === 'tutor') togglePaymentFields();
+</script>
 </body>
 </html>

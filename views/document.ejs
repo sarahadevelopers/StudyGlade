@@ -2,79 +2,376 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= document.title %> | StudyGlade</title>
   <meta name="description" content="<%= document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject %>">
   <meta property="og:title" content="<%= document.title %>">
   <meta property="og:description" content="<%= document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject %>">
   <meta property="og:image" content="<%= document.previewImageUrl %>">
   <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://studyglade.onrender.com/document/<%= document.slug %>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-    .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .preview-img { max-width: 100%; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .btn { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 40px; text-decoration: none; font-weight: bold; }
-    .btn:hover { background: #2563eb; }
-    .price { font-size: 24px; font-weight: bold; color: #10b981; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    /* Layout grid */
+    .document-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 2rem;
+    }
+    @media (max-width: 900px) {
+      .document-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+    /* Cards */
+    .card {
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.02);
+      overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+    .card-content {
+      padding: 2rem;
+    }
+    .sidebar-card {
+      position: sticky;
+      top: 2rem;
+    }
+    /* Typography */
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+      color: #0a0c10;
+    }
+    .badge-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .badge {
+      background: #eef2ff;
+      color: #1e40af;
+      padding: 0.25rem 0.75rem;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .description {
+      color: #334155;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+    /* Preview image */
+    .preview-img {
+      width: 100%;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      margin: 1.5rem 0;
+      border: 1px solid #e9edf2;
+    }
+    /* Preview text with blur */
+    .preview-section {
+      margin-top: 1.5rem;
+      border-top: 1px solid #eef2f6;
+      padding-top: 1.5rem;
+    }
+    .preview-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #5b6e8c;
+      margin-bottom: 1rem;
+    }
+    .preview-content {
+      background: #fafcff;
+      border-radius: 24px;
+      padding: 1.5rem;
+      border: 1px solid #eef2f8;
+      line-height: 1.6;
+      color: #1e293b;
+      font-size: 0.95rem;
+      position: relative;
+    }
+    .teaser {
+      display: inline;
+    }
+    .blurred-text {
+      filter: blur(5px);
+      user-select: none;
+      transition: filter 0.2s;
+    }
+    .preview-overlay {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f1f5f9, #e9eef3);
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+    .preview-overlay p {
+      font-size: 0.9rem;
+      color: #1e293b;
+      margin-bottom: 0.75rem;
+    }
+    .btn-small {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 0.5rem 1rem;
+      border-radius: 40px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.8rem;
+    }
+    .btn-small:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    /* Sidebar styling */
+    .price-box {
+      background: #f8fafc;
+      border-radius: 24px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .price-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #5b6e8c;
+    }
+    .price-value {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .price-value span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #475569;
+    }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 1rem;
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: 60px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      text-decoration: none;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+    }
+    .btn-outline {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+      padding: 0.8rem;
+      border-radius: 60px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .trust-badges {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.7rem;
+      color: #5b6e8c;
+    }
+    .trust-badges span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .message {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    hr {
+      margin: 1rem 0;
+      border: 0;
+      height: 1px;
+      background: linear-gradient(to right, #e2e8f0, transparent);
+    }
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.75rem;
+      color: #6c7a91;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1><%= document.title %></h1>
-    <p><strong>Subject:</strong> <%= document.subject %> | <strong>Level:</strong> <%= document.level %></p>
-    <p><%= document.description || '' %></p>
+<div class="container">
+  <div class="document-grid">
+    <!-- LEFT COLUMN: Preview content -->
+    <div class="card">
+      <div class="card-content">
+        <h1><%= document.title %></h1>
+        <div class="badge-group">
+          <span class="badge"><%= document.subject %></span>
+          <span class="badge"><%= document.level %></span>
+          <span class="badge"><%= document.type %></span>
+        </div>
+        <p class="description"><%= document.description || 'No description provided.' %></p>
 
-    <% if (document.previewImageUrl) { %>
-      <img class="preview-img" src="<%= document.previewImageUrl %>" alt="First page preview">
-    <% } %>
+        <% if (document.previewImageUrl) { %>
+          <img class="preview-img" src="<%= document.previewImageUrl %>" alt="Document preview image">
+        <% } %>
 
-    <div class="preview-text">
-      <h3>Preview (first 500 characters):</h3>
-      <p><%= document.previewText || 'Preview not available.' %></p>
+        <div class="preview-section">
+          <div class="preview-label">📄 Preview (what's inside)</div>
+          <div class="preview-content">
+            <% 
+              const fullText = document.previewText || 'Preview not available.';
+              const teaserLength = 180;
+              const teaser = fullText.substring(0, teaserLength);
+              const remainder = fullText.substring(teaserLength);
+              const showBlur = remainder.length > 0;
+            %>
+            <div class="teaser">
+              <%= teaser %>
+              <% if (showBlur) { %>
+                <span class="blurred-text"><%= remainder %></span>
+              <% } %>
+            </div>
+            <% if (showBlur) { %>
+              <div class="preview-overlay">
+                <% if (!user) { %>
+                  <p>✨ Unlock the full document to read all <strong><%= fullText.length %></strong> characters, plus the complete file.</p>
+                  <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-small">Sign up to unlock</a>
+                  <a href="/login?returnTo=/document/<%= document.slug %>" style="display:inline-block; margin-left:0.5rem; font-size:0.8rem;">Log in</a>
+                <% } else { %>
+                  <p>🔒 The full preview is hidden. Unlock to access the complete document.</p>
+                  <button id="unlockFromPreviewBtn" class="btn-small">Unlock full document</button>
+                <% } %>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="price">
-      Price: $<%= document.price.toFixed(2) %>
-    </div>
-
-    <div style="margin-top: 30px;">
-      <% if (!user) { %>
-        <a href="/register?returnTo=/document/<%= document.slug %>" class="btn">Sign up to unlock full document</a>
-        <a href="/login?returnTo=/document/<%= document.slug %>" style="margin-left: 12px;">Already have an account? Log in</a>
-      <% } else { %>
-        <button id="unlockBtn" class="btn">Unlock for $<%= document.price.toFixed(2) %></button>
-        <div id="message" style="margin-top: 16px;"></div>
-      <% } %>
+    <!-- RIGHT COLUMN: Purchase / CTA -->
+    <div class="sidebar-card">
+      <div class="card">
+        <div class="card-content">
+          <div class="price-box">
+            <div class="price-label">One‑time purchase</div>
+            <div class="price-value">$<%= document.price.toFixed(2) %><span> USD</span></div>
+          </div>
+          
+          <% if (!user) { %>
+            <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-primary">🔓 Unlock & Download</a>
+            <a href="/login?returnTo=/document/<%= document.slug %>" class="btn-outline">Already have an account? Log in</a>
+          <% } else { %>
+            <button id="unlockBtn" class="btn-primary">🔓 Unlock for $<%= document.price.toFixed(2) %></button>
+            <div id="message" class="message"></div>
+          <% } %>
+          
+          <div class="trust-badges">
+            <span>✅ Instant access</span>
+            <span>💳 Secure payment</span>
+            <span>🔄 7‑day refund policy</span>
+          </div>
+          <hr>
+          <div style="font-size:0.75rem; color:#5b6e8c; text-align:center;">
+            By unlocking, you agree to our <a href="/terms">Terms of Use</a>.<br>
+            Tutor earns 65% of each sale.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+  <footer>
+    © StudyGlade — Academic knowledge shared securely
+  </footer>
+</div>
 
-  <% if (user) { %>
-  <script>
-    document.getElementById('unlockBtn').addEventListener('click', async () => {
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerText = 'Processing...';
-      try {
-        const res = await fetch(`/api/documents/<%= document._id %>/unlock`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('message').innerHTML = `<span style="color:green;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank">Download now</a></span>`;
-        } else {
-          document.getElementById('message').innerHTML = `<span style="color:red;">${data.error || 'Unlock failed. Insufficient balance?'}</span>`;
-          btn.disabled = false;
-          btn.innerText = 'Unlock';
-        }
-      } catch (err) {
-        document.getElementById('message').innerHTML = '<span style="color:red;">Network error. Try again.</span>';
-        btn.disabled = false;
-        btn.innerText = 'Unlock';
+<% if (user) { %>
+<script>
+  const unlockBtn = document.getElementById('unlockBtn');
+  const messageBox = document.getElementById('message');
+
+  async function handleUnlock() {
+    if (!unlockBtn) return;
+    unlockBtn.disabled = true;
+    unlockBtn.innerText = 'Processing...';
+    try {
+      const res = await fetch(`/api/documents/<%= document._id %>/unlock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
+        unlockBtn.style.display = 'none';
+      } else {
+        messageBox.innerHTML = `<span style="color:#dc2626;">${data.error || 'Insufficient balance? Please add funds to your wallet.'}</span>`;
+        unlockBtn.disabled = false;
+        unlockBtn.innerText = 'Unlock';
       }
-    });
-  </script>
-  <% } %>
+    } catch (err) {
+      messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
+      unlockBtn.disabled = false;
+      unlockBtn.innerText = 'Unlock';
+    }
+  }
+
+  unlockBtn.addEventListener('click', handleUnlock);
+  
+  // Also connect the preview inline button (if exists)
+  const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
+  if (previewUnlockBtn) {
+    previewUnlockBtn.addEventListener('click', handleUnlock);
+  }
+</script>
+<% } %>
 </body>
 </html>
