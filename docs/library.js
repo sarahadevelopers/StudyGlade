@@ -51,20 +51,18 @@ async function loadDocuments(reset = true) {
     const url = `/api/documents?${params.toString()}`;
     const data = await apiFetch(url);
     
-    // Backend returns { documents, pagination }
     const docs = data.documents || [];
     const pagination = data.pagination;
     
     hasMore = currentPage < pagination.pages;
     
-    // Render documents
     const grid = document.getElementById('documentsGrid');
     docs.forEach(doc => {
       const card = document.createElement('div');
       card.className = 'document-card';
       
-      // ✅ Use slug for the preview link (SEO-friendly)
       const previewUrl = doc.slug ? `/document/${doc.slug}` : `/api/documents/preview/${doc._id}`;
+      const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
       
       card.innerHTML = `
         <div>
@@ -76,9 +74,17 @@ async function loadDocuments(reset = true) {
           <div class="document-price">${formatMoney(doc.price)}</div>
           <div class="document-downloads">📥 ${doc.downloads || 0} purchases</div>
         </div>
-        <div>
-          <a href="${previewUrl}" class="btn-sm btn-outline" target="_blank">Preview</a>
-          ${user ? `<button class="btn-sm btn-primary btn-unlock" data-id="${doc._id}" data-price="${doc.price}">Unlock</button>` : ''}
+        <div style="margin-top: 0.75rem;">
+          <!-- Smart Preview Section -->
+          <div class="smart-preview-group" style="margin-bottom: 0.75rem;">
+            <input type="text" class="smart-search" data-doc-id="${doc._id}" placeholder="Ask a question about this document..." style="width: 100%; padding: 0.4rem 0.6rem; border-radius: 40px; border: 1px solid #ccc; font-size: 0.8rem;">
+            <button class="btn-sm btn-smart-preview" data-doc-id="${doc._id}" style="margin-top: 0.3rem; width: 100%; background: #6c757d;">🔍 Smart Preview</button>
+            <div class="smart-preview-result" data-doc-id="${doc._id}" style="margin-top: 0.5rem; font-size: 0.8rem; background: #f8f9fa; padding: 0.5rem; border-radius: 12px; display: none;"></div>
+          </div>
+          <div>
+            <a href="${previewUrl}" class="btn-sm btn-outline" target="_blank">Preview</a>
+            ${user ? `<button class="btn-sm btn-primary btn-unlock" data-id="${doc._id}" data-price="${doc.price}">Unlock</button>` : ''}
+          </div>
         </div>
       `;
       grid.appendChild(card);
@@ -88,6 +94,12 @@ async function loadDocuments(reset = true) {
     document.querySelectorAll('.btn-unlock').forEach(btn => {
       btn.removeEventListener('click', unlockHandler);
       btn.addEventListener('click', unlockHandler);
+    });
+    
+    // Attach smart preview event listeners
+    document.querySelectorAll('.btn-smart-preview').forEach(btn => {
+      btn.removeEventListener('click', smartPreviewHandler);
+      btn.addEventListener('click', smartPreviewHandler);
     });
     
     // Add load more button if more pages
@@ -111,6 +123,44 @@ async function loadDocuments(reset = true) {
   }
 }
 
+// ----- Smart Preview Handler -----
+async function smartPreviewHandler(e) {
+  const btn = e.currentTarget;
+  const docId = btn.getAttribute('data-doc-id');
+  const searchInput = document.querySelector(`.smart-search[data-doc-id="${docId}"]`);
+  const query = searchInput?.value.trim();
+  const resultDiv = document.querySelector(`.smart-preview-result[data-doc-id="${docId}"]`);
+  
+  if (!query) {
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<span style="color:#f59e0b;">Please enter a question first</span>';
+    return;
+  }
+  
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<span class="spinner"></span> Finding relevant section...';
+  btn.disabled = true;
+  
+  try {
+    const response = await fetch(`${window.API_BASE}/documents/smart-preview/${docId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ query })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      resultDiv.innerHTML = `<div style="background:#eef2ff; padding:0.5rem; border-radius:12px;">🔍 <strong>Preview:</strong><br>${escapeHtml(data.snippet)}</div>`;
+    } else {
+      resultDiv.innerHTML = `<span style="color:#dc2626;">${data.error || 'Could not generate preview'}</span>`;
+    }
+  } catch (err) {
+    resultDiv.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ----- Unlock document handler -----
 async function unlockHandler(e) {
   const btn = e.currentTarget;
@@ -123,15 +173,12 @@ async function unlockHandler(e) {
   try {
     const result = await apiFetch(`/api/documents/${docId}/unlock`, { method: 'POST' });
     showToast('Document unlocked! Download will start shortly.', 'success');
-    // Trigger download
     window.open(result.fileUrl, '_blank');
-    // Refresh wallet balance (if exists)
     const user = JSON.parse(localStorage.getItem('user'));
     if (user) {
       const freshUser = await apiFetch('/auth/me');
       localStorage.setItem('user', JSON.stringify(freshUser));
     }
-    // Optionally reload the library to update download count
     location.reload();
   } catch (err) {
     showToast(err.message, 'error');
@@ -161,5 +208,4 @@ document.getElementById('searchInput').addEventListener('keypress', (e) => {
 });
 
 // Initial load
-let user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 loadDocuments();

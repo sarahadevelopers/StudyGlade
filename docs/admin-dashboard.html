@@ -301,88 +301,89 @@
     </div>
 
     <!-- Main Content -->
-   <div class="main-content">
-  <!-- Overview Section -->
-  <div id="overview" class="section active-section">
-    <h2>Platform Overview</h2>
-    <div class="stats-grid" id="statsGrid"></div>
-    <div class="charts-row">
-      <div class="chart-box"><canvas id="revenueChart" width="400" height="200"></canvas></div>
-      <div class="chart-box"><canvas id="topTutorsChart" width="400" height="200"></canvas></div>
+    <div class="main-content">
+      <!-- Overview Section -->
+      <div id="overview" class="section active-section">
+        <h2>Platform Overview</h2>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="charts-row">
+          <div class="chart-box"><canvas id="revenueChart" width="400" height="200"></canvas></div>
+          <div class="chart-box"><canvas id="topTutorsChart" width="400" height="200"></canvas></div>
+        </div>
+        <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="btn-sm btn-primary" onclick="downloadReport('tutor-performance')">📊 Tutor Performance PDF</button>
+          <button class="btn-sm btn-primary" onclick="downloadReport('revenue')">💰 Revenue Report PDF</button>
+          <button class="btn-sm btn-primary" onclick="downloadReport('top-documents')">📚 Top Documents PDF</button>
+        </div>
+        <div class="card" style="margin-top: 1rem;">
+          <h3 style="margin-bottom: 1rem;">Recent Activity</h3>
+          <div id="recentActivity">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Tutor Applications Section -->
+      <div id="tutor-apps" class="section">
+        <h2>Tutor Applications (Pending Review)</h2>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('tutorAppsTable', 'tutor_applications.csv')">📎 Export CSV</button>
+        <div id="tutorApplicationsList"></div>
+      </div>
+
+      <!-- Users Management Section -->
+      <div id="users" class="section">
+        <h2>All Users</h2>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('usersTable', 'users.csv')">📎 Export CSV</button>
+        <div id="usersList"></div>
+      </div>
+
+      <!-- All Questions Section -->
+      <div id="questions" class="section">
+        <h2>All Questions</h2>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('questionsTable', 'questions.csv')">📎 Export CSV</button>
+        <div id="questionsList"></div>
+      </div>
+
+      <!-- Document Approval Section -->
+      <div id="documents" class="section">
+        <h2>Documents Pending Approval</h2>
+        <div id="documentsList"></div>
+      </div>
+
+      <!-- Withdrawal Requests Section -->
+      <div id="withdrawals" class="section">
+        <h2>Withdrawal Requests</h2>
+        <div id="withdrawalsList"></div>
+      </div>
+
+      <!-- Breach History Section -->
+      <div id="breaches" class="section">
+        <h2>Breach History</h2>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('breachesTable', 'breaches.csv')">📎 Export CSV</button>
+        <div id="breachesList">Loading...</div>
+      </div>
+
+      <!-- Announcements Section -->
+      <div id="announcements" class="section">
+        <h2>System Announcements</h2>
+        <button class="btn-sm btn-primary" onclick="showCreateAnnouncementModal()">➕ Create Announcement</button>
+        <div id="announcementsList">Loading...</div>
+      </div>
+
+      <!-- Financial Reports Section (NEW) -->
+      <div id="financial" class="section">
+        <h2>Financial Reports</h2>
+        <div style="margin-bottom: 1rem;">
+          <label>From: <input type="date" id="reportFrom"></label>
+          <label>To: <input type="date" id="reportTo"></label>
+          <button class="btn-sm btn-primary" onclick="loadFinancialReport()">Apply Filter</button>
+          <button class="btn-sm btn-secondary" onclick="exportTableToCSV('studentsTable', 'students.csv')">Export Students CSV</button>
+          <button class="btn-sm btn-secondary" onclick="downloadFinancialPDF()">Download PDF</button>
+        </div>
+        <div id="financialContent">Loading...</div>
+      </div>
     </div>
-    <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-      <button class="btn-sm btn-primary" onclick="downloadReport('tutor-performance')">📊 Tutor Performance PDF</button>
-      <button class="btn-sm btn-primary" onclick="downloadReport('revenue')">💰 Revenue Report PDF</button>
-      <button class="btn-sm btn-primary" onclick="downloadReport('top-documents')">📚 Top Documents PDF</button>
-    </div>
-    <div class="card" style="margin-top: 1rem;">
-      <h3 style="margin-bottom: 1rem;">Recent Activity</h3>
-      <div id="recentActivity">Loading...</div>
-    </div>
   </div>
 
-  <!-- Tutor Applications Section -->
-  <div id="tutor-apps" class="section">
-    <h2>Tutor Applications (Pending Review)</h2>
-    <button class="btn-sm btn-secondary" onclick="exportTableToCSV('tutorAppsTable', 'tutor_applications.csv')">📎 Export CSV</button>
-    <div id="tutorApplicationsList"></div>
-  </div>
-
-  <!-- Users Management Section -->
-  <div id="users" class="section">
-    <h2>All Users</h2>
-    <button class="btn-sm btn-secondary" onclick="exportTableToCSV('usersTable', 'users.csv')">📎 Export CSV</button>
-    <div id="usersList"></div>
-  </div>
-
-  <!-- All Questions Section -->
-  <div id="questions" class="section">
-    <h2>All Questions</h2>
-    <button class="btn-sm btn-secondary" onclick="exportTableToCSV('questionsTable', 'questions.csv')">📎 Export CSV</button>
-    <div id="questionsList"></div>
-  </div>
-
-  <!-- Document Approval Section -->
-  <div id="documents" class="section">
-    <h2>Documents Pending Approval</h2>
-    <div id="documentsList"></div>
-  </div>
-
-  <!-- Withdrawal Requests Section -->
-  <div id="withdrawals" class="section">
-    <h2>Withdrawal Requests</h2>
-    <div id="withdrawalsList"></div>
-  </div>
-
-  <!-- Breach History Section -->
-  <div id="breaches" class="section">
-    <h2>Breach History</h2>
-    <button class="btn-sm btn-secondary" onclick="exportTableToCSV('breachesTable', 'breaches.csv')">📎 Export CSV</button>
-    <div id="breachesList">Loading...</div>
-  </div>
-
-  <!-- Announcements Section -->
-  <div id="announcements" class="section">
-    <h2>System Announcements</h2>
-    <button class="btn-sm btn-primary" onclick="showCreateAnnouncementModal()">➕ Create Announcement</button>
-    <div id="announcementsList">Loading...</div>
-  </div>
-
-  <!-- Financial Reports Section (NEW) -->
-  <div id="financial" class="section">
-    <h2>Financial Reports</h2>
-    <div style="margin-bottom: 1rem;">
-      <label>From: <input type="date" id="reportFrom"></label>
-      <label>To: <input type="date" id="reportTo"></label>
-      <button class="btn-sm btn-primary" onclick="loadFinancialReport()">Apply Filter</button>
-      <button class="btn-sm btn-secondary" onclick="exportTableToCSV('studentsTable', 'students.csv')">Export Students CSV</button>
-      <button class="btn-sm btn-secondary" onclick="downloadFinancialPDF()">Download PDF</button>
-    </div>
-    <div id="financialContent">Loading...</div>
-  </div>
-</div>
-  </div>
-
+  <!-- Modals (existing) -->
   <!-- Tutor Application Review Modal -->
   <div id="tutorReviewModal" class="modal">
     <div class="modal-content">
@@ -421,7 +422,7 @@
     </div>
   </div>
 
-  <!-- Edit Document Modal -->
+  <!-- Edit Document Modal (title, price, description) -->
   <div id="editDocumentModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
@@ -434,6 +435,25 @@
         <div class="form-group"><label>Price ($)</label><input type="number" id="editDocPrice" step="0.5" required></div>
         <div class="form-group"><label>Description</label><textarea id="editDocDescription" rows="3"></textarea></div>
         <button type="submit" class="btn-sm btn-primary">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- NEW MODAL: Edit Document Preview Text (SEO snippet) -->
+  <div id="editPreviewModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Edit Document Preview (SEO & Smart Search)</h3>
+        <span class="close-modal" onclick="closePreviewModal()">&times;</span>
+      </div>
+      <form id="editPreviewForm">
+        <input type="hidden" id="editPreviewDocId">
+        <div class="form-group">
+          <label>Preview Text (First 500 characters)</label>
+          <textarea id="editPreviewText" rows="8" maxlength="500" style="width:100%;" placeholder="Write a helpful snippet that answers a student's question..."></textarea>
+          <small>Characters remaining: <span id="previewCharCount">500</span></small>
+        </div>
+        <button type="submit" class="btn-sm btn-primary">Save Preview</button>
       </form>
     </div>
   </div>

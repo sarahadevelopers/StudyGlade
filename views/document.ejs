@@ -11,7 +11,7 @@
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://studyglade.onrender.com/document/<%= document.slug %>">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -28,7 +28,6 @@
       max-width: 1280px;
       margin: 0 auto;
     }
-    /* Layout grid */
     .document-grid {
       display: grid;
       grid-template-columns: 1fr 380px;
@@ -40,7 +39,6 @@
         gap: 1.5rem;
       }
     }
-    /* Cards */
     .card {
       background: #ffffff;
       border-radius: 32px;
@@ -55,7 +53,6 @@
       position: sticky;
       top: 2rem;
     }
-    /* Typography */
     h1 {
       font-size: 2rem;
       font-weight: 700;
@@ -84,7 +81,6 @@
       margin-bottom: 1.5rem;
       font-size: 1rem;
     }
-    /* Preview image */
     .preview-img {
       width: 100%;
       border-radius: 20px;
@@ -92,7 +88,6 @@
       margin: 1.5rem 0;
       border: 1px solid #e9edf2;
     }
-    /* Preview text with blur */
     .preview-section {
       margin-top: 1.5rem;
       border-top: 1px solid #eef2f6;
@@ -146,12 +141,36 @@
       cursor: pointer;
       transition: all 0.2s;
       font-size: 0.8rem;
+      text-decoration: none;
+      display: inline-block;
     }
     .btn-small:hover {
       background: #f8fafc;
       border-color: #94a3b8;
     }
-    /* Sidebar styling */
+    .smart-input-group {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .smart-input {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .smart-result {
+      margin-top: 0.75rem;
+      background: #f1f5f9;
+      border-radius: 20px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      display: none;
+      border-left: 3px solid #3b82f6;
+    }
     .price-box {
       background: #f8fafc;
       border-radius: 24px;
@@ -245,6 +264,18 @@
       font-size: 0.75rem;
       color: #6c7a91;
     }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.3rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -295,6 +326,14 @@
             <% } %>
           </div>
         </div>
+
+        <!-- NEW: Smart Preview section (dynamic question answering) -->
+        <div class="smart-input-group">
+          <label style="font-size:0.8rem; font-weight:500;">🔎 Ask a question about this document</label>
+          <input type="text" id="smartQuery" class="smart-input" placeholder="e.g., What is the formula for quadratic equations?">
+          <button id="smartPreviewBtn" class="btn-small" style="background:#eef2ff; border-color:#cbd5e1;">Get answer from document</button>
+          <div id="smartPreviewResult" class="smart-result"></div>
+        </div>
       </div>
     </div>
 
@@ -334,43 +373,122 @@
   </footer>
 </div>
 
+<script>
+  // Helper: escape HTML
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+  }
+
+  // ----- Smart Preview (dynamic question) with debounce & enter key -----
+  document.addEventListener('DOMContentLoaded', function() {
+    const smartBtn = document.getElementById('smartPreviewBtn');
+    const smartQuery = document.getElementById('smartQuery');
+    const smartResult = document.getElementById('smartPreviewResult');
+    let debounceTimer;
+
+    if (smartQuery) {
+      // Clear result when user starts typing
+      smartQuery.addEventListener('input', function() {
+        if (smartResult && smartResult.style.display === 'block') {
+          smartResult.style.display = 'none';
+          smartResult.innerHTML = '';
+        }
+      });
+
+      // Press Enter to trigger search
+      smartQuery.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (smartBtn) smartBtn.click();
+        }
+      });
+    }
+
+    if (smartBtn && smartQuery && smartResult) {
+      smartBtn.addEventListener('click', async function() {
+        const query = smartQuery.value.trim();
+        if (!query) {
+          smartResult.style.display = 'block';
+          smartResult.innerHTML = '<span style="color:#f59e0b;">Please enter a question first.</span>';
+          return;
+        }
+
+        if (debounceTimer) clearTimeout(debounceTimer);
+
+        debounceTimer = setTimeout(async () => {
+          smartResult.style.display = 'block';
+          smartResult.innerHTML = '<span class="spinner"></span> Searching document...';
+          smartBtn.disabled = true;
+
+          try {
+            const response = await fetch(`/api/documents/smart-preview/<%= document._id %>`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: query })
+            });
+            const data = await response.json();
+
+            if (response.ok && data.snippet) {
+              if (data.snippet.includes('No readable preview')) {
+                smartResult.innerHTML = `<span style="color:#f59e0b;">${escapeHtml(data.snippet)}</span>`;
+              } else {
+                smartResult.innerHTML = `<strong>🔍 Relevant section:</strong><br>${escapeHtml(data.snippet)}`;
+              }
+            } else {
+              smartResult.innerHTML = `<span style="color:#dc2626;">${escapeHtml(data.error) || 'No matching content found. Try a different question.'}</span>`;
+            }
+          } catch (err) {
+            console.error('Smart preview error:', err);
+            smartResult.innerHTML = '<span style="color:#dc2626;">Network error. Please try again.</span>';
+          } finally {
+            smartBtn.disabled = false;
+          }
+        }, 300);
+      });
+    }
+  });
+</script>
+
 <% if (user) { %>
 <script>
-  const unlockBtn = document.getElementById('unlockBtn');
-  const messageBox = document.getElementById('message');
+  document.addEventListener('DOMContentLoaded', function() {
+    const unlockBtn = document.getElementById('unlockBtn');
+    const messageBox = document.getElementById('message');
+    const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
 
-  async function handleUnlock() {
-    if (!unlockBtn) return;
-    unlockBtn.disabled = true;
-    unlockBtn.innerText = 'Processing...';
-    try {
-      const res = await fetch(`/api/documents/<%= document._id %>/unlock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
-        unlockBtn.style.display = 'none';
-      } else {
-        messageBox.innerHTML = `<span style="color:#dc2626;">${data.error || 'Insufficient balance? Please add funds to your wallet.'}</span>`;
+    async function handleUnlock() {
+      if (!unlockBtn) return;
+      unlockBtn.disabled = true;
+      unlockBtn.innerText = 'Processing...';
+      
+      try {
+        const response = await fetch(`/api/documents/<%= document._id %>/unlock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
+          if (unlockBtn) unlockBtn.style.display = 'none';
+          if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
+        } else {
+          messageBox.innerHTML = `<span style="color:#dc2626;">${escapeHtml(data.error) || 'Insufficient balance? Please add funds to your wallet.'}</span>`;
+          unlockBtn.disabled = false;
+          unlockBtn.innerText = 'Unlock';
+        }
+      } catch (err) {
+        console.error('Unlock error:', err);
+        messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
         unlockBtn.disabled = false;
         unlockBtn.innerText = 'Unlock';
       }
-    } catch (err) {
-      messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
-      unlockBtn.disabled = false;
-      unlockBtn.innerText = 'Unlock';
     }
-  }
 
-  unlockBtn.addEventListener('click', handleUnlock);
-  
-  // Also connect the preview inline button (if exists)
-  const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
-  if (previewUnlockBtn) {
-    previewUnlockBtn.addEventListener('click', handleUnlock);
-  }
+    if (unlockBtn) unlockBtn.addEventListener('click', handleUnlock);
+    if (previewUnlockBtn) previewUnlockBtn.addEventListener('click', handleUnlock);
+  });
 </script>
 <% } %>
 </body>

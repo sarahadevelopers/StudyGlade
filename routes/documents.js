@@ -269,4 +269,91 @@ router.get('/preview/:id', async (req, res) => {
   }
 });
 
+// routes/documents.js - Add this new endpoint
+const { segment } = require('sentencex'); // For sentence splitting
+
+router.post('/smart-preview/:id', async (req, res) => {
+  try {
+    const { query } = req.body;
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    // ✅ Handle missing or very short previewText
+    if (!doc.previewText || doc.previewText.length < 20) {
+      return res.json({
+        snippet: 'No readable preview available for this document.',
+        hasMatch: false
+      });
+    }
+
+    // 1. Find relevant section
+    const previewLower = doc.previewText.toLowerCase();
+    const queryLower = query.toLowerCase();
+    let matchIndex = previewLower.indexOf(queryLower);
+    if (matchIndex === -1) {
+      // Fallback: find any keyword match
+      const keywords = queryLower.split(/\s+/);
+      for (const word of keywords) {
+        if (word.length > 3 && previewLower.includes(word)) {
+          matchIndex = previewLower.indexOf(word);
+          break;
+        }
+      }
+    }
+
+    let contextualSnippet = "";
+    if (matchIndex !== -1) {
+      // 2. Extract full sentences containing the match
+      const sentences = segment(doc.previewText);
+      for (const sentence of sentences) {
+        if (sentence.toLowerCase().includes(queryLower)) {
+          contextualSnippet += sentence + " ";
+        }
+      }
+      // Fallback to surrounding text if no full sentence match
+      if (!contextualSnippet) {
+        const start = Math.max(0, matchIndex - 100);
+        const end = Math.min(doc.previewText.length, matchIndex + 200);
+        contextualSnippet = "..." + doc.previewText.substring(start, end) + "...";
+      }
+    } else {
+      // 3. Provide default preview if no matches
+      contextualSnippet = doc.previewText.substring(0, 300);
+    }
+
+    // Trim and clean up the snippet
+    contextualSnippet = contextualSnippet.trim();
+    if (contextualSnippet.length > 500) {
+      contextualSnippet = contextualSnippet.substring(0, 500) + '...';
+    }
+
+    res.json({
+      snippet: contextualSnippet,
+      hasMatch: matchIndex !== -1
+    });
+  } catch (err) {
+    console.error('Smart preview error:', err);
+    res.status(500).json({ error: 'Failed to generate preview' });
+  }
+});
+// ---------- 4. Admin: Update document previewText ----------
+router.put('/:id/preview', auth, roleCheck('admin'), async (req, res) => {
+  try {
+    const { previewText } = req.body;
+    if (typeof previewText !== 'string') {
+      return res.status(400).json({ error: 'previewText must be a string' });
+    }
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { previewText: previewText.substring(0, 500) }, // limit to 500 chars
+      { new: true, runValidators: false }
+    );
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    res.json({ message: 'Preview text updated', previewText: doc.previewText });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

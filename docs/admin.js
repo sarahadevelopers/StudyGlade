@@ -8,6 +8,7 @@ function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
+
 // ----- Notification last viewed helpers -----
 function getLastNotificationView() {
   const last = localStorage.getItem('lastNotificationView');
@@ -127,7 +128,7 @@ async function loadOverview() {
   }
 }
 
-// ----- Tutor Applications Section (unchanged) -----
+// ----- Tutor Applications Section -----
 async function loadTutorApplications() {
   try {
     const users = await apiFetch('/admin/users');
@@ -213,7 +214,7 @@ function closeTutorModal() {
   currentReviewUserId = null;
 }
 
-// ----- Users Management (with Set Level button & View Dashboard) -----
+// ----- Users Management -----
 async function loadUsers() {
   try {
     const users = await apiFetch('/admin/users');
@@ -231,13 +232,13 @@ async function loadUsers() {
               <td>${u.role}</td>
               <td>${u.isApproved ? '✅' : '❌'}</td>
               <td>${u.isSuspended ? '🚫' : '✅'}</td>
-             <td>
-  <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
-  <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
-    ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
-  </button>
-  ${u.role === 'tutor' ? `<button class="btn-sm btn-secondary" onclick="setTutorLevel('${u._id}', '${u.tutorProfile?.level || 'Entry-Level'}')">Set Level</button>` : ''}
-</td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="showUserDashboard('${u._id}')">View Dashboard</button>
+                <button class="btn-sm ${u.isSuspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleSuspend('${u._id}', ${!u.isSuspended})">
+                  ${u.isSuspended ? 'Unsuspend' : 'Suspend'}
+                </button>
+                ${u.role === 'tutor' ? `<button class="btn-sm btn-secondary" onclick="setTutorLevel('${u._id}', '${u.tutorProfile?.level || 'Entry-Level'}')">Set Level</button>` : ''}
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -271,7 +272,7 @@ async function setTutorLevel(userId, currentLevel) {
 }
 window.setTutorLevel = setTutorLevel;
 
-// ----- All Questions Section (with View Full button) -----
+// ----- All Questions Section -----
 async function loadAllQuestions() {
   try {
     const questions = await apiFetch('/admin/questions');
@@ -303,29 +304,32 @@ async function loadAllQuestions() {
   } catch (err) { console.error(err); }
 }
 
-// ----- Document Approval (unchanged) -----
+// ----- Document Approval (Updated: shows ALL documents with Edit Preview) -----
 async function loadDocuments() {
   try {
-    const docs = await apiFetch('/admin/documents');
-    const unapproved = docs.filter(d => !d.isApproved);
+    const docs = await apiFetch('/admin/documents'); // fetches all documents (approved + pending)
     const container = document.getElementById('documentsList');
-    if (!unapproved.length) {
-      container.innerHTML = '<div class="card">No pending documents.</div>';
+    if (!docs.length) {
+      container.innerHTML = '<div class="card">No documents found.</div>';
       return;
     }
     container.innerHTML = `
-      <table class="data-table">
-        <thead><tr><th>Title</th><th>Uploader</th><th>Price</th><th>Actions</th></tr></thead>
+      <table class="data-table" id="allDocumentsTable">
+        <thead>
+          <tr><th>Title</th><th>Uploader</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+        </thead>
         <tbody>
-          ${unapproved.map(d => `
+          ${docs.map(d => `
             <tr>
-              <td>${escapeHtml(d.title)}<table>
+              <td>${escapeHtml(d.title)}</td>
               <td>${escapeHtml(d.uploaderId?.fullName || 'Unknown')}</td>
               <td>${formatMoney(d.price)}</td>
+              <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
               <td>
                 <button class="btn-sm btn-primary" onclick="editDocument('${d._id}', '${escapeHtml(d.title)}', ${d.price}, '${escapeHtml(d.description)}')">Edit</button>
+                <button class="btn-sm btn-secondary" onclick="showPreviewModal('${d._id}', '${escapeHtml(d.previewText || '').replace(/'/g, "\\'")}')">Edit Preview</button>
+                ${!d.isApproved ? `<button class="btn-sm btn-success" onclick="approveDoc('${d._id}')">Approve</button>` : ''}
                 <button class="btn-sm btn-danger" onclick="deleteDocument('${d._id}')">Delete</button>
-                <button class="btn-sm btn-secondary" onclick="approveDoc('${d._id}')">Approve</button>
               </td>
             </tr>
           `).join('')}
@@ -335,6 +339,7 @@ async function loadDocuments() {
   } catch (err) { console.error(err); }
 }
 
+// ----- Document edit modals -----
 async function approveDoc(docId) {
   try {
     await apiFetch(`/admin/documents/${docId}/approve`, { method: 'PUT' });
@@ -376,7 +381,46 @@ async function deleteDocument(docId) {
   }
 }
 
-// ----- Withdrawal Requests (unchanged) -----
+// ----- NEW: Edit Preview Text Modal functions -----
+function showPreviewModal(docId, currentPreviewText) {
+  document.getElementById('editPreviewDocId').value = docId;
+  const textarea = document.getElementById('editPreviewText');
+  textarea.value = currentPreviewText || '';
+  // Update character counter
+  const charCount = textarea.value.length;
+  document.getElementById('previewCharCount').innerText = charCount;
+  document.getElementById('editPreviewModal').style.display = 'flex';
+}
+
+function closePreviewModal() {
+  document.getElementById('editPreviewModal').style.display = 'none';
+}
+
+async function savePreviewText() {
+  const docId = document.getElementById('editPreviewDocId').value;
+  const newPreviewText = document.getElementById('editPreviewText').value.trim();
+  if (!docId) return;
+  const saveBtn = document.querySelector('#editPreviewForm button[type="submit"]');
+  const originalText = saveBtn.innerText;
+  saveBtn.disabled = true;
+  saveBtn.innerText = 'Saving...';
+  try {
+    await apiFetch(`/api/documents/${docId}/preview`, {
+      method: 'PUT',
+      body: JSON.stringify({ previewText: newPreviewText })
+    });
+    alert('Preview text updated successfully!');
+    closePreviewModal();
+    loadDocuments(); // refresh the list
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.innerText = originalText;
+  }
+}
+
+// ----- Withdrawal Requests -----
 async function loadWithdrawals() {
   try {
     const withdrawals = await apiFetch('/admin/withdrawals');
@@ -399,7 +443,7 @@ async function loadWithdrawals() {
               <td>
                 <button class="btn-sm btn-primary" onclick="approveWithdrawal('${w._id}')">Approve</button>
                 <button class="btn-sm btn-danger" onclick="rejectWithdrawal('${w._id}')">Reject</button>
-              </td>
+               </td>
             </tr>
           `).join('')}
         </tbody>
@@ -425,7 +469,7 @@ async function rejectWithdrawal(withdrawalId) {
   } catch (err) { alert(err.message); }
 }
 
-// ----- Breach Management (unchanged) -----
+// ----- Breach Management -----
 async function loadBreaches() {
   try {
     const breaches = await apiFetch('/admin/breaches');
@@ -461,7 +505,7 @@ async function resolveBreach(breachId) {
 }
 window.resolveBreach = resolveBreach;
 
-// ----- Announcements (unchanged) -----
+// ----- Announcements -----
 async function loadAnnouncements() {
   try {
     const announcements = await apiFetch('/admin/announcements');
@@ -482,7 +526,7 @@ async function loadAnnouncements() {
               <td>
                 <button class="btn-sm btn-primary" onclick="editAnnouncement('${a._id}', '${escapeHtml(a.title)}', '${escapeHtml(a.message)}', '${a.expiresAt || ''}', ${a.isActive})">Edit</button>
                 <button class="btn-sm btn-danger" onclick="deleteAnnouncement('${a._id}')">Delete</button>
-              </td>
+               </td>
             </tr>
           `).join('')}
         </tbody>
@@ -545,7 +589,7 @@ window.saveAnnouncement = saveAnnouncement;
 window.showCreateAnnouncementModal = showCreateAnnouncementModal;
 window.closeAnnouncementModal = closeAnnouncementModal;
 
-// ----- User Dashboard Modal (with Payment Details for tutors) -----
+// ----- User Dashboard Modal -----
 async function showUserDashboard(userId) {
   try {
     const data = await apiFetch(`/admin/users/${userId}/dashboard`);
@@ -644,7 +688,7 @@ function closeUserDashboardModal() {
   document.getElementById('userDashboardModal').style.display = 'none';
 }
 
-// ----- Full Question Modal (Admin view) -----
+// ----- Full Question Modal -----
 async function viewFullQuestion(questionId) {
   try {
     const data = await apiFetch(`/admin/questions/${questionId}/full`);
@@ -701,7 +745,7 @@ async function postAdminComment(questionId) {
       body: JSON.stringify({ questionId, text })
     });
     document.getElementById('adminCommentText').value = '';
-    viewFullQuestion(questionId); // refresh modal
+    viewFullQuestion(questionId);
     showToast('Comment posted as admin', 'success');
   } catch (err) {
     alert(err.message);
@@ -744,37 +788,15 @@ function handleNotificationClick(link) {
 function openNotificationModal() {
   document.getElementById('notificationModal').style.display = 'flex';
   loadNotifications().then(() => {
-    // Mark notifications as viewed after loading the modal
     updateLastNotificationView();
-    // Reload badge with new count (since we now have a new "since" time)
-    loadNotifications(); // this will fetch again, but will now exclude older notifications
+    loadNotifications();
   });
 }
 function closeNotificationModal() {
   document.getElementById('notificationModal').style.display = 'none';
 }
 
-// ----- Sidebar navigation -----
-function initSidebar() {
-  const menuItems = document.querySelectorAll('.sidebar-menu li');
-  const sections = document.querySelectorAll('.section');
-  menuItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const sectionId = item.getAttribute('data-section');
-      menuItems.forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      sections.forEach(s => s.classList.remove('active-section'));
-      document.getElementById(sectionId).classList.add('active-section');
-
-      // If the activated section is the financial report, load the data
-      if (sectionId === 'financial') {
-        loadFinancialReport();
-      }
-    });
-  });
-}
 // ----- Financial Report -----
-// ----- Financial Report (with pagination & color coding) -----
 let currentTransactionPage = 1;
 let totalTransactionPages = 1;
 
@@ -862,7 +884,7 @@ function renderFinancialReport(data) {
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    <td>
 
     <h3>Withdrawal History (approved)</h3>
     <table class="data-table" id="withdrawalsTable">
@@ -918,7 +940,6 @@ function renderFinancialReport(data) {
 }
 
 function exportFinancialCSV() {
-  // Export each table separately using existing exportTableToCSV
   exportTableToCSV('studentsTable', 'students.csv');
   exportTableToCSV('tutorsTable', 'tutors.csv');
   exportTableToCSV('withdrawalsTable', 'withdrawals.csv');
@@ -935,6 +956,7 @@ async function downloadFinancialPDF() {
   if (to) url += `to=${to}`;
   window.open(url, '_blank');
 }
+
 // ----- Expose global functions for inline buttons -----
 window.loadFinancialReport = loadFinancialReport;
 window.exportFinancialCSV = exportFinancialCSV;
@@ -962,16 +984,43 @@ window.viewFullQuestion = viewFullQuestion;
 window.postAdminComment = postAdminComment;
 window.closeFullQuestionModal = closeFullQuestionModal;
 window.setTutorLevel = setTutorLevel;
+window.showPreviewModal = showPreviewModal;
+window.closePreviewModal = closePreviewModal;
+window.savePreviewText = savePreviewText;
 
 // ----- Event listeners -----
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
 document.getElementById('announcementForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveAnnouncement(); });
+document.getElementById('editPreviewForm')?.addEventListener('submit', (e) => { e.preventDefault(); savePreviewText(); });
 document.querySelector('.notification-icon')?.addEventListener('click', openNotificationModal);
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
   localStorage.clear();
   window.location.href = 'login.html';
 });
+
+// ----- Character counter for preview modal -----
+document.getElementById('editPreviewText')?.addEventListener('input', function() {
+  const length = this.value.length;
+  document.getElementById('previewCharCount').innerText = length;
+});
+
+// ----- Sidebar navigation -----
+function initSidebar() {
+  const menuItems = document.querySelectorAll('.sidebar-menu li');
+  const sections = document.querySelectorAll('.section');
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const sectionId = item.getAttribute('data-section');
+      menuItems.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      sections.forEach(s => s.classList.remove('active-section'));
+      document.getElementById(sectionId).classList.add('active-section');
+
+      if (sectionId === 'financial') loadFinancialReport();
+    });
+  });
+}
 
 // ----- Start -----
 document.addEventListener('DOMContentLoaded', () => {
