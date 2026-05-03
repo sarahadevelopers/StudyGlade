@@ -1,212 +1,272 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Student Dashboard - StudyGlade</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    .transaction-history {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .bid-notification {
-      background-color: #fff3cd;
-      border-left: 4px solid #ffc107;
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-      border-radius: 0.5rem;
-    }
-    .btn-sm {
-      padding: 0.3rem 0.8rem;
-      font-size: 0.85rem;
-    }
-    /* Rating modal stars */
-    .star {
-      font-size: 2rem;
-      cursor: pointer;
-      color: gray;
-      display: inline-block;
-      transition: color 0.2s;
-    }
-    .star.selected {
-      color: gold;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard | StudyGlade</title>
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Premium Dashboard CSS -->
+  <link rel="stylesheet" href="student-dashboard.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <a href="index.html" class="logo">StudyGlade</a>
-      <div class="nav-links">
-        <span id="walletDisplay" class="wallet-badge"></span>
-        <button id="darkModeToggle" class="btn-outline">🌙 Dark</button>
-        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+
+<!-- ==================== DARK NAVY TOP BAR ==================== -->
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-center">
+      <a href="#" class="nav-link active">Dashboard</a>
+      <a href="#" class="nav-link">My Questions</a>
+      <a href="#" class="nav-link">Study Materials</a>
+      <a href="#" class="nav-link">Find Tutors</a>
+      <a href="#" class="nav-link">Messages</a>
+    </div>
+    <div class="nav-right">
+      <div class="notification-bell">
+        <i class="fas fa-bell"></i>
+        <span class="badge">3</span>
+      </div>
+      <div class="user-menu">
+        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Avatar" class="user-avatar">
+        <span class="user-name">Alexandra Chen</span>
+        <i class="fas fa-chevron-down"></i>
       </div>
     </div>
-  </nav>
-
-  <div class="container" style="padding: 2rem 0;">
-    <!-- Announcement Banner -->
-    <div id="announcementBanner" style="display: none; background: #2563eb; color: white; padding: 0.75rem; text-align: center; border-radius: 8px; margin-bottom: 1rem;"></div>
-
-    <h1>Student Dashboard</h1>
-
-    <!-- Wallet Card -->
-    <div class="card" style="margin-bottom: 2rem;">
-      <h3>My Wallet</h3>
-      <p id="walletBalance">$0</p>
-      <button id="addFundsBtn" onclick="addFunds(event)" class="btn">Add Funds</button>
-      <button onclick="showTransactionHistory()" class="btn btn-outline" style="margin-left: 1rem;">View Transaction History</button>
-    </div>
-
-    <!-- Bid Notification (hidden by default) -->
-    <div id="bidNotification" class="bid-notification" style="display: none;">
-      🔔 You have new bids on some of your questions. <a href="#" id="viewBidsLink">View pending questions</a>
-    </div>
-
-    <!-- Active Questions -->
-    <div class="card" style="overflow-x: auto;">
-      <h3>Active Questions</h3>
-      </table>
-        <thead>
-          <tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="activeQuestions"></tbody>
-      </table>
-    </div>
-
-    <!-- Completed Questions -->
-    <div class="card" style="overflow-x: auto;">
-      <h3>Completed Questions</h3>
-      <table>
-        <thead>
-          <tr><th>Title</th><th>Tutor</th><th>Status</th><th>Budget</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="completedQuestions"></tbody>
-      </td>
-    </div>
-
-    <a href="post-question.html" class="btn" style="margin-top: 1rem;">+ Post New Question</a>
   </div>
+</nav>
 
-  <!-- Transaction History Modal -->
-  <div id="transactionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="background:white; max-width:600px; margin:4rem auto; border-radius:1rem; padding:1.5rem;">
-      <h3>Transaction History</h3>
-      <div id="transactionList" class="transaction-history"></div>
-      <button id="loadMoreTransactions" class="btn-outline" style="margin-top:0.5rem;">Load More</button>
-      <button onclick="closeTransactionModal()" class="btn-outline" style="margin-top:0.5rem; margin-left:0.5rem;">Close</button>
-    </div>
-  </div>
-
-  <!-- Rating Modal -->
-  <div id="ratingModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="background:white; max-width:500px; margin:10% auto; border-radius:1rem; padding:1.5rem;">
-      <span style="float:right; cursor:pointer;" onclick="closeRatingModal()">&times;</span>
-      <h3>Rate Your Tutor: <span id="ratingModalTutorName"></span></h3>
-      <div style="text-align:center; margin:1rem 0;">
-        <span class="star" data-value="1">★</span>
-        <span class="star" data-value="2">★</span>
-        <span class="star" data-value="3">★</span>
-        <span class="star" data-value="4">★</span>
-        <span class="star" data-value="5">★</span>
+<main class="dashboard-main">
+  <div class="dashboard-container">
+    <!-- LEFT COLUMN (75%) -->
+    <div class="main-column">
+      <!-- Header -->
+      <div class="page-header">
+        <h1>Student Dashboard</h1>
+        <p>Track your progress, manage questions, and achieve your academic goals.</p>
       </div>
-      <textarea id="ratingFeedback" rows="3" placeholder="Write a review (optional)" style="width:100%;"></textarea>
-      <button onclick="submitRating()" class="btn" style="margin-top:0.5rem;">Submit Rating</button>
+
+      <!-- Statistics Cards Row -->
+      <div class="stats-row">
+        <!-- Wallet Balance Card -->
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+          <div class="stat-content">
+            <h3>Wallet Balance</h3>
+            <div class="stat-value" id="walletBalance">$0.00</div>
+            <div class="stat-links">
+              <a href="#" id="addFundsBtn">Add Funds</a> • 
+              <a href="#" onclick="showTransactionHistory(); return false;">View Transactions</a>
+            </div>
+          </div>
+        </div>
+        <!-- Active Questions Card -->
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-question-circle"></i></div>
+          <div class="stat-content">
+            <h3>Active Questions</h3>
+            <div class="stat-value" id="activeCount">0</div>
+            <a href="#" class="stat-link">View All Active</a>
+          </div>
+        </div>
+        <!-- Completed Questions Card -->
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-content">
+            <h3>Completed Questions</h3>
+            <div class="stat-value" id="completedCount">0</div>
+            <a href="#" class="stat-link">View Completed</a>
+          </div>
+        </div>
+        <!-- Success Rate Card (gradient) -->
+        <div class="stat-card gradient-card">
+          <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+          <div class="stat-content">
+            <h3>Success Rate</h3>
+            <div class="stat-value" id="successRate">0%</div>
+            <p class="motivational-text">Keep up the great work!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Questions Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="title-badge">
+            <h2>Active Questions</h2>
+            <span class="count-badge" id="activeBadge">0</span>
+          </div>
+          <a href="#" class="view-all">View All Active Questions →</a>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" id="activeQuestionsTable">
+            <thead>
+              <tr><th>Question</th><th>Subject</th><th>Tutor</th><th>Budget</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="activeQuestions"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Completed Questions Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Completed Questions</h2>
+          <a href="#" class="view-all">View All Completed →</a>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" id="completedQuestionsTable">
+            <thead>
+              <tr><th>Question</th><th>Subject</th><th>Tutor</th><th>Budget</th><th>Rating</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="completedQuestions"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR (25%) -->
+    <div class="sidebar-column">
+      <!-- Quick Actions Card -->
+      <div class="sidebar-card">
+        <h3>Quick Actions</h3>
+        <div class="action-list">
+          <a href="post-question.html" class="action-item">
+            <i class="fas fa-pen-alt"></i> <span>Post New Question</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+          <a href="document-library.html" class="action-item">
+            <i class="fas fa-book"></i> <span>Browse Study Materials</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+          <a href="#" class="action-item">
+            <i class="fas fa-chalkboard-user"></i> <span>Find a Tutor</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+          <a href="#" class="action-item">
+            <i class="fas fa-upload"></i> <span>Upload Study Material</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Need Help Card -->
+      <div class="sidebar-card need-help">
+        <h3><i class="fas fa-life-ring"></i> Need Help?</h3>
+        <p>Our support team is here to help you anytime.</p>
+        <a href="#" class="live-chat-btn"><i class="fas fa-comment-dots"></i> Live Chat</a>
+      </div>
     </div>
   </div>
+</main>
 
-  <script src="api.js"></script>
-  <script src="auth.js"></script>
-  <script src="student.js"></script>
+<!-- Transaction History Modal (kept from original) -->
+<div id="transactionModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>Transaction History</h3>
+    <div id="transactionList"></div>
+    <button id="loadMoreTransactions" class="btn-outline btn-sm">Load More</button>
+    <button onclick="closeTransactionModal()" class="btn-outline btn-sm">Close</button>
+  </div>
+</div>
+
+<!-- Rating Modal (kept from original) -->
+<div id="ratingModal" class="modal-overlay">
+  <div class="modal-content rating-modal">
+    <span class="close-modal" onclick="closeRatingModal()">&times;</span>
+    <h3>Rate Your Tutor: <span id="ratingModalTutorName"></span></h3>
+    <div class="star-rating">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
+    <textarea id="ratingFeedback" rows="3" placeholder="Write a review (optional)"></textarea>
+    <button onclick="submitRating()" class="btn-primary btn-sm">Submit Rating</button>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="auth.js"></script>
+<script src="student.js"></script>
 
   <script>
-    // Auto-trigger Add Funds if redirected from bid acceptance due to insufficient balance
-    if (window.location.search.includes('action=addFunds')) {
-      window.addEventListener('DOMContentLoaded', () => {
-        const addFundsBtn = document.getElementById('addFundsBtn');
-        if (addFundsBtn) addFundsBtn.click();
-        window.history.replaceState({}, document.title, window.location.pathname);
-      });
-    }
+// ------------------------------------------------------------------
+// Helper: escape HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
 
-    // Helper: escape HTML (should already be in student.js, but define if missing)
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
-    }
-
-    // Fetch and display active announcements
-    async function loadAnnouncements() {
-      try {
-        const res = await fetch('/api/admin/public/announcements');
-        const announcements = await res.json();
-        const banner = document.getElementById('announcementBanner');
-        if (announcements.length > 0) {
-          banner.style.display = 'block';
-          banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
-        } else {
-          banner.style.display = 'none';
-        }
-      } catch (err) {
-        console.error('Announcement error:', err);
-      }
-    }
-
-    // Bid notification logic (checks for pending questions)
-    async function checkForBidNotifications() {
-      const questions = await apiFetch('/questions/my-questions');
-      const pendingWithBids = questions.filter(q => q.status === 'pending');
-      if (pendingWithBids.length > 0) {
-        const notification = document.getElementById('bidNotification');
-        if (notification) notification.style.display = 'block';
-        const viewLink = document.getElementById('viewBidsLink');
-        if (viewLink) {
-          viewLink.onclick = () => {
-            document.querySelector('.card h3').scrollIntoView({ behavior: 'smooth' });
-            return false;
-          };
-        }
-      }
-    }
-
-    // Extend the original loadStudentDashboard to show bid notification and announcements
-    const originalLoad = window.loadStudentDashboard;
-    if (originalLoad) {
-      window.loadStudentDashboard = async function() {
-        await originalLoad();
-        await checkForBidNotifications();
-      };
-    }
-
-    // Dark mode toggle (preserved)
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    if (darkModeToggle) {
-      darkModeToggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-      });
-      if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-      }
-    }
-
-    // Close rating modal function
-    window.closeRatingModal = function() {
-      document.getElementById('ratingModal').style.display = 'none';
-    };
-
-    // Load announcements after dashboard loads
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadAnnouncements);
+// ------------------------------------------------------------------
+// ANNOUNCEMENT BANNER
+async function loadAnnouncements() {
+  try {
+    const res = await fetch('/api/admin/public/announcements');
+    const announcements = await res.json();
+    const banner = document.getElementById('announcementBanner');
+    if (!banner) return;
+    if (announcements.length > 0) {
+      banner.style.display = 'block';
+      banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
     } else {
-      loadAnnouncements();
+      banner.style.display = 'none';
     }
-  </script>
+  } catch (err) {
+    console.error('Announcement error:', err);
+  }
+}
+
+// ------------------------------------------------------------------
+// AUTO-TRIGGER ADD FUNDS (when redirected from bid acceptance or insufficient balance)
+if (window.location.search.includes('action=addFunds')) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const addFundsBtn = document.getElementById('addFundsBtn');
+    if (addFundsBtn) addFundsBtn.click();
+    window.history.replaceState({}, document.title, window.location.pathname);
+  });
+}
+
+// ------------------------------------------------------------------
+// Ensure the Add Funds button (if present) triggers the addFunds function from student.js
+document.addEventListener('DOMContentLoaded', () => {
+  const addBtn = document.getElementById('addFundsBtn');
+  if (addBtn && typeof addFunds === 'function') {
+    addBtn.addEventListener('click', addFunds);
+  }
+});
+
+// ------------------------------------------------------------------
+// RATING MODAL (functions are already in student.js, but we keep the close function for inline use)
+window.closeRatingModal = function() {
+  const modal = document.getElementById('ratingModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// ------------------------------------------------------------------
+// TRANSACTION HISTORY MODAL (functions are already in student.js)
+// Ensure loadMoreTransactions button works
+document.addEventListener('DOMContentLoaded', () => {
+  const loadMoreBtn = document.getElementById('loadMoreTransactions');
+  if (loadMoreBtn && typeof loadTransactionHistory === 'function') {
+    loadMoreBtn.addEventListener('click', () => loadTransactionHistory(false));
+  }
+});
+
+// ------------------------------------------------------------------
+// LOAD ANNOUNCEMENTS after dashboard loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadAnnouncements);
+} else {
+  loadAnnouncements();
+}
+</script>
 </body>
 </html>
