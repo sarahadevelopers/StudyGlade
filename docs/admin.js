@@ -1,3 +1,12 @@
+// Sanitize preview text for onclick attribute (remove binary junk)
+function sanitizeForOnclick(str) {
+  if (!str) return '';
+  // Keep only printable ASCII, newline, tab, carriage return
+  let cleaned = str.replace(/[^\x20-\x7E\n\t\r]/g, '');
+  // Truncate to avoid huge strings
+  if (cleaned.length > 200) cleaned = cleaned.substring(0, 200) + '...';
+  return cleaned;
+}
 // Helper: format money
 function formatMoney(amount) {
   return `$${parseFloat(amount).toFixed(2)}`;
@@ -327,7 +336,7 @@ async function loadDocuments() {
               <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
               <td>
                 <button class="btn-sm btn-primary" onclick="editDocument(${JSON.stringify(d._id)}, ${JSON.stringify(d.title)}, ${d.price}, ${JSON.stringify(d.description)})">Edit</button>
-                <button class="btn-sm btn-secondary" onclick="showPreviewModal(${JSON.stringify(d._id)}, ${JSON.stringify(d.previewText || '')})">Edit Preview</button>
+                <button class="btn-sm btn-secondary" onclick="showPreviewModal(${JSON.stringify(d._id)}, ${JSON.stringify(sanitizeForOnclick(d.previewText || ''))})">Edit Preview</button>
                 ${!d.isApproved ? `<button class="btn-sm btn-success" onclick="approveDoc('${d._id}')">Approve</button>` : ''}
                 <button class="btn-sm btn-danger" onclick="deleteDocument('${d._id}')">Delete</button>
               </td>

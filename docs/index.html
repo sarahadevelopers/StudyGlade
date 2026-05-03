@@ -3,47 +3,418 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyGlade – Get Academic Help, Fast & Secure</title>
-  <meta name="description" content="Connect with expert tutors, access study documents, and get academic help instantly.">
-  <link rel="stylesheet" href="style.css">
+  <title>StudyGlade – Your Academic Success, Our Mission</title>
+  <!-- Google Fonts: Jost + Font Awesome 6 -->
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <a href="index.html" class="logo">StudyGlade</a>
-      <div class="nav-links">
-        <a href="index.html">Home</a>
-        <a href="document-library.html">Library</a>
-        <a href="login.html" class="btn">Login</a>
-        <a href="register.html" class="btn">Sign Up</a>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="container">
+    <a href="#" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="#" class="active">Home</a>
+      <a href="document-library.html">Library</a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="nav-buttons">
+      <a href="login.html" class="btn btn-outline-white">Login</a>
+      <a href="register.html" class="btn btn-primary">Sign Up</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<!-- Premium Hero Section -->
+<section class="hero-premium">
+  <div class="mesh-bg"></div>
+  <div class="container hero-grid">
+    <div class="hero-text-content">
+      <div class="premium-pill">
+        <span class="sparkle">✨</span> Your Academic Success, Our Mission
+      </div>
+      <h1>Get Expert Help. <br><span class="text-gradient">Anytime, Anywhere.</span></h1>
+      <p class="hero-subtext">Empowering students with elite tutors and a library of 300K+ resources. Search your question to begin.</p>
+      
+      <div class="premium-search-wrapper">
+        <div class="search-inner">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" placeholder="Search topics, tutors, or questions...">
+          <div class="search-divider"></div>
+          <!-- Custom subject dropdown with icons -->
+          <div class="custom-select-wrapper">
+            <div class="select-trigger">
+              <i class="fas fa-graduation-cap"></i>
+              <span>All Subjects</span>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="select-options">
+              <div class="option" data-value="math"><i class="fas fa-calculator"></i> Mathematics</div>
+              <div class="option" data-value="science"><i class="fas fa-flask"></i> Science</div>
+              <div class="option" data-value="history"><i class="fas fa-landmark"></i> History</div>
+              <div class="option" data-value="literature"><i class="fas fa-book"></i> Literature</div>
+              <div class="option" data-value="business"><i class="fas fa-chart-line"></i> Business</div>
+            </div>
+          </div>
+          <button class="search-btn">Search</button>
+        </div>
+      </div>
+
+      <!--  <div class="popular-subjects">
+        <span class="popular-label">Popular:</span>
+        <div class="subject-tags">
+          <a href="#" class="s-tag"><i class="fas fa-calculator"></i> Mathematics</a>
+          <a href="#" class="s-tag"><i class="fas fa-flask"></i> Science</a>
+          <a href="#" class="s-tag"><i class="fas fa-landmark"></i> History</a>
+          <a href="#" class="s-tag"><i class="fas fa-chart-line"></i> Economics</a>
+          <a href="#" class="s-tag"><i class="fas fa-laptop-code"></i> Engineering</a>
+        </div>
+      </div>-->
+
+      <div class="live-status-container">
+        <a href="#" class="live-tutor-link">
+          <span class="pulse-wrapper"><span class="pulse-dot"></span><span class="pulse-ring"></span></span>
+          <span class="live-text"><strong>1,420+</strong> Tutors Online Now</span>
+        </a>
+      </div>
+
+      <div class="social-proof-v2">
+        <div class="avatar-group">
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/women/1.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/men/2.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/women/3.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-count">+150k</div>
+        </div>
+        <div class="proof-text">
+          <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> <span>4.9/5 Student Rating</span></div>
+          <p>Learn from <strong>top-tier verified professionals</strong> worldwide.</p>
+        </div>
       </div>
     </div>
-  </nav>
-
-  <main>
-    <section class="container" style="text-align: center; padding: 4rem 0;">
-      <h1>Get Academic Help, Fast & Secure</h1>
-      <p style="font-size: 1.2rem; margin-bottom: 2rem;">Post questions. Choose tutors. Learn better.</p>
-      <a href="post-question.html" class="btn" style="margin-right: 1rem;">Post a Question</a>
-      <a href="document-library.html" class="btn btn-outline">Browse Documents</a>
-    </section>
-
-    <section class="container" style="padding: 3rem 0;">
-      <h2 style="text-align: center;">Why StudyGlade?</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 2rem;">
-        <div class="card"><h3>Expert Tutors</h3><p>Connect with vetted, highly rated tutors.</p></div>
-        <div class="card"><h3>Secure Payments</h3><p>Wallet-based seamless transactions.</p></div>
-        <div class="card"><h3>Digital Library</h3><p>Access and unlock study materials instantly.</p></div>
-        <div class="card"><h3>Live Chat</h3><p>Real-time communication for questions.</p></div>
+    
+  </div>
+  <div class="featured-logos">
+    
+  </div>
+ <!--   <div class="container">
+      <p class="featured-text">Empowering students from world‑class institutions</p>
+      <div class="logo-track">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Uni_Oxford_logo.svg/500px-Uni_Oxford_logo.svg.png" alt="Oxford">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Harvard_University_logo.svg/500px-Harvard_University_logo.svg.png" alt="Harvard">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/MIT_logo.svg/500px-MIT_logo.svg.png" alt="MIT">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Stanford_University_seal_2003.svg/500px-Stanford_University_seal_2003.svg.png" alt="Stanford">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Yale_University_logo.svg/500px-Yale_University_logo.svg.png" alt="Yale">
       </div>
-    </section>
-  </main>
+    </div>-->
+</section>
 
-  <footer style="background: #1F2937; color: white; padding: 2rem 0; margin-top: 3rem;">
-    <div class="container" style="text-align: center;">
-      <p>© 2026 StudyGlade. All rights reserved.</p>
-      <p><a href="#" style="color: white;">Terms</a> | <a href="#" style="color: white;">Privacy</a></p>
+
+<!-- Quick Access -->
+<div class="container">
+  <div class="quick-access">
+    <div class="access-card"><div class="access-icon"><i class="fas fa-chalkboard"></i></div><div class="access-text"><h4>Online Classroom</h4><p>Live sessions & recordings</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-database"></i></div><div class="access-text"><h4>Study Library</h4><p>Notes & past papers</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-calendar-alt"></i></div><div class="access-text"><h4>Calendar</h4><p>Track deadlines</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-headset"></i></div><div class="access-text"><h4>Support</h4><p>24/7 assistance</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+  </div>
+</div>
+
+<!-- Why StudyGlade -->
+<div class="container">
+  <div class="section-header">
+    
+    <h2>Why StudyGlade?</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-user-graduate"></i></div>
+      <h3>Expert Tutors</h3>
+      <p>Vetted professionals across 100+ subjects</p>
     </div>
-  </footer>
+    <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-lock"></i></div>
+      <h3>Secure Payments</h3>
+      <p>Wallet-based seamless transactions</p>
+    </div>
+    <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-book"></i></div>
+      <h3>Study Library</h3>
+      <p>300k+ documents & resources</p>
+    </div>
+    <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-comments"></i></div>
+      <h3>Live Chat Support</h3>
+      <p>Real-time communication with tutors</p>
+    </div>
+   <!--   <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-clock"></i></div>
+      <h3>24/7 Availability</h3>
+      <p>Help whenever you need it, day or night</p>
+    </div>
+    <div class="feature premium-feature">
+      <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+      <h3>Progress Tracking</h3>
+      <p>Monitor your learning journey and growth</p>
+    </div>-->
+  </div>
+</div>
+
+<!-- How It Works -->
+<div class="container premium-process-container">
+  <div class="section-header">
+    <!--  <span class="eyebrow">Simple & Fast</span>-->
+    <h2>How It Works</h2>
+  </div>
+  <div class="steps-wrapper">
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 01</span>
+        <div class="icon-box">
+          <i class="fas fa-pen-alt"></i>
+        </div>
+      </div>
+      <div class="step-content">
+        <h3>Post Your Question</h3>
+        <p>Describe your academic need, attach files, and set a budget that works for you.</p>
+      </div>
+      <div class="step-arrow-mobile only-mobile">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+    </div>
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 02</span>
+        <div class="icon-box">
+          <i class="fas fa-handshake"></i>
+        </div>
+      </div>
+      <div class="step-content">
+        <h3>Connect with a Tutor</h3>
+        <p>Receive bids from expert tutors or instantly match with the best fit.</p>
+      </div>
+      <div class="step-arrow-mobile only-mobile">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+    </div>
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 03</span>
+        <div class="icon-box">
+          <i class="fas fa-graduation-cap"></i>
+        </div>
+      </div>
+      <div class="step-content">
+        <h3>Get Answer & Learn</h3>
+        <p>Review the answer, rate your tutor, and keep learning with our resources.</p>
+      </div>
+    </div>
+    <div class="progress-line"></div>
+  </div>
+</div>
+</div>
+<!-- Statistics -->
+<!-- Statistics -->
+<!-- Statistics -->
+<div class="container">
+  <div class="stats-section">
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat">
+        <i class="fas fa-users stat-icon"></i>
+        <h3><span class="count" data-target="150000">0</span><span class="plus">+</span></h3>
+        <p>Students Helped</p>
+      </div>
+      <div class="stat-divider">|</div>
+      <div class="stat">
+        <i class="fas fa-chalkboard-user stat-icon"></i>
+        <h3><span class="count" data-target="25000">0</span><span class="plus">+</span></h3>
+        <p>Expert Tutors</p>
+      </div>
+      <div class="stat-divider">|</div>
+      <div class="stat">
+        <i class="fas fa-star stat-icon"></i>
+        <h3><span class="count" data-target="4.8">0</span><span class="slash">/5</span></h3>
+        <p>Average Rating</p>
+      </div>
+      <div class="stat-divider">|</div>
+      <div class="stat">
+        <i class="fas fa-question-circle stat-icon"></i>
+        <h3><span class="count" data-target="5000000">0</span><span class="suffix">M+</span></h3>
+        <p>Questions Answered</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Partner Carousel -->
+<div class="container" style="text-align:center; margin: 2rem auto;">
+  <p style="font-size:1rem; margin-bottom:0.8rem;"><strong>Trusted by students and institutions worldwide</strong></p>
+  <div class="partner-carousel">
+    <div class="partner-track">
+      <img src="https://static.vecteezy.com/system/resources/thumbnails/067/941/688/small_2x/coursera-rounded-logo-with-transparent-background-for-online-courses-free-png.png" alt="coursera">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/EdX_Logo.PNG" alt="edx">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReHxPC-DGRTX_9_vQFhQbAtNNV6ccTxgOnuQ&s" alt="khan">
+      <img src="https://static.vecteezy.com/system/resources/previews/067/941/701/non_2x/quizlet-logo-rounded-transparent-background-for-study-app-free-png.png" alt="quizlet">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcST5XL2wU5cEM1I5EeWqLMfo7DBpwtxyebMTw&s" alt="chegg">
+      <img src="https://www.coursehero.com/assets/img/coursehero_logo.png" alt="coursehero">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Udemy_logo.svg/1280px-Udemy_logo.svg.png" alt="udemy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Uni_Oxford_logo.svg/500px-Uni_Oxford_logo.svg.png" alt="oxford">
+      <img src="https://assets.turbologo.com/blog/en/2024/06/27075854/harvard-logo.png" alt="harvard">
+      <!-- duplicate for loop -->
+      <img src="https://static.vecteezy.com/system/resources/thumbnails/067/941/688/small_2x/coursera-rounded-logo-with-transparent-background-for-online-courses-free-png.png" alt="coursera">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/EdX_Logo.PNG" alt="edx">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReHxPC-DGRTX_9_vQFhQbAtNNV6ccTxgOnuQ&s" alt="khan">
+      <img src="https://static.vecteezy.com/system/resources/previews/067/941/701/non_2x/quizlet-logo-rounded-transparent-background-for-study-app-free-png.png" alt="quizlet">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcST5XL2wU5cEM1I5EeWqLMfo7DBpwtxyebMTw&s" alt="chegg">
+    </div>
+  </div>
+</div>
+
+<!-- Testimonials Slider -->
+<div class="container testimonials-section">
+  <h2>What Our Students Say</h2>
+  <div class="testimonial-slider-wrapper">
+    <div class="slider-btn slider-btn-left" id="prevTestimonial"><i class="fas fa-chevron-left"></i></div>
+    <div class="testimonial-container" id="testimonialContainer"></div>
+    <div class="slider-btn slider-btn-right" id="nextTestimonial"><i class="fas fa-chevron-right"></i></div>
+  </div>
+  <div class="view-all-reviews">
+    <a href="#">View all 30,000+ reviews <i class="fas fa-arrow-right"></i></a>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="premium-footer">
+  <div class="footer-container">
+    <!-- Brand Column + Newsletter -->
+    <div class="footer-brand">
+      <div class="footer-logo-wrapper">
+        <a href="#" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      </div>
+      <p class="brand-description">
+        Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.
+      </p>
+      
+      <!-- Premium Newsletter Section -->
+      <div class="newsletter-box">
+        <h5>Stay Updated</h5>
+        <form class="newsletter-form" id="footerNewsletterForm">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit">Join</button>
+        </form>
+        <p class="newsletter-note">Join 10k+ students. No spam, ever.</p>
+      </div>
+      
+      <!-- Social Icons -->
+      <div class="social-links">
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+
+    <!-- Links Grid (5 columns) -->
+    <div class="footer-links-grid">
+      <!-- Platform -->
+      <div class="link-column">
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="#">Post a Question</a></li>
+          <li><a href="#">Browse Documents</a></li>
+          <li><a href="#">Find a Tutor</a></li>
+          <li><a href="#">Online Classroom</a></li>
+          <li><a href="#">Study Library</a></li>
+          <li><a href="#">Calendar</a></li>
+        </ul>
+      </div>
+
+      <!-- Resources -->
+      <div class="link-column">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Study Materials</a></li>
+          <li><a href="#">Research Papers</a></li>
+          <li><a href="#">Practice Tests</a></li>
+          <li><a href="#">Subject Guides</a></li>
+          <li><a href="#">Academic Tools</a></li>
+          <li><a href="#">Free Resources</a></li>
+        </ul>
+      </div>
+
+      <!-- Support -->
+      <div class="link-column">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="#">Help Centre</a></li>
+          <li><a href="#">Contact Us</a></li>
+          <li><a href="#">Live Chat</a></li>
+          <li><a href="#">How It Works</a></li>
+          <li><a href="#">Tutor Support</a></li>
+          <li><a href="#">Feedback</a></li>
+        </ul>
+      </div>
+
+      <!-- Legal -->
+      <div class="link-column">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Refund Policy</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+          <li><a href="#">Honor Code</a></li>
+        </ul>
+      </div>
+
+      <!-- About Us -->
+      <div class="link-column">
+        <h4>About Us</h4>
+        <ul>
+          <li><a href="#">About StudyGlade</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press & Media</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Partnerships</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar with Copyright & Back to Top -->
+  <div class="footer-bottom">
+    <p>© <span id="year"></span> StudyGlade. All rights reserved. Empowering students worldwide.</p>
+    <button class="back-to-top" id="backToTopBtn" aria-label="Back to top">
+      <i class="fas fa-arrow-up"></i> Top
+    </button>
+  </div>
+</footer>
+
+<script src="index.js"></script>
+<script>
+  // Wait for DOM to be fully loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Dynamic copyright year
+    const yearSpan = document.getElementById('year');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+
+    // Back to Top button functionality
+    const backToTopBtn = document.getElementById('backToTopBtn');
+    if (backToTopBtn) {
+      backToTopBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+    }
+  });
+</script>
 </body>
 </html>

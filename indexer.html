@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>StudyGlade – Your Academic Success, Our Mission</title>
+  <!-- Google Fonts: Jost + Font Awesome 6 -->
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', 'Inter', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ---------- Color Variables ---------- */
+    :root {
+      --navy: #061B49;
+      --deep-blue: #0B2E75;
+      --brand-blue: #005BFF;
+      --royal-blue: #2563EB;
+      --sky-blue: #38BDF8;
+      --ice-blue: #EFF6FF;
+      --pale-blue: #DBEAFE;
+      --white: #FFFFFF;
+      --text-navy: #0F172A;
+      --slate: #64748B;
+      --border-grey: #E2E8F0;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      --shadow-sm: 0 4px 10px -2px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.02);
+      --shadow-md: 0 10px 20px -5px rgba(0,0,0,0.08);
+      --grad-primary: linear-gradient(135deg, #005BFF 0%, #2563EB 60%, #38BDF8 100%);
+      --grad-nav: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      --grad-hero: linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ---------- Premium Hero ---------- */
+    .hero-premium {
+      position: relative;
+      padding: 80px 0;
+      overflow: hidden;
+      background: #f8faff;
+    }
+    .mesh-bg {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(at 0% 0%, rgba(0, 91, 255, 0.05) 0px, transparent 50%),
+                  radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 50%);
+      z-index: 0;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 4rem;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-text-content h1 {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      color: #0A192F;
+      font-weight: 800;
+      margin: 1.5rem 0;
+    }
+    .text-gradient {
+      background: linear-gradient(90deg, var(--brand-blue), var(--sky-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .premium-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid rgba(0,91,255,0.1);
+      padding: 6px 20px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--brand-blue);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    .hero-subtext {
+      font-size: 1rem;
+      color: var(--slate);
+      margin-top: 0.5rem;
+    }
+    /* Premium Search Bar */
+    .premium-search-wrapper {
+      background: white;
+      padding: 8px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+      margin: 2rem 0 1rem;
+      max-width: 600px;
+    }
+    .search-inner {
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+    }
+    .search-icon { color: #94a3b8; margin-right: 10px; }
+    .search-inner input {
+      flex: 1;
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      outline: none;
+    }
+    .search-divider { width: 1px; height: 30px; background: #e2e8f0; margin: 0 15px; }
+    /* Custom Subject Dropdown */
+    .custom-select-wrapper {
+      position: relative;
+      min-width: 160px;
+    }
+    .select-trigger {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #0A192F;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+    .select-trigger:hover { background: rgba(0,91,255,0.05); }
+    .select-trigger i:last-child { font-size: 0.8rem; opacity: 0.5; margin-left: auto; }
+    .select-options {
+      position: absolute;
+      top: calc(100% + 15px);
+      left: 0;
+      width: 220px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+      border: 1px solid rgba(0,0,0,0.05);
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      z-index: 100;
+    }
+    .custom-select-wrapper.active .select-options {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #64748B;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .option i { width: 20px; color: var(--brand-blue); }
+    .option:hover { background: rgba(0,91,255,0.05); color: var(--brand-blue); }
+    /* Search button */
+    .search-btn {
+      background: var(--brand-blue);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .search-btn:hover { background: #004ecc; transform: translateY(-2px); }
+    /* Popular Subjects */
+    .popular-subjects {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .popular-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+    }
+    .subject-tags { display: flex; gap: 10px; flex-wrap: wrap; }
+    .s-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(0,91,255,0.08);
+      padding: 5px 14px;
+      border-radius: 100px;
+      text-decoration: none;
+      color: #0A192F;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    .s-tag i { font-size: 0.75rem; color: var(--brand-blue); }
+    .s-tag:hover {
+      background: var(--brand-blue);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,91,255,0.15);
+    }
+    .s-tag:hover i { color: white; }
+    /* Live Tutors Counter */
+    .live-status-container { margin-top: 1.5rem; }
+    .live-tutor-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(34,197,94,0.05);
+      padding: 8px 20px;
+      border-radius: 100px;
+      text-decoration: none;
+      border: 1px solid rgba(34,197,94,0.1);
+      transition: all 0.3s;
+    }
+    .live-tutor-link:hover { background: rgba(34,197,94,0.1); transform: scale(1.02); }
+    .live-text { font-size: 0.85rem; color: #166534; }
+    .live-text strong { color: #10b981; }
+    .pulse-wrapper {
+      position: relative;
+      width: 10px; height: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pulse-dot {
+      width: 8px; height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      z-index: 2;
+    }
+    .pulse-ring {
+      position: absolute;
+      width: 20px; height: 20px;
+      background-color: rgba(16,185,129,0.4);
+      border-radius: 50%;
+      animation: ripple 2s infinite;
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.5); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    /* Social Proof with Verified Badges */
+    .social-proof-v2 {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .avatar-group { display: flex; align-items: center; }
+    .avatar-wrapper {
+      position: relative;
+      margin-left: -12px;
+      transition: transform 0.3s ease;
+    }
+    .avatar-wrapper:first-child { margin-left: 0; }
+    .avatar-wrapper:hover { transform: translateY(-5px) scale(1.1); z-index: 10; }
+    .avatar-wrapper img {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 2px solid white;
+      object-fit: cover;
+    }
+    .v-badge {
+      position: absolute;
+      bottom: 0; right: 0;
+      background: var(--brand-blue);
+      color: white;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      border: 1.5px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .avatar-count {
+      margin-left: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--brand-blue);
+      background: rgba(0,91,255,0.08);
+      padding: 4px 12px;
+      border-radius: 40px;
+    }
+    .proof-text .stars { margin-bottom: 4px; }
+    .proof-text .stars i, .proof-text .stars span { font-size: 0.8rem; }
+    .proof-text p { font-size: 0.8rem; color: var(--slate); }
+    /* Hero Image & Floating Cards */
+    .hero-visual { position: relative; }
+    .image-wrapper {
+      position: relative;
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+    }
+    .main-hero-img { width: 100%; display: block; transform: scale(1.02); transition: transform 0.5s; }
+    .float-badge {
+      position: absolute;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      padding: 8px 18px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+      animation: float 4s ease-in-out infinite;
+      font-weight: 500;
+    }
+    .b-1 { top: 10%; left: -5%; }
+    .b-2 { bottom: 10%; right: -5%; animation-delay: 1s; }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    /* Featured Logos */
+    .featured-logos {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    .featured-text {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--slate);
+      opacity: 0.6;
+      margin-bottom: 1.2rem;
+    }
+    .logo-track {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      filter: grayscale(100%);
+      opacity: 0.4;
+      transition: opacity 0.4s;
+    }
+    .logo-track:hover { opacity: 0.7; }
+    .logo-track img { height: 28px; width: auto; transition: transform 0.3s; }
+    .logo-track img:hover { transform: scale(1.08); }
+
+    /* Quick Access Cards (unchanged, premium) */
+    .quick-access {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .access-card {
+      background: white;
+      border-radius: 20px;
+      padding: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      box-shadow: var(--shadow-sm);
+      transition: 0.2s;
+    }
+    .access-card:hover { transform: translateY(-3px); }
+    .access-icon {
+      background: var(--pale-blue);
+      width: 42px; height: 42px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-blue);
+      font-size: 1.2rem;
+    }
+    .access-text h4 { font-size: 1rem; margin-bottom: 0; }
+    .access-text p { font-size: 0.7rem; color: var(--slate); }
+
+    /* Features Grid (gradient cards) */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .premium-feature {
+      background: linear-gradient(135deg, #005BFF 0%, #2563EB 60%, #38BDF8 100%);
+      border-radius: 24px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: 0.3s;
+    }
+    .premium-feature i { font-size: 2rem; color: white; margin-bottom: 0.5rem; }
+    .premium-feature h3 { font-size: 1.1rem; color: white; margin-bottom: 0.3rem; }
+    .premium-feature p { font-size: 0.75rem; color: rgba(255,255,255,0.9); }
+
+    /* How It Works (glassmorphism) */
+    .premium-process-container { margin: 3rem 0; }
+    .steps-wrapper {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 2rem;
+      position: relative;
+    }
+    .step-card {
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0,91,255,0.15);
+      border-radius: 28px;
+      padding: 1.5rem;
+      transition: 0.3s;
+    }
+    .step-card:hover {
+      background: white;
+      transform: translateY(-5px);
+      box-shadow: 0 20px 35px rgba(0,91,255,0.1);
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .step-badge { font-size: 0.7rem; font-weight: 700; color: var(--brand-blue); opacity: 0.7; }
+    .icon-box {
+      width: 44px; height: 44px;
+      background: rgba(0,91,255,0.08);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--brand-blue);
+    }
+    .step-content h3 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .step-content p { font-size: 0.8rem; color: var(--slate); }
+    .progress-line {
+      position: absolute;
+      top: 32px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,91,255,0.3), rgba(0,91,255,0.3), transparent);
+      pointer-events: none;
+    }
+
+    /* Statistics */
+    .stats-section {
+      background: var(--grad-primary);
+      border-radius: 48px;
+      padding: 2.5rem 1.5rem;
+      margin: 3rem 0;
+    }
+    .stats-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .stat { flex: 1; text-align: center; min-width: 120px; }
+    .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; color: rgba(255,255,255,0.9); }
+    .stat h3 { font-size: 2.25rem; color: white; font-weight: 700; margin-bottom: 0.2rem; }
+    .stat p { font-size: 0.8rem; opacity: 0.9; text-transform: uppercase; }
+    .stat-divider { font-size: 1.5rem; color: rgba(255,255,255,0.4); }
+
+    /* Partner Carousel */
+    .partner-carousel {
+      overflow: hidden;
+      white-space: nowrap;
+      background: white;
+      padding: 1rem 0;
+      border-radius: 30px;
+      mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+      margin: 2rem 0;
+    }
+    .partner-track {
+      display: inline-block;
+      animation: scroll 35s linear infinite;
+    }
+    .partner-track img { height: 35px; margin: 0 1.5rem; filter: grayscale(0.3); opacity: 0.7; }
+    @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Testimonials Slider */
+    .testimonials-section { position: relative; margin: 3rem 0; }
+    .testimonial-slider-wrapper {
+      position: relative;
+      overflow: hidden;
+      padding: 0 2rem;
+    }
+    .testimonial-container {
+      display: flex;
+      gap: 1.5rem;
+      transition: transform 0.5s ease;
+    }
+    .testimonial-card {
+      flex: 0 0 300px;
+      background: white;
+      border-radius: 28px;
+      padding: 1.2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .testimonial-card img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+    .testimonial-rating i { color: var(--warning); font-size: 11px; }
+    .testimonial-text { margin: 0.8rem 0; font-size: 0.85rem; font-style: italic; }
+    .slider-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      border: 1px solid var(--border-grey);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: var(--shadow-sm);
+    }
+    .slider-btn-left { left: -10px; }
+    .slider-btn-right { right: -10px; }
+    .view-all-reviews { text-align: center; margin-top: 1.5rem; }
+
+    /* Premium Footer */
+    .premium-footer {
+      background: #050A18;
+      color: #94A3B8;
+      padding: 3rem 5% 2rem;
+      margin-top: 4rem;
+      position: relative;
+    }
+    .premium-footer::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38BDF8, #005BFF, transparent);
+    }
+    .footer-container { display: flex; flex-wrap: wrap; gap: 3rem; max-width: 1300px; margin: 0 auto; }
+    .footer-brand { flex: 1.5; min-width: 260px; }
+    .footer-logo { font-size: 1.6rem; font-weight: 700; color: white; text-decoration: none; display: inline-flex; align-items: baseline; gap: 4px; }
+    .footer-logo i { transform: rotate(12deg); color: #38BDF8; }
+    .brand-description { font-size: 0.85rem; line-height: 1.5; margin: 1rem 0; }
+    .newsletter-box { margin: 1.5rem 0; max-width: 320px; }
+    .newsletter-box h5 { color: white; font-size: 0.8rem; margin-bottom: 0.5rem; }
+    .newsletter-form {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 60px;
+      padding: 0.2rem;
+    }
+    .newsletter-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0.6rem 1rem;
+      color: white;
+      outline: none;
+      font-size: 0.8rem;
+    }
+    .newsletter-form button {
+      background: #38BDF8;
+      border: none;
+      border-radius: 40px;
+      padding: 0.4rem 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .social-links { display: flex; gap: 1rem; margin-top: 1rem; }
+    .social-links a {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: 0.3s;
+    }
+    .social-links a:hover { background: #38BDF8; transform: translateY(-3px); }
+    .footer-links-grid {
+      flex: 4;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 2rem;
+    }
+    .link-column h4 { color: white; font-size: 1rem; margin-bottom: 1.2rem; position: relative; display: inline-block; }
+    .link-column h4::after {
+      content: ''; position: absolute; bottom: -6px; left: 0; width: 24px; height: 2px;
+      background: #38BDF8;
+    }
+    .link-column ul { list-style: none; }
+    .link-column li { margin-bottom: 0.6rem; }
+    .link-column a { color: #94A3B8; text-decoration: none; font-size: 0.8rem; transition: 0.2s; }
+    .link-column a:hover { color: white; transform: translateX(4px); display: inline-block; }
+    .footer-bottom {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .back-to-top {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 40px;
+      padding: 0.4rem 1rem;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .back-to-top:hover { background: #38BDF8; color: #050A18; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-grid { gap: 2rem; }
+      .hero-text-content h1 { font-size: 2.8rem; }
+      .quick-access { grid-template-columns: repeat(2,1fr); }
+      .features-grid { grid-template-columns: repeat(2,1fr); }
+      .steps-wrapper { grid-template-columns: 1fr; gap: 1.5rem; }
+      .progress-line { display: none; }
+      .stats-grid { flex-direction: column; }
+      .stat-divider { display: none; }
+    }
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero-text-content h1 { font-size: 2.2rem; }
+      .search-inner { flex-direction: column; gap: 12px; }
+      .search-divider { display: none; }
+      .custom-select-wrapper { width: 100%; }
+      .select-trigger { justify-content: center; }
+      .search-btn { width: 100%; margin-left: 0; margin-top: 8px; }
+      .popular-subjects { justify-content: center; flex-direction: column; }
+      .live-status-container { justify-content: center; }
+      .social-proof-v2 { justify-content: center; }
+      .float-badge { display: none; }
+      .hero-visual { margin-top: 2rem; }
+      .quick-access { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .footer-container { flex-direction: column; }
+      .footer-links-grid { grid-template-columns: repeat(2,1fr); }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="container">
+    <a href="#" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="#" class="active">Home</a>
+      <a href="document-library.html">Library</a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="nav-buttons">
+      <a href="login.html" class="btn btn-outline-white">Login</a>
+      <a href="register.html" class="btn btn-primary">Sign Up</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Premium Hero Section -->
+<section class="hero-premium">
+  <div class="mesh-bg"></div>
+  <div class="container hero-grid">
+    <div class="hero-text-content">
+      <div class="premium-pill">
+        <span class="sparkle">✨</span> Your Academic Success, Our Mission
+      </div>
+      <h1>Get Expert Help. <br><span class="text-gradient">Anytime, Anywhere.</span></h1>
+      <p class="hero-subtext">Empowering students with elite tutors and a library of 300K+ resources. Search your question to begin.</p>
+      
+      <div class="premium-search-wrapper">
+        <div class="search-inner">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" placeholder="Search topics, tutors, or questions...">
+          <div class="search-divider"></div>
+          <!-- Custom subject dropdown with icons -->
+          <div class="custom-select-wrapper">
+            <div class="select-trigger">
+              <i class="fas fa-graduation-cap"></i>
+              <span>All Subjects</span>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="select-options">
+              <div class="option" data-value="math"><i class="fas fa-calculator"></i> Mathematics</div>
+              <div class="option" data-value="science"><i class="fas fa-flask"></i> Science</div>
+              <div class="option" data-value="history"><i class="fas fa-landmark"></i> History</div>
+              <div class="option" data-value="literature"><i class="fas fa-book"></i> Literature</div>
+              <div class="option" data-value="business"><i class="fas fa-chart-line"></i> Business</div>
+            </div>
+          </div>
+          <button class="search-btn">Search</button>
+        </div>
+      </div>
+
+      <div class="popular-subjects">
+        <span class="popular-label">Popular:</span>
+        <div class="subject-tags">
+          <a href="#" class="s-tag"><i class="fas fa-calculator"></i> Mathematics</a>
+          <a href="#" class="s-tag"><i class="fas fa-flask"></i> Science</a>
+          <a href="#" class="s-tag"><i class="fas fa-landmark"></i> History</a>
+          <a href="#" class="s-tag"><i class="fas fa-chart-line"></i> Economics</a>
+          <a href="#" class="s-tag"><i class="fas fa-laptop-code"></i> Engineering</a>
+        </div>
+      </div>
+
+      <div class="live-status-container">
+        <a href="#" class="live-tutor-link">
+          <span class="pulse-wrapper"><span class="pulse-dot"></span><span class="pulse-ring"></span></span>
+          <span class="live-text"><strong>1,420+</strong> Tutors Online Now</span>
+        </a>
+      </div>
+
+      <div class="social-proof-v2">
+        <div class="avatar-group">
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/women/1.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/men/2.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-wrapper"><img src="https://randomuser.me/api/portraits/women/3.jpg" alt="Verified"><div class="v-badge"><i class="fas fa-check"></i></div></div>
+          <div class="avatar-count">+150k</div>
+        </div>
+        <div class="proof-text">
+          <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> <span>4.9/5 Student Rating</span></div>
+          <p>Learn from <strong>top-tier verified professionals</strong> worldwide.</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="image-wrapper">
+        <img src="https://images.pexels.com/photos/5940844/pexels-photo-5940844.jpeg" alt="Students collaborating" class="main-hero-img">
+      </div>
+      <div class="float-badge b-1"><i class="fas fa-check-circle" style="color:#10b981;"></i> <span>25K+ Verified Pros</span></div>
+      <div class="float-badge b-2"><i class="fas fa-book-open" style="color:#005BFF;"></i> <span>300K+ Resources</span></div>
+    </div>
+  </div>
+  <div class="featured-logos">
+    <div class="container">
+      <p class="featured-text">Empowering students from world‑class institutions</p>
+      <div class="logo-track">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Uni_Oxford_logo.svg/500px-Uni_Oxford_logo.svg.png" alt="Oxford">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Harvard_University_logo.svg/500px-Harvard_University_logo.svg.png" alt="Harvard">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/MIT_logo.svg/500px-MIT_logo.svg.png" alt="MIT">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Stanford_University_seal_2003.svg/500px-Stanford_University_seal_2003.svg.png" alt="Stanford">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Yale_University_logo.svg/500px-Yale_University_logo.svg.png" alt="Yale">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Access Row -->
+<div class="container">
+  <div class="quick-access">
+    <div class="access-card"><div class="access-icon"><i class="fas fa-chalkboard"></i></div><div class="access-text"><h4>Online Classroom</h4><p>Live sessions & recordings</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-database"></i></div><div class="access-text"><h4>Study Library</h4><p>Notes & past papers</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-calendar-alt"></i></div><div class="access-text"><h4>Calendar</h4><p>Track deadlines</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+    <div class="access-card"><div class="access-icon"><i class="fas fa-headset"></i></div><div class="access-text"><h4>Support</h4><p>24/7 assistance</p></div><i class="fas fa-arrow-right access-arrow"></i></div>
+  </div>
+</div>
+
+<!-- Why StudyGlade -->
+<div class="container">
+  <div class="section-header"><h2>Why StudyGlade?</h2></div>
+  <div class="features-grid">
+    <div class="premium-feature"><i class="fas fa-user-graduate"></i><h3>Expert Tutors</h3><p>Vetted professionals across 100+ subjects</p></div>
+    <div class="premium-feature"><i class="fas fa-lock"></i><h3>Secure Payments</h3><p>Wallet-based seamless transactions</p></div>
+    <div class="premium-feature"><i class="fas fa-book"></i><h3>Study Library</h3><p>300k+ documents & resources</p></div>
+    <div class="premium-feature"><i class="fas fa-comments"></i><h3>Live Chat Support</h3><p>Real-time communication with tutors</p></div>
+  </div>
+</div>
+
+<!-- How It Works -->
+<div class="container premium-process-container">
+  <div class="section-header"><h2>How It Works</h2></div>
+  <div class="steps-wrapper">
+    <div class="step-card"><div class="step-header"><span class="step-badge">STEP 01</span><div class="icon-box"><i class="fas fa-pen-alt"></i></div></div><div class="step-content"><h3>Post Your Question</h3><p>Describe your academic need, attach files, and set a budget.</p></div><div class="step-arrow-mobile only-mobile"></div></div>
+    <div class="step-card"><div class="step-header"><span class="step-badge">STEP 02</span><div class="icon-box"><i class="fas fa-handshake"></i></div></div><div class="step-content"><h3>Connect with a Tutor</h3><p>Receive bids from expert tutors or instantly match.</p></div><div class="step-arrow-mobile only-mobile"></div></div>
+    <div class="step-card"><div class="step-header"><span class="step-badge">STEP 03</span><div class="icon-box"><i class="fas fa-graduation-cap"></i></div></div><div class="step-content"><h3>Get Answer & Learn</h3><p>Review the answer, rate your tutor, keep learning.</p></div></div>
+    <div class="progress-line"></div>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="container">
+  <div class="stats-section">
+    <div class="stats-grid">
+      <div class="stat"><i class="fas fa-users stat-icon"></i><h3><span class="count" data-target="150000">0</span><span class="plus">+</span></h3><p>Students Helped</p></div>
+      <div class="stat-divider">|</div>
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><h3><span class="count" data-target="25000">0</span><span class="plus">+</span></h3><p>Expert Tutors</p></div>
+      <div class="stat-divider">|</div>
+      <div class="stat"><i class="fas fa-star stat-icon"></i><h3><span class="count" data-target="4.8">0</span><span class="slash">/5</span></h3><p>Average Rating</p></div>
+      <div class="stat-divider">|</div>
+      <div class="stat"><i class="fas fa-question-circle stat-icon"></i><h3><span class="count" data-target="5000000">0</span><span class="suffix">M+</span></h3><p>Questions Answered</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- Partner Carousel -->
+<div class="container" style="text-align:center;">
+  <p style="font-size:1rem; margin-bottom:0.8rem;"><strong>Trusted by students and institutions worldwide</strong></p>
+  <div class="partner-carousel">
+    <div class="partner-track">
+      <img src="https://static.vecteezy.com/system/resources/thumbnails/067/941/688/small_2x/coursera-rounded-logo-with-transparent-background-for-online-courses-free-png.png" alt="coursera">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/EdX_Logo.PNG" alt="edx">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReHxPC-DGRTX_9_vQFhQbAtNNV6ccTxgOnuQ&s" alt="khan">
+      <img src="https://static.vecteezy.com/system/resources/previews/067/941/701/non_2x/quizlet-logo-rounded-transparent-background-for-study-app-free-png.png" alt="quizlet">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcST5XL2wU5cEM1I5EeWqLMfo7DBpwtxyebMTw&s" alt="chegg">
+      <img src="https://www.coursehero.com/assets/img/coursehero_logo.png" alt="coursehero">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Udemy_logo.svg/1280px-Udemy_logo.svg.png" alt="udemy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Uni_Oxford_logo.svg/500px-Uni_Oxford_logo.svg.png" alt="oxford">
+      <img src="https://assets.turbologo.com/blog/en/2024/06/27075854/harvard-logo.png" alt="harvard">
+      <!-- duplicate for seamless loop -->
+      <img src="https://static.vecteezy.com/system/resources/thumbnails/067/941/688/small_2x/coursera-rounded-logo-with-transparent-background-for-online-courses-free-png.png" alt="coursera">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/EdX_Logo.PNG" alt="edx">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReHxPC-DGRTX_9_vQFhQbAtNNV6ccTxgOnuQ&s" alt="khan">
+      <img src="https://static.vecteezy.com/system/resources/previews/067/941/701/non_2x/quizlet-logo-rounded-transparent-background-for-study-app-free-png.png" alt="quizlet">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcST5XL2wU5cEM1I5EeWqLMfo7DBpwtxyebMTw&s" alt="chegg">
+    </div>
+  </div>
+</div>
+
+<!-- Testimonials Slider -->
+<div class="container testimonials-section">
+  <h2>What Our Students Say</h2>
+  <div class="testimonial-slider-wrapper">
+    <div class="slider-btn slider-btn-left" id="prevTestimonial"><i class="fas fa-chevron-left"></i></div>
+    <div class="testimonial-container" id="testimonialContainer"></div>
+    <div class="slider-btn slider-btn-right" id="nextTestimonial"><i class="fas fa-chevron-right"></i></div>
+  </div>
+  <div class="view-all-reviews"><a href="#">View all 30,000+ reviews <i class="fas fa-arrow-right"></i></a></div>
+</div>
+
+<!-- Premium Footer -->
+<footer class="premium-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <a href="#" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      <p class="brand-description">Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+      <div class="newsletter-box">
+        <h5>Stay Updated</h5>
+        <form class="newsletter-form">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit">Join</button>
+        </form>
+        <p class="newsletter-note">Join 10k+ students. No spam, ever.</p>
+      </div>
+      <div class="social-links">
+        <a href="#"><i class="fab fa-facebook-f"></i></a>
+        <a href="#"><i class="fab fa-x-twitter"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
+        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#"><i class="fab fa-tiktok"></i></a>
+        <a href="#"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div class="footer-links-grid">
+      <div class="link-column"><h4>Platform</h4><ul><li><a href="#">Post a Question</a></li><li><a href="#">Browse Documents</a></li><li><a href="#">Find a Tutor</a></li><li><a href="#">Online Classroom</a></li><li><a href="#">Study Library</a></li><li><a href="#">Calendar</a></li></ul></div>
+      <div class="link-column"><h4>Resources</h4><ul><li><a href="#">Study Materials</a></li><li><a href="#">Research Papers</a></li><li><a href="#">Practice Tests</a></li><li><a href="#">Subject Guides</a></li><li><a href="#">Academic Tools</a></li><li><a href="#">Free Resources</a></li></ul></div>
+      <div class="link-column"><h4>Support</h4><ul><li><a href="#">Help Centre</a></li><li><a href="#">Contact Us</a></li><li><a href="#">Live Chat</a></li><li><a href="#">How It Works</a></li><li><a href="#">Tutor Support</a></li><li><a href="#">Feedback</a></li></ul></div>
+      <div class="link-column"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li><li><a href="#">Honor Code</a></li></ul></div>
+      <div class="link-column"><h4>About Us</h4><ul><li><a href="#">About StudyGlade</a></li><li><a href="#">Careers</a></li><li><a href="#">Press & Media</a></li><li><a href="#">Blog</a></li><li><a href="#">Partnerships</a></li></ul></div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© <span id="year"></span> StudyGlade. All rights reserved. Empowering students worldwide.</p>
+    <button class="back-to-top" id="backToTopBtn" aria-label="Back to top"><i class="fas fa-arrow-up"></i> Top</button>
+  </div>
+</footer>
+
+<script>
+  // Dynamic year
+  document.getElementById('year').textContent = new Date().getFullYear();
+  // Back to top
+  const backBtn = document.getElementById('backToTopBtn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
+  // Custom dropdown
+  const selectWrapper = document.querySelector('.custom-select-wrapper');
+  const trigger = document.querySelector('.select-trigger');
+  if (selectWrapper && trigger) {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectWrapper.classList.toggle('active');
+    });
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        const selectedText = opt.innerText;
+        const selectedIcon = opt.querySelector('i').className;
+        trigger.querySelector('span').innerText = selectedText;
+        trigger.querySelector('i').className = selectedIcon + ' fas'; // keep font awesome
+        selectWrapper.classList.remove('active');
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!selectWrapper.contains(e.target)) selectWrapper.classList.remove('active');
+    });
+  }
+
+  // Count-up with Intersection Observer
+  const counters = document.querySelectorAll('.count');
+  const statsSection = document.querySelector('.stats-section');
+  let counted = false;
+  function formatNumber(value, target) {
+    if (target === 5000000) return (value / 1000000).toFixed(1) + 'M';
+    if (target % 1 !== 0) return value.toFixed(1);
+    return Math.floor(value).toLocaleString();
+  }
+  function startCountUp() {
+    if (counted) return;
+    counted = true;
+    counters.forEach(counter => {
+      const target = parseFloat(counter.getAttribute('data-target'));
+      let current = 0;
+      const step = target / 70;
+      const update = () => {
+        if (current < target) {
+          current += step;
+          if (current > target) current = target;
+          counter.innerText = formatNumber(current, target);
+          requestAnimationFrame(update);
+        } else {
+          counter.innerText = formatNumber(target, target);
+        }
+      };
+      update();
+    });
+  }
+  if (statsSection) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) { startCountUp(); observer.unobserve(entry.target); } });
+    }, { threshold: 0.3 });
+    observer.observe(statsSection);
+  }
+
+  // Testimonials data & slider
+  const testimonials = [
+    { name: "Priya Sharma", institution: "University of Nairobi", rating: 5, text: "Found a tutor within hours! My grades have improved drastically.", img: "https://randomuser.me/api/portraits/women/11.jpg" },
+    { name: "James Omondi", institution: "Kenyatta University", rating: 4.8, text: "The smart preview feature helped me choose the right document.", img: "https://randomuser.me/api/portraits/men/12.jpg" },
+    { name: "Aisha Diallo", institution: "University of Cape Town", rating: 5, text: "Secure payments and wallet system is seamless.", img: "https://randomuser.me/api/portraits/women/13.jpg" },
+    { name: "Carlos Mwangi", institution: "Strathmore University", rating: 4.9, text: "Tutors are highly professional. Love the live chat.", img: "https://randomuser.me/api/portraits/men/14.jpg" },
+    { name: "Zoe Chen", institution: "National University of Singapore", rating: 5, text: "Excellent library with thousands of resources.", img: "https://randomuser.me/api/portraits/women/15.jpg" },
+    { name: "Liam van der Merwe", institution: "University of Johannesburg", rating: 4.7, text: "Quick responses and affordable pricing.", img: "https://randomuser.me/api/portraits/men/16.jpg" },
+    { name: "Fatima Al-Mansoori", institution: "American University in Cairo", rating: 5, text: "Helped me with my thesis. Highly recommend.", img: "https://randomuser.me/api/portraits/women/17.jpg" },
+    { name: "Kwame Asante", institution: "University of Ghana", rating: 4.8, text: "The platform is intuitive and student-friendly.", img: "https://randomuser.me/api/portraits/men/18.jpg" },
+    { name: "Emily Wang", institution: "University of Hong Kong", rating: 5, text: "I unlocked a study guide and aced my exam.", img: "https://randomuser.me/api/portraits/women/19.jpg" },
+    { name: "Mateo Rodriguez", institution: "University of Melbourne", rating: 4.9, text: "Tutors explain concepts clearly. Great experience.", img: "https://randomuser.me/api/portraits/men/20.jpg" },
+    { name: "Sofia Rossi", institution: "University of Edinburgh", rating: 5, text: "Safe, fast, and reliable. Love the wallet funding.", img: "https://randomuser.me/api/portraits/women/21.jpg" },
+    { name: "Oliver Schmidt", institution: "Imperial College London", rating: 4.8, text: "The chat with tutors is a lifesaver before exams.", img: "https://randomuser.me/api/portraits/men/22.jpg" },
+    { name: "Nina Patel", institution: "University of Oxford", rating: 5, text: "Brilliant platform for busy students.", img: "https://randomuser.me/api/portraits/women/23.jpg" },
+    { name: "David Kimani", institution: "Jomo Kenyatta University", rating: 4.7, text: "Affordable and high-quality tutoring.", img: "https://randomuser.me/api/portraits/men/24.jpg" },
+    { name: "Leila Haddad", institution: "University of Lagos", rating: 5, text: "The document preview feature is very helpful.", img: "https://randomuser.me/api/portraits/women/25.jpg" },
+    { name: "Hiroshi Tanaka", institution: "University of Tokyo", rating: 4.9, text: "I always get answers within 24 hours.", img: "https://randomuser.me/api/portraits/men/26.jpg" },
+    { name: "Chloe Dubois", institution: "University of Cambridge", rating: 5, text: "StudyGlade made studying abroad much easier.", img: "https://randomuser.me/api/portraits/women/27.jpg" },
+    { name: "Mohammed Ali", institution: "University of Nairobi", rating: 4.8, text: "Great support team and easy withdrawals for tutors.", img: "https://randomuser.me/api/portraits/men/28.jpg" },
+    { name: "Isabella Santos", institution: "University of São Paulo", rating: 5, text: "The search bar finds exactly what I need.", img: "https://randomuser.me/api/portraits/women/29.jpg" },
+    { name: "Ethan Brown", institution: "Harvard University", rating: 4.9, text: "I recommend StudyGlade to all my classmates.", img: "https://randomuser.me/api/portraits/men/30.jpg" }
+  ];
+  const testimonialContainer = document.getElementById('testimonialContainer');
+  if (testimonialContainer) {
+    testimonials.forEach(t => {
+      const fullStars = Math.floor(t.rating);
+      const halfStar = t.rating % 1 !== 0;
+      let starsHtml = '';
+      for (let i=0; i<fullStars; i++) starsHtml += '<i class="fas fa-star"></i>';
+      if (halfStar) starsHtml += '<i class="fas fa-star-half-alt"></i>';
+      const card = document.createElement('div');
+      card.className = 'testimonial-card';
+      card.innerHTML = `<div style="display:flex; gap:0.8rem;"><img src="${t.img}"><div><strong>${t.name}</strong><div class="testimonial-rating">${starsHtml}</div></div></div><div class="testimonial-text">“${t.text}”</div><div class="testimonial-author">${t.name}</div><div class="testimonial-institution">${t.institution}</div>`;
+      testimonialContainer.appendChild(card);
+    });
+  }
+  // Slider logic
+  let currentIndex = 0;
+  const sliderContainer = document.querySelector('.testimonial-container');
+  const allCards = document.querySelectorAll('.testimonial-card');
+  const cardWidth = allCards[0]?.offsetWidth + 24;
+  const wrapper = document.querySelector('.testimonial-slider-wrapper');
+  let visibleCount = 1;
+  if (wrapper && cardWidth) visibleCount = Math.floor(wrapper.offsetWidth / cardWidth) || 1;
+  const maxIndex = Math.max(0, allCards.length - visibleCount);
+  function updateSlider() { if (sliderContainer) sliderContainer.style.transform = `translateX(-${currentIndex * cardWidth}px)`; }
+  const prevBtn = document.getElementById('prevTestimonial'), nextBtn = document.getElementById('nextTestimonial');
+  if (prevBtn && nextBtn) {
+    prevBtn.addEventListener('click', () => { currentIndex = currentIndex > 0 ? currentIndex - 1 : maxIndex; updateSlider(); });
+    nextBtn.addEventListener('click', () => { currentIndex = currentIndex < maxIndex ? currentIndex + 1 : 0; updateSlider(); });
+    let auto = setInterval(() => { currentIndex = currentIndex < maxIndex ? currentIndex + 1 : 0; updateSlider(); }, 6000);
+    wrapper.addEventListener('mouseenter', () => clearInterval(auto));
+    wrapper.addEventListener('mouseleave', () => { auto = setInterval(() => { currentIndex = currentIndex < maxIndex ? currentIndex + 1 : 0; updateSlider(); }, 6000); });
+  }
+</script>
+</body>
+</html>
