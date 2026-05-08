@@ -195,7 +195,7 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
   }
 });
 
-// ----------------- Login (unchanged) -----------------
+// ----------------- Login -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -261,7 +261,7 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // ----------------- Forgot Password -----------------
-router.post('/forgot-password', async (req, res) => {
+router/post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -310,6 +310,35 @@ router.get('/me', auth, async (req, res) => {
   } catch (err) {
     console.error('Get /me error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- Avatar Upload (memory multer, uses Cloudinary) -----------------
+const multerMemory = multer({ storage: multer.memoryStorage() });
+
+router.post('/avatar', auth, multerMemory.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'studyglade/avatars', transformation: [{ width: 150, height: 150, crop: 'fill' }] },
+        (error, uploadResult) => {
+          if (error) reject(error);
+          else resolve(uploadResult);
+        }
+      ).end(req.file.buffer);
+    });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user.avatar = result.secure_url;
+    await user.save();
+
+    res.json({ avatarUrl: result.secure_url });
+  } catch (err) {
+    console.error('Avatar upload error:', err);
+    res.status(500).json({ error: 'Upload failed' });
   }
 });
 

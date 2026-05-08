@@ -8,7 +8,8 @@ const Question = require('../models/Question');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Bid = require('../models/Bid');
-const { upload } = require('../server');  // use global multer
+const Notification = require('../models/Notification');   // <-- NEW
+const { upload } = require('../server');
 
 const router = express.Router();
 
@@ -17,6 +18,12 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+// Helper to get tutor information (fullName, avatar, gender, rating)
+async function getTutorInfo(tutorId) {
+  const tutor = await User.findById(tutorId).select('fullName avatar gender tutorProfile.rating');
+  return tutor;
+}
 
 // ------------------- 1. Post a question (student only) -------------------
 router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (req, res) => {
@@ -47,7 +54,6 @@ router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (re
       files: uploadedFiles
     });
 
-    // Atomic deduction
     const user = await User.findOneAndUpdate(
       { _id: req.userId, walletBalance: { $gte: budgetNum } },
       { $inc: { walletBalance: -budgetNum } },
@@ -82,7 +88,7 @@ router.get('/pending', auth, roleCheck('tutor'), async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const questions = await Question.find({ status: 'pending' })
-      .populate('studentId', 'fullName')
+      .populate('studentId', 'fullName avatar gender')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -93,22 +99,23 @@ router.get('/pending', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 3. My questions (student) -------------------
+// ------------------- 3. My questions (student) – now populates tutor avatar & rating -------------------
 router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
   try {
-    const questions = await Question.find({ studentId: req.userId }).populate('tutorId', 'fullName');
+    const questions = await Question.find({ studentId: req.userId })
+      .populate('tutorId', 'fullName avatar gender tutorProfile.rating');
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 4. My assignments (tutor) – NOW INCLUDES additionalFundsRequest -------------------
+// ------------------- 4. My assignments (tutor) – also populates additionalFundsRequest -------------------
 router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const questions = await Question.find({ tutorId: req.userId })
-      .populate('studentId', 'fullName')
-      .select('+additionalFundsRequest');  // <-- ADD THIS LINE to expose funds request status
+      .populate('studentId', 'fullName avatar gender')
+      .select('+additionalFundsRequest');
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -119,8 +126,8 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
-      .populate('studentId', 'fullName')
-      .populate('tutorId', 'fullName');
+      .populate('studentId', 'fullName avatar gender')
+      .populate('tutorId', 'fullName avatar gender tutorProfile.rating');
     if (!question) return res.status(404).json({ error: 'Question not found' });
     const user = await User.findById(req.userId);
     const isStudent = question.studentId._id.toString() === req.userId;
@@ -142,6 +149,17 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
     question.tutorId = req.userId;
     question.status = 'assigned';
     await question.save();
+
+    // Optional: notify student that tutor accepted
+    const tutor = await User.findById(req.userId).select('fullName');
+    await Notification.create({
+      userId: question.studentId,
+      type: 'question_posted',
+      title: 'Tutor Assigned',
+      message: `${tutor.fullName} has accepted your question "${question.title}".`,
+      link: `/question-details.html?id=${question._id}`
+    });
+
     res.json(question);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -162,7 +180,6 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
     const tutor = await User.findById(req.userId);
     const earnings = question.budget * 0.76;
     tutor.walletBalance += earnings;
-    // Update tutor stats
     tutor.tutorProfile.completedQuestions = (tutor.tutorProfile.completedQuestions || 0) + 1;
     tutor.tutorProfile.totalEarnings = (tutor.tutorProfile.totalEarnings || 0) + earnings;
     const wasOnTime = new Date() <= new Date(question.deadline);
@@ -179,13 +196,23 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
       description: `Completed question: ${question.title}`,
       referenceId: question._id
     });
+
+    // Notify student that answer is complete
+    await Notification.create({
+      userId: question.studentId,
+      type: 'answer_uploaded',
+      title: 'Question Completed',
+      message: `Your question "${question.title}" has been completed by ${tutor.fullName}.`,
+      link: `/answer-details.html?id=${question._id}`
+    });
+
     res.json(question);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 8. Place a bid (restrictions) -------------------
+// ------------------- 8. Place a bid (restrictions) + NOTIFICATION -------------------
 router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const { amount, message } = req.body;
@@ -193,11 +220,9 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
     if (!question) return res.status(404).json({ error: 'Question not found' });
     if (question.status !== 'pending') return res.status(400).json({ error: 'Question is no longer pending' });
 
-    // Check if tutor already bid
     const existingBid = await Bid.findOne({ questionId: question._id, tutorId: req.userId });
     if (existingBid) return res.status(400).json({ error: 'You have already placed a bid on this question' });
 
-    // Cannot bid below student's budget
     if (amount < question.budget) {
       return res.status(400).json({ error: `Bid cannot be less than student's budget ($${question.budget})` });
     }
@@ -208,13 +233,24 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
       amount,
       message
     });
+
+    // 🔔 Notify student
+    const tutor = await User.findById(req.userId).select('fullName');
+    await Notification.create({
+      userId: question.studentId,
+      type: 'new_bid',
+      title: 'New Bid',
+      message: `${tutor.fullName} placed a bid of $${amount} on your question "${question.title}".`,
+      link: `/question-details.html?id=${question._id}`
+    });
+
     res.status(201).json(bid);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// ------------------- 9. Accept budget suggestion (student) -------------------
+// ------------------- 9. Accept budget suggestion (student) + NOTIFICATION -------------------
 router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -250,13 +286,23 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
       referenceId: question._id
     });
 
+    // 🔔 Notify tutor
+    const tutor = await User.findById(question.tutorId).select('fullName');
+    await Notification.create({
+      userId: question.tutorId,
+      type: 'question_posted',
+      title: 'Budget increased & you were assigned',
+      message: `${student.fullName} increased the budget to $${question.budget} and assigned you to "${question.title}".`,
+      link: `/question-details.html?id=${question._id}`
+    });
+
     res.json({ message: 'Budget increased and tutor assigned', newBudget: question.budget });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 10. Upload answer (tutor) -------------------
+// ------------------- 10. Upload answer (tutor) + NOTIFICATION -------------------
 router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answer'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -273,6 +319,16 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
     question.answerUploadedAt = new Date();
     await question.save();
 
+    // 🔔 Notify student
+    const tutor = await User.findById(req.userId).select('fullName');
+    await Notification.create({
+      userId: question.studentId,
+      type: 'answer_uploaded',
+      title: 'Answer Uploaded',
+      message: `${tutor.fullName} has uploaded an answer for "${question.title}".`,
+      link: `/answer-details.html?id=${question._id}`
+    });
+
     res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
   } catch (err) {
     if (req.file) await fs.unlink(req.file.path).catch(() => {});
@@ -280,7 +336,7 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
   }
 });
 
-// ------------------- 11. Get bids for a question (student/admin) -------------------
+// ------------------- 11. Get bids for a question (student/admin) – populate tutor with avatar & rating -------------------
 router.get('/:id/bids', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -289,14 +345,15 @@ router.get('/:id/bids', auth, async (req, res) => {
     const isStudent = question.studentId.toString() === req.userId;
     const isAdmin = user.role === 'admin';
     if (!isStudent && !isAdmin) return res.status(403).json({ error: 'Only the student can view bids' });
-    const bids = await Bid.find({ questionId: question._id }).populate('tutorId', 'fullName tutorProfile.rating tutorProfile.completedQuestions email');
+    const bids = await Bid.find({ questionId: question._id })
+      .populate('tutorId', 'fullName avatar gender tutorProfile.rating tutorProfile.completedQuestions email');
     res.json(bids);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 12. Accept a specific bid (student) -------------------
+// ------------------- 12. Accept a specific bid (student) + NOTIFICATION -------------------
 router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -345,6 +402,16 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     bid.accepted = true;
     await bid.save();
 
+    // 🔔 Notify tutor that their bid was accepted
+    const tutor = await User.findById(bid.tutorId).select('fullName');
+    await Notification.create({
+      userId: bid.tutorId,
+      type: 'question_posted',
+      title: 'Your bid was accepted!',
+      message: `${tutor.fullName}, your bid of $${bidAmount} on "${question.title}" has been accepted.`,
+      link: `/question-details.html?id=${question._id}`
+    });
+
     res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -352,7 +419,6 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
 });
 
 // ------------------- 13. Student rates tutor (after completion) -------------------
-// ------------------- 13. Student rates or updates rating -------------------
 router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -361,8 +427,6 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
     if (question.studentId.toString() !== req.userId) return res.status(403).json({ error: 'Not authorized' });
 
     const { score, feedback } = req.body;
-    console.log(`📝 Rating received for question ${question.title}: score = ${score}, feedback = ${feedback}`); // 👈 LOG
-
     if (score < 1 || score > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
 
     question.rating = { score, feedback, createdAt: new Date() };
@@ -375,7 +439,6 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
       'rating.score': { $exists: true }
     });
     const avg = allRatings.reduce((sum, q) => sum + q.rating.score, 0) / allRatings.length;
-    console.log(`🔄 Tutor ${tutor.email} average recalculated: ${avg} (based on ${allRatings.length} ratings)`); // 👈 LOG
     tutor.tutorProfile.rating = parseFloat(avg.toFixed(2));
     await tutor.save();
 
@@ -406,13 +469,24 @@ router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (re
       requestedAt: new Date()
     };
     await question.save();
+
+    // 🔔 Notify student
+    const tutor = await User.findById(req.userId).select('fullName');
+    await Notification.create({
+      userId: question.studentId,
+      type: 'question_posted',
+      title: 'Additional Funds Request',
+      message: `${tutor.fullName} requests an additional $${amount} for "${question.title}". Reason: ${reason}`,
+      link: `/question-details.html?id=${question._id}`
+    });
+
     res.json({ message: 'Request sent to student' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 15. Student responds to additional funds request -------------------
+// ------------------- 15. Student responds to additional funds request + NOTIFICATION -------------------
 router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -421,9 +495,8 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
     const request = question.additionalFundsRequest;
     if (!request || request.status !== 'pending') return res.status(400).json({ error: 'No pending request' });
 
-    const { accept } = req.body; // boolean
+    const { accept } = req.body;
     if (accept) {
-      // Deduct extra from student wallet
       const student = await User.findOneAndUpdate(
         { _id: req.userId, walletBalance: { $gte: request.amount } },
         { $inc: { walletBalance: -request.amount } },
@@ -439,8 +512,25 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
         referenceId: question._id
       });
       request.status = 'approved';
+
+      // 🔔 Notify tutor (approved)
+      await Notification.create({
+        userId: question.tutorId,
+        type: 'funds_response',
+        title: 'Funds Request Approved',
+        message: `Your request for additional $${request.amount} on "${question.title}" was approved.`,
+        link: `/question-details.html?id=${question._id}`
+      });
     } else {
       request.status = 'rejected';
+      // 🔔 Notify tutor (rejected)
+      await Notification.create({
+        userId: question.tutorId,
+        type: 'funds_response',
+        title: 'Funds Request Rejected',
+        message: `Your request for additional $${request.amount} on "${question.title}" was rejected.`,
+        link: `/question-details.html?id=${question._id}`
+      });
     }
     request.studentResponseAt = new Date();
     await question.save();
@@ -458,7 +548,6 @@ router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res)
     if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
     if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
 
-    // NEW RULE: cancellation allowed only if student has rejected a pending additional funds request
     const fundsReq = question.additionalFundsRequest;
     if (!fundsReq || fundsReq.status !== 'rejected') {
       return res.status(400).json({ error: 'Cancellation only allowed after student refuses an additional funds request.' });

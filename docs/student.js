@@ -441,7 +441,8 @@ async function uploadAvatar() {
   btn.disabled = true;
   btn.innerText = 'Uploading...';
   try {
-    const response = await fetch('/api/users/avatar', {
+    // ✅ FIXED: correct endpoint
+    const response = await fetch('/api/auth/avatar', {
       method: 'POST',
       credentials: 'include',
       body: formData
@@ -467,7 +468,7 @@ async function uploadAvatar() {
 }
 window.uploadAvatar = uploadAvatar;
 
-// ========== NOTIFICATIONS DROPDOWN ==========
+// ========== NOTIFICATIONS DROPDOWN (REAL NOTIFICATIONS) ==========
 const notificationBell = document.querySelector('.notification-bell');
 let notificationDropdown = null;
 
@@ -479,26 +480,43 @@ function createNotificationDropdown() {
     <div class="notification-header">Notifications</div>
     <div class="notification-list" id="notificationListDropdown">Loading...</div>
     <div class="notification-footer">
-      <a href="#" onclick="markAllRead(); return false;">Mark all as read</a>
+      <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
       <a href="notifications.html">View all</a>
     </div>
   `;
   document.body.appendChild(notificationDropdown);
 }
 
+// Fetch unread count and update badge
+async function updateUnreadBadge() {
+  try {
+    const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+    const data = await res.json();
+    const badge = document.querySelector('.notification-bell .badge');
+    if (badge) badge.innerText = data.count > 9 ? '9+' : data.count;
+  } catch (err) {
+    console.error('Failed to fetch unread count:', err);
+  }
+}
+
+// Fetch notifications for dropdown
 async function loadNotificationsDropdown() {
   if (!notificationDropdown) createNotificationDropdown();
   const listDiv = notificationDropdown.querySelector('.notification-list');
   listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
   try {
-    const res = await fetch('/api/admin/public/announcements');
-    const announcements = await res.json();
+    const res = await fetch('/api/notifications?limit=5', { credentials: 'include' });
+    const data = await res.json();
     let html = '';
-    if (announcements.length === 0) {
+    if (data.notifications.length === 0) {
       html = '<div class="notification-item no-notifications">No new notifications</div>';
     } else {
-      announcements.forEach(a => {
-        html += `<div class="notification-item"><strong>${escapeHtml(a.title)}</strong><br>${escapeHtml(a.message)}<div class="notification-time">${new Date(a.createdAt).toLocaleString()}</div></div>`;
+      data.notifications.forEach(n => {
+        html += `<div class="notification-item" data-id="${n._id}">
+                   <strong>${escapeHtml(n.title)}</strong><br>
+                   ${escapeHtml(n.message)}
+                   <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
+                 </div>`;
       });
     }
     listDiv.innerHTML = html;
@@ -507,17 +525,40 @@ async function loadNotificationsDropdown() {
   }
 }
 
-function toggleNotificationDropdown(event) {
+async function toggleNotificationDropdown(event) {
   event.stopPropagation();
   if (!notificationDropdown) createNotificationDropdown();
   const isVisible = notificationDropdown.style.display === 'block';
   if (isVisible) {
     notificationDropdown.style.display = 'none';
   } else {
-    loadNotificationsDropdown();
+    await loadNotificationsDropdown();
     notificationDropdown.style.display = 'block';
-    const badge = document.querySelector('.notification-bell .badge');
-    if (badge) badge.innerText = '0';
+    // Optionally mark all as read when opening (or leave to user)
+  }
+}
+
+// Mark all notifications as read (backend + frontend)
+async function markAllRead(event) {
+  if (event) event.preventDefault();
+  try {
+    const res = await fetch('/api/notifications/read-all', {
+      method: 'PUT',
+      credentials: 'include'
+    });
+    if (res.ok) {
+      showToast('All notifications marked as read', 'info');
+      const badge = document.querySelector('.notification-bell .badge');
+      if (badge) badge.innerText = '0';
+      // Reload dropdown content to clear unread items (optional)
+      if (notificationDropdown && notificationDropdown.style.display === 'block') {
+        loadNotificationsDropdown();
+      }
+    } else {
+      showToast('Failed to mark as read', 'error');
+    }
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -535,18 +576,16 @@ if (notificationBell) {
   notificationBell.addEventListener('click', toggleNotificationDropdown);
 }
 
-function markAllRead() {
-  showToast('All notifications marked as read', 'info');
-  const badge = document.querySelector('.notification-bell .badge');
-  if (badge) badge.innerText = '0';
-  loadNotificationsDropdown();
-}
-window.markAllRead = markAllRead;
-
 window.closeNotificationModal = function() {
   const modal = document.getElementById('notificationModal');
   if (modal) modal.style.display = 'none';
 };
+
+// Update unread badge periodically (every 30 seconds)
+setInterval(updateUnreadBadge, 30000);
+
+// Call once on page load
+updateUnreadBadge();
 
 // ---------- Ensure event listeners (Add Funds, Load More) ----------
 document.addEventListener('DOMContentLoaded', () => {

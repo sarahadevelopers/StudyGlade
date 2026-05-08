@@ -9,6 +9,8 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
+const notificationRoutes = require('./routes/notifications');
+
 
 const app = express();
 
@@ -162,6 +164,7 @@ app.use(cookieParser());
 // ---------- 7. EJS SETUP ----------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use('/api/notifications', notificationRoutes);
 
 // ---------- 8. DATABASE CONNECTION ----------
 mongoose.connect(process.env.MONGODB_URI)
