@@ -261,7 +261,8 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // ----------------- Forgot Password -----------------
-router/post('/forgot-password', async (req, res) => {
+// ✅ FIXED: router.post (was router/post)
+router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
