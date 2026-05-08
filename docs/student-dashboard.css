@@ -600,7 +600,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--ft-accent), var(--ft-accent), transparent);
+  background: linear-gradient(90deg, transparent, #38BDF8, #38BDF8, transparent);
 }
 .footer-container {
   max-width: 1300px;
@@ -619,7 +619,7 @@ body {
   align-items: baseline;
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--ft-white);
+  color: aliceblue;
   text-decoration: none;
   letter-spacing: -0.5px;
 }
@@ -627,7 +627,7 @@ body {
   font-size: 1.8rem;
   margin-left: 4px;
   transform: rotate(12deg);
-  color: var(--ft-accent);
+  color: #38BDF8;
   transition: transform 0.2s;
 }
 .footer-logo:hover i.fa-pen-fancy { transform: rotate(12deg) scale(1.05); }
@@ -635,14 +635,14 @@ body {
   line-height: 1.5;
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
-  color: var(--ft-text);
+  color: #94A3B8;
 }
 .newsletter-box {
   margin: 1.5rem 0 1.8rem;
   max-width: 320px;
 }
 .newsletter-box h5 {
-  color: var(--ft-white);
+  color: aliceblue;
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
@@ -657,7 +657,7 @@ body {
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .newsletter-form:focus-within {
-  border-color: var(--ft-accent);
+  border-color: #38BDF8;
   box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
 }
 .newsletter-form input {
@@ -665,13 +665,13 @@ body {
   background: transparent;
   border: none;
   padding: 0.6rem 1rem;
-  color: var(--ft-white);
+  color: aliceblue;
   font-size: 0.85rem;
   outline: none;
 }
 .newsletter-form input::placeholder { color: rgba(255,255,255,0.4); }
 .newsletter-form button {
-  background: var(--ft-accent);
+  background: #38BDF8;
   color: #050A18;
   border: none;
   padding: 0.4rem 1.2rem;
@@ -700,13 +700,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ft-white);
+  color: aliceblue;
   font-size: 1rem;
   transition: all 0.25s;
   text-decoration: none;
 }
 .social-links a:hover {
-  background: var(--ft-accent);
+  background: #38BDF8;
   transform: translateY(-3px);
   color: #050A18;
 }
@@ -717,7 +717,7 @@ body {
   gap: 2rem;
 }
 .link-column h4 {
-  color: var(--ft-white);
+  color: #38BDF8;
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 1.2rem;
@@ -733,26 +733,26 @@ body {
   left: 0;
   width: 28px;
   height: 2px;
-  background: var(--ft-accent);
+  background: #38BDF8;
   border-radius: 2px;
 }
 .link-column ul { list-style: none; padding: 0; margin: 0; }
 .link-column ul li { margin-bottom: 0.7rem; }
 .link-column ul li a {
   text-decoration: none;
-  color: var(--ft-text);
+  color: #94A3B8;
   font-size: 0.85rem;
   transition: all 0.2s ease;
   display: inline-block;
 }
 .link-column ul li a:hover {
-  color: var(--ft-accent);
+  color: #38BDF8;
   transform: translateX(4px);
 }
 .footer-bottom {
   margin-top: 3rem;
   padding-top: 1.8rem;
-  border-top: 1px solid var(--ft-border);
+  border-top: 1px solid #38BDF8;
   display: flex;
   justify-content: space-between;
   align-items: center;
