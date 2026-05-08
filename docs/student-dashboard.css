@@ -586,8 +586,8 @@ body {
 
 /* Premium Footer */
 .premium-footer {
-  background-color: var(--ft-bg);
-  color: var(--ft-text);
+  background-color: #1E293B;
+  color: #F1F5F9;
   padding: 4rem 5% 2rem;
   font-family: 'Jost', 'Inter', sans-serif;
   margin-top: 3rem;
