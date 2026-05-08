@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutor Dashboard | StudyGlade</title>
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tutorprofile.css">
+  <style>
+    /* Additional inline styles for modals etc. */
+    .bid-input {
+      width: 80px;
+      padding: 0.2rem 0.5rem;
+      border-radius: 40px;
+      border: 1px solid #E2E8F0;
+      text-align: center;
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 32px;
+      max-width: 500px;
+      width: 90%;
+      padding: 1.5rem;
+    }
+    .close-modal {
+      float: right;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== DARK NAVY TOP BAR ==================== -->
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-center">
+      <a href="tutorprofile.html" class="nav-link active">Dashboard</a>
+      <a href="#" class="nav-link">My Assignments</a>
+      <a href="#" class="nav-link">Earnings</a>
+      <a href="document-library.html" class="nav-link">Library</a>
+      <a href="#" class="nav-link">Messages</a>
+    </div>
+    <div class="nav-right">
+      <div class="notification-bell">
+        <i class="fas fa-bell"></i>
+        <span class="badge">0</span>
+      </div>
+      <div class="user-menu" onclick="toggleUserMenu(event)">
+        <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Avatar" class="user-avatar">
+        <span class="user-name">Loading...</span>
+        <i class="fas fa-chevron-down"></i>
+        <div class="user-dropdown">
+          <a href="#" onclick="openAvatarModal(); return false;">Change Avatar</a>
+          <a href="#" onclick="logoutUser(); return false;">Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="dashboard-main">
+  <div class="dashboard-container">
+    <!-- LEFT COLUMN (75%) -->
+    <div class="main-column">
+      <div class="page-header">
+        <h1>Tutor Dashboard</h1>
+        <p>Manage your assignments, track earnings, and grow your tutoring business.</p>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+          <div class="stat-content">
+            <h3>Total Earnings</h3>
+            <div class="stat-value" id="totalEarnings">$0.00</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-content">
+            <h3>Completed Questions</h3>
+            <div class="stat-value" id="completedCount">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-star"></i></div>
+          <div class="stat-content">
+            <h3>Your Rating</h3>
+            <div class="stat-value" id="tutorRating">0.0</div>
+          </div>
+        </div>
+        <div class="stat-card gradient-card">
+          <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+          <div class="stat-content">
+            <h3>Available Balance</h3>
+            <div class="stat-value" id="availableBalance">$0.00</div>
+            <a href="#" onclick="showWithdrawModal(); return false;" class="stat-link">Withdraw Funds</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Questions Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Available Questions</h2>
+          <span class="count-badge" id="pendingCount">0</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" id="pendingQuestionsTable">
+            <thead>
+              <tr><th>Question</th><th>Subject</th><th>Budget</th><th>Deadline</th><th>Your Bid</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="pendingQuestions"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- My Assignments Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>My Assignments</h2>
+          <span class="count-badge" id="assignmentsCount">0</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" id="assignmentsTable">
+            <thead>
+              <tr><th>Question</th><th>Student</th><th>Budget</th><th>Status</th><th>Funds Request</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="assignmentsList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar-column">
+      <div class="sidebar-card">
+        <h3>Quick Actions</h3>
+        <div class="action-list">
+          <a href="#" class="action-item" onclick="openUploadDocModal(); return false;">
+            <i class="fas fa-upload"></i> <span>Upload Document</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+          <a href="#" class="action-item" onclick="showWithdrawModal(); return false;">
+            <i class="fas fa-money-bill-wave"></i> <span>Request Withdrawal</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+          <a href="#" class="action-item">
+            <i class="fas fa-chart-line"></i> <span>Performance Stats</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+      <div class="sidebar-card need-help">
+        <h3><i class="fas fa-life-ring"></i> Need Help?</h3>
+        <p>Our support team is here to help you anytime.</p>
+        <a href="#" class="live-chat-btn"><i class="fas fa-comment-dots"></i> Live Chat</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modals -->
+<div id="uploadDocModal" class="modal-overlay">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeUploadDocModal()">&times;</span>
+    <h3>Upload Study Document</h3>
+    <form id="uploadDocForm">
+      <div class="form-group"><label>Title</label><input type="text" id="docTitle" required></div>
+      <div class="form-group"><label>Description</label><textarea id="docDescription" rows="2"></textarea></div>
+      <div class="form-group"><label>Subject</label><input type="text" id="docSubject" placeholder="e.g., Mathematics"></div>
+      <div class="form-group"><label>Level</label><select id="docLevel"><option>High School</option><option>College</option><option>Masters</option><option>PhD</option></select></div>
+      <div class="form-group"><label>Type</label><select id="docType"><option>Notes</option><option>Assignment</option><option>Exam Prep</option><option>Guide</option><option>Template</option></select></div>
+      <div class="form-group"><label>Price ($)</label><input type="number" id="docPrice" step="0.5" required></div>
+      <div class="form-group"><label>File</label><input type="file" id="docFile" accept=".pdf,.doc,.docx,.jpg,.png" required></div>
+      <button type="submit" class="btn-primary btn-sm">Upload</button>
+    </form>
+  </div>
+</div>
+
+<div id="withdrawModal" class="modal-overlay">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeWithdrawModal()">&times;</span>
+    <h3>Request Withdrawal</h3>
+    <form id="withdrawForm">
+      <div class="form-group"><label>Amount ($)</label><input type="number" id="withdrawAmount" step="0.01" required></div>
+      <div class="form-group"><label>Method</label><select id="withdrawMethod"><option>paypal</option><option>mpesa</option><option>bank</option></select></div>
+      <button type="submit" class="btn-primary btn-sm">Submit Request</button>
+    </form>
+  </div>
+</div>
+
+<div id="avatarUploadModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 450px;">
+    <span class="close-modal" onclick="closeAvatarModal()">&times;</span>
+    <h3>Change Avatar</h3>
+    <p>Upload a profile picture (JPEG, PNG, GIF)</p>
+    <input type="file" id="avatarFile" accept="image/*">
+    <div style="margin-top: 1rem;">
+      <button onclick="uploadAvatar()" class="btn-primary btn-sm">Upload</button>
+      <button onclick="closeAvatarModal()" class="btn-outline btn-sm">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="auth.js"></script>
+<script src="tutorprofile.js"></script>
+<script>
+  // Helper functions used inline
+  function openUploadDocModal() { document.getElementById('uploadDocModal').style.display = 'flex'; }
+  function closeUploadDocModal() { document.getElementById('uploadDocModal').style.display = 'none'; }
+  function showWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
+  function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+  function openAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'flex'; }
+  function closeAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'none'; }
+  function logoutUser() { localStorage.clear(); window.location.href = 'login.html'; }
+  function toggleUserMenu(event) {
+    event.stopPropagation();
+    const menu = document.querySelector('.user-menu');
+    menu.classList.toggle('active');
+  }
+  document.addEventListener('click', function(e) {
+    const menu = document.querySelector('.user-menu');
+    if (menu && !menu.contains(e.target)) menu.classList.remove('active');
+  });
+  async function uploadAvatar() {
+    const fileInput = document.getElementById('avatarFile');
+    const file = fileInput.files[0];
+    if (!file) { showToast('Please select an image', 'error'); return; }
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const btn = document.querySelector('#avatarUploadModal .btn-primary');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Uploading...';
+    try {
+      const response = await fetch('/api/auth/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showToast('Avatar updated successfully', 'success');
+        const user = JSON.parse(localStorage.getItem('user'));
+        user.avatar = data.avatarUrl;
+        localStorage.setItem('user', JSON.stringify(user));
+        document.querySelector('.user-avatar').src = data.avatarUrl;
+        closeAvatarModal();
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = originalText;
+      fileInput.value = '';
+    }
+  }
+  window.placeBid = window.placeBid; // from tutorprofile.js
+  window.requestAdditionalFunds = window.requestAdditionalFunds;
+  window.cancelAssignment = window.cancelAssignment;
+</script>
+</body>
+</html>
