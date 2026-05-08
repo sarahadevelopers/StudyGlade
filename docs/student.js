@@ -1,16 +1,16 @@
 // ---------- Load Student Dashboard ----------
 // ---------- Load Student Dashboard ----------
+// ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   if (!user || !user.id) {
-    // Not logged in – redirect to login
     window.location.href = 'login.html';
     return;
   }
 
-  // Safely update wallet balance
+  // Update wallet balance
   const walletEl = document.getElementById('walletBalance');
-  if (walletEl) walletEl.innerText = `$${user.walletBalance}`;
+  if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
 
   const questions = await apiFetch('/questions/my-questions');
   
@@ -19,42 +19,113 @@ async function loadStudentDashboard() {
   if (activeTable) activeTable.innerHTML = '';
   if (completedTable) completedTable.innerHTML = '';
 
-  for (const q of questions) {
-    const safeTitle = escapeHtml(q.title);
-    const safeTutor = escapeHtml(q.tutorId?.fullName || 'None');
-    const safeStatus = escapeHtml(q.status);
-    const budget = `$${q.budget}`;
+  let activeCount = 0;
+  let completedCount = 0;
 
-    if (q.status === 'pending' || q.status === 'assigned') {
-      const viewBtn = `<button class="btn-outline btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>`;
-      const row = `<tr>
-        <td>${safeTitle}</td>
-        <td>${safeTutor}</td>
-        <td>${safeStatus}</td>
-        <td>${budget}</td>
-        <td>${viewBtn}</td>
-      </tr>`;
-      if (activeTable) activeTable.innerHTML += row;
+  for (const q of questions) {
+    const isActive = (q.status === 'pending' || q.status === 'assigned' || q.status === 'in_progress');
+    if (isActive) activeCount++;
+    else if (q.status === 'completed') completedCount++;
+
+    // Common data
+    const safeTitle = escapeHtml(q.title);
+    const subject = escapeHtml(q.subject || 'General');
+    const budget = `$${q.budget}`;
+    const tutor = q.tutorId || null;
+    const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
+    const tutorRating = tutor?.tutorProfile?.rating ? tutor.tutorProfile.rating.toFixed(1) : '0.0';
+    const tutorAvatar = tutor?.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg';
+
+    // Determine status badge
+    let statusText = '';
+    let statusClass = '';
+    if (q.status === 'pending') {
+      statusText = 'Awaiting Response';
+      statusClass = 'status-awaiting';
+    } else if (q.status === 'assigned') {
+      statusText = 'Assigned';
+      statusClass = 'status-progress';
+    } else if (q.status === 'in_progress') {
+      statusText = 'In Progress';
+      statusClass = 'status-progress';
+    } else if (q.status === 'overdue') {
+      statusText = 'Overdue';
+      statusClass = 'status-payment'; // using purple for urgent
     } else if (q.status === 'completed') {
-      let viewAnswerBtn = q.answerFile
-        ? `<button class="btn-outline btn-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
+      statusText = 'Completed';
+      statusClass = 'status-completed';
+    } else {
+      statusText = escapeHtml(q.status);
+      statusClass = 'status-awaiting';
+    }
+
+    if (isActive) {
+      const tutorHtml = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+          <div>
+            <div><strong>${tutorName}</strong></div>
+            <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
+          </div>
+        </div>
+      `;
+      const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
+      const row = `
+        <tr>
+          <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+          <td>${tutorHtml}</td>
+          <td>${subject}</td>
+          <td>${budget}</td>
+          <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+          <td>${actionBtn}</td>
+        </tr>
+      `;
+      activeTable.innerHTML += row;
+    } else if (q.status === 'completed') {
+      const viewAnswerBtn = q.answerFile
+        ? `<button class="btn-sm btn-outline-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
         : '<span class="disabled">No answer</span>';
-      const rateBtn = `<button class="btn-outline btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${escapeHtml(q.tutorId?.fullName)}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
-      const actions = `${viewAnswerBtn} ${rateBtn}`;
-      const row = `<table>
-        <td>${safeTitle}</td>
-        <td>${safeTutor}</td>
-        <td>${safeStatus}</td>
-        <td>${budget}</td>
-        <td>${actions}</td>
-      </table>`;
-      if (completedTable) completedTable.innerHTML += row;
+      const rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
+      const tutorHtml = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%;">
+          <div>
+            <div><strong>${tutorName}</strong></div>
+            <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
+          </div>
+        </div>
+      `;
+      const ratingStars = q.rating && q.rating.score
+        ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
+        : 'Not rated';
+      const row = `
+        <tr>
+          <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+          <td>${subject}</td>
+          <td>${tutorHtml}</td>
+          <td>${budget}</td>
+          <td>${ratingStars}</td>
+          <td>${viewAnswerBtn} ${rateBtn}</td>
+        </tr>
+      `;
+      completedTable.innerHTML += row;
     }
   }
+
+  // Update statistics cards
+  document.getElementById('activeCount').innerText = activeCount;
+  document.getElementById('completedCount').innerText = completedCount;
+  document.getElementById('activeBadge').innerText = activeCount;
+
+  const totalQuestions = activeCount + completedCount;
+  const successRate = totalQuestions === 0 ? 0 : Math.round((completedCount / totalQuestions) * 100);
+  document.getElementById('successRate').innerText = `${successRate}%`;
 
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
 }
+
+// Make sure the rest of your student.js (rating modal, add funds, etc.) remains unchanged.
 
 // ... (the rest of student.js remains unchanged, but ensure escapeHtml is defined)
 
