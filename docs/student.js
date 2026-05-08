@@ -1,6 +1,63 @@
-// ---------- Load Student Dashboard ----------
-// ---------- Load Student Dashboard ----------
-// ---------- Load Student Dashboard ----------
+// ---------- Helper: escape HTML ----------
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// ---------- Update User Menu (avatar, name, dropdown) ----------
+function updateUserMenu(user) {
+  const userNameSpan = document.querySelector('.user-name');
+  const userAvatarImg = document.querySelector('.user-avatar');
+  if (userNameSpan) userNameSpan.innerText = user.fullName;
+  if (userAvatarImg) {
+    let avatarUrl = user.avatar;
+    if (!avatarUrl) {
+      const id = Math.floor(Math.random() * 100);
+      if (user.gender === 'female') avatarUrl = `https://randomuser.me/api/portraits/women/${id}.jpg`;
+      else if (user.gender === 'male') avatarUrl = `https://randomuser.me/api/portraits/men/${id}.jpg`;
+      else avatarUrl = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
+    }
+    userAvatarImg.src = avatarUrl;
+  }
+}
+
+// ---------- User Dropdown Toggle ----------
+function toggleUserMenu() {
+  let dropdown = document.getElementById('userDropdown');
+  if (!dropdown) {
+    dropdown = document.createElement('div');
+    dropdown.id = 'userDropdown';
+    dropdown.className = 'user-dropdown';
+    dropdown.innerHTML = `<a href="#" onclick="logoutUser()">Logout</a>`;
+    document.querySelector('.user-menu').appendChild(dropdown);
+  }
+  dropdown.classList.toggle('show');
+}
+
+function logoutUser() {
+  localStorage.clear();
+  window.location.href = 'login.html';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const menu = document.querySelector('.user-menu');
+  const dropdown = document.getElementById('userDropdown');
+  if (menu && dropdown && !menu.contains(e.target)) {
+    dropdown.classList.remove('show');
+  }
+});
+
+// ---------- Global variables for pagination ----------
+let allCompletedQuestions = [];
+let completedDisplayCount = 10;
+
+// ---------- Load Student Dashboard (main) ----------
 async function loadStudentDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   if (!user || !user.id) {
@@ -8,128 +65,160 @@ async function loadStudentDashboard() {
     return;
   }
 
+  // Update user menu with real data
+  updateUserMenu(user);
+
   // Update wallet balance
   const walletEl = document.getElementById('walletBalance');
   if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
 
   const questions = await apiFetch('/questions/my-questions');
   
-  const activeTable = document.getElementById('activeQuestions');
-  const completedTable = document.getElementById('completedQuestions');
-  if (activeTable) activeTable.innerHTML = '';
-  if (completedTable) completedTable.innerHTML = '';
+  // Separate active and completed
+  const active = questions.filter(q => q.status !== 'completed');
+  const completed = questions.filter(q => q.status === 'completed');
+  allCompletedQuestions = completed;
 
-  let activeCount = 0;
-  let completedCount = 0;
+  // Update counts
+  document.getElementById('activeCount').innerText = active.length;
+  document.getElementById('completedCount').innerText = completed.length;
+  document.getElementById('activeBadge').innerText = active.length;
 
-  for (const q of questions) {
-    const isActive = (q.status === 'pending' || q.status === 'assigned' || q.status === 'in_progress');
-    if (isActive) activeCount++;
-    else if (q.status === 'completed') completedCount++;
-
-    // Common data
-    const safeTitle = escapeHtml(q.title);
-    const subject = escapeHtml(q.subject || 'General');
-    const budget = `$${q.budget}`;
-    const tutor = q.tutorId || null;
-    const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
-    const tutorRating = tutor?.tutorProfile?.rating ? tutor.tutorProfile.rating.toFixed(1) : '0.0';
-    const tutorAvatar = tutor?.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg';
-
-    // Determine status badge
-    let statusText = '';
-    let statusClass = '';
-    if (q.status === 'pending') {
-      statusText = 'Awaiting Response';
-      statusClass = 'status-awaiting';
-    } else if (q.status === 'assigned') {
-      statusText = 'Assigned';
-      statusClass = 'status-progress';
-    } else if (q.status === 'in_progress') {
-      statusText = 'In Progress';
-      statusClass = 'status-progress';
-    } else if (q.status === 'overdue') {
-      statusText = 'Overdue';
-      statusClass = 'status-payment'; // using purple for urgent
-    } else if (q.status === 'completed') {
-      statusText = 'Completed';
-      statusClass = 'status-completed';
-    } else {
-      statusText = escapeHtml(q.status);
-      statusClass = 'status-awaiting';
-    }
-
-    if (isActive) {
-      const tutorHtml = `
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-          <div>
-            <div><strong>${tutorName}</strong></div>
-            <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
-          </div>
-        </div>
-      `;
-      const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
-      const row = `
-        <tr>
-          <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
-          <td>${tutorHtml}</td>
-          <td>${subject}</td>
-          <td>${budget}</td>
-          <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-          <td>${actionBtn}</td>
-        </tr>
-      `;
-      activeTable.innerHTML += row;
-    } else if (q.status === 'completed') {
-      const viewAnswerBtn = q.answerFile
-        ? `<button class="btn-sm btn-outline-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
-        : '<span class="disabled">No answer</span>';
-      const rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
-      const tutorHtml = `
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%;">
-          <div>
-            <div><strong>${tutorName}</strong></div>
-            <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
-          </div>
-        </div>
-      `;
-      const ratingStars = q.rating && q.rating.score
-        ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
-        : 'Not rated';
-      const row = `
-        <tr>
-          <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
-          <td>${subject}</td>
-          <td>${tutorHtml}</td>
-          <td>${budget}</td>
-          <td>${ratingStars}</td>
-          <td>${viewAnswerBtn} ${rateBtn}</td>
-        </tr>
-      `;
-      completedTable.innerHTML += row;
-    }
-  }
-
-  // Update statistics cards
-  document.getElementById('activeCount').innerText = activeCount;
-  document.getElementById('completedCount').innerText = completedCount;
-  document.getElementById('activeBadge').innerText = activeCount;
-
-  const totalQuestions = activeCount + completedCount;
-  const successRate = totalQuestions === 0 ? 0 : Math.round((completedCount / totalQuestions) * 100);
+  const totalQuestions = active.length + completed.length;
+  const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
   document.getElementById('successRate').innerText = `${successRate}%`;
+
+  // Render active questions (all)
+  renderActiveQuestions(active);
+  // Render completed questions (paginated)
+  renderCompletedQuestions();
+  // Show/hide load more button
+  const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
+  }
 
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
 }
 
-// Make sure the rest of your student.js (rating modal, add funds, etc.) remains unchanged.
+// ---------- Render Active Questions ----------
+function renderActiveQuestions(active) {
+  const activeTable = document.getElementById('activeQuestions');
+  if (!activeTable) return;
+  activeTable.innerHTML = '';
+  for (const q of active) {
+    const row = createQuestionRow(q, false);
+    activeTable.innerHTML += row;
+  }
+}
 
-// ... (the rest of student.js remains unchanged, but ensure escapeHtml is defined)
+// ---------- Render Completed Questions (paginated) ----------
+function renderCompletedQuestions(reset = true) {
+  const completedTable = document.getElementById('completedQuestions');
+  if (!completedTable) return;
+  if (reset) completedTable.innerHTML = '';
+  const toShow = allCompletedQuestions.slice(0, completedDisplayCount);
+  for (const q of toShow) {
+    const row = createQuestionRow(q, true);
+    completedTable.innerHTML += row;
+  }
+  // Adjust "Load More" button visibility
+  const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
+  }
+}
 
-// ---------- RATING MODAL (Reliable: stores selected value, event delegation) ----------
+// ---------- Load More Completed Questions ----------
+function loadMoreCompleted() {
+  completedDisplayCount += 10;
+  renderCompletedQuestions(false);
+}
+
+// ---------- Create a single table row (works for both active and completed) ----------
+function createQuestionRow(q, isCompleted) {
+  const safeTitle = escapeHtml(q.title);
+  const subject = escapeHtml(q.subject || 'General');
+  const budget = `$${q.budget}`;
+  const tutor = q.tutorId || null;
+  const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
+  const tutorRating = tutor?.tutorProfile?.rating ? tutor.tutorProfile.rating.toFixed(1) : '0.0';
+  let tutorAvatar = tutor?.avatar;
+  if (!tutorAvatar) {
+    const id = Math.floor(Math.random() * 100);
+    if (tutor?.gender === 'female') tutorAvatar = `https://randomuser.me/api/portraits/women/${id}.jpg`;
+    else if (tutor?.gender === 'male') tutorAvatar = `https://randomuser.me/api/portraits/men/${id}.jpg`;
+    else tutorAvatar = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
+  }
+
+  // Determine status badge for active questions
+  let statusText = '';
+  let statusClass = '';
+  if (q.status === 'pending') {
+    statusText = 'Awaiting Response';
+    statusClass = 'status-awaiting';
+  } else if (q.status === 'assigned') {
+    statusText = 'Assigned';
+    statusClass = 'status-progress';
+  } else if (q.status === 'in_progress') {
+    statusText = 'In Progress';
+    statusClass = 'status-progress';
+  } else if (q.status === 'overdue') {
+    statusText = 'Overdue';
+    statusClass = 'status-overdue';
+  } else if (q.status === 'completed') {
+    statusText = 'Completed';
+    statusClass = 'status-completed';
+  } else {
+    statusText = escapeHtml(q.status);
+    statusClass = 'status-awaiting';
+  }
+
+  const tutorHtml = `
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+      <div>
+        <div><strong>${tutorName}</strong></div>
+        <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
+      </div>
+    </div>
+  `;
+
+  if (!isCompleted) {
+    const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
+    return `
+      <tr>
+        <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+        <td>${tutorHtml}</td>
+        <td>${subject}</td>
+        <td>${budget}</td>
+        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+        <td>${actionBtn}</td>
+      </tr>
+    `;
+  } else {
+    const viewAnswerBtn = q.answerFile
+      ? `<button class="btn-sm btn-outline-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
+      : '<span class="disabled">No answer</span>';
+    const rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
+    const ratingStars = q.rating && q.rating.score
+      ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
+      : 'Not rated';
+    return `
+      <tr>
+        <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+        <td>${subject}</td>
+        <td>${tutorHtml}</td>
+        <td>${budget}</td>
+        <td>${ratingStars}</td>
+        <td>${viewAnswerBtn} ${rateBtn}</td>
+      </tr>
+    `;
+  }
+}
+
+// ---------- RATING MODAL (unchanged) ----------
 let currentRatingQuestionId = null;
 let selectedRatingValue = 0;
 
@@ -139,17 +228,14 @@ window.showRatingModal = function(questionId, tutorName) {
   document.getElementById('ratingModalTutorName').innerText = tutorName;
   document.getElementById('ratingModal').style.display = 'block';
   document.getElementById('ratingFeedback').value = '';
-  // Reset all stars
   document.querySelectorAll('#ratingModal .star').forEach(star => star.classList.remove('selected'));
 };
 
-// Event delegation for star clicks – attached once to the modal
 document.getElementById('ratingModal')?.addEventListener('click', (e) => {
   const star = e.target.closest('.star');
   if (!star) return;
   const value = parseInt(star.getAttribute('data-value'));
   selectedRatingValue = value;
-  // Highlight stars up to the clicked value
   const allStars = document.querySelectorAll('#ratingModal .star');
   allStars.forEach((s, idx) => {
     if (idx < value) s.classList.add('selected');
@@ -164,20 +250,15 @@ window.submitRating = async function() {
   }
   const feedback = document.getElementById('ratingFeedback').value;
   const score = selectedRatingValue;
-  
-  console.log('⭐ Submitting rating:', score, 'for question:', currentRatingQuestionId);
-  
   try {
-    const response = await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
+    await apiFetch(`/questions/${currentRatingQuestionId}/rate`, {
       method: 'POST',
       body: JSON.stringify({ score, feedback })
     });
-    console.log('✅ Rating API response:', response);
     showToast('Rating submitted!', 'success');
     document.getElementById('ratingModal').style.display = 'none';
-    loadStudentDashboard();  // refresh to update the button text
+    loadStudentDashboard();
   } catch (err) {
-    console.error('❌ Rating error:', err);
     showToast(err.message, 'error');
   }
 };
@@ -186,7 +267,7 @@ window.closeRatingModal = function() {
   document.getElementById('ratingModal').style.display = 'none';
 };
 
-// ---------- Additional Funds Request ----------
+// ---------- Additional Funds Request (unchanged) ----------
 async function checkForFundsRequests(questions) {
   for (const q of questions) {
     if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
@@ -223,7 +304,7 @@ window.respondToFunds = async function(questionId, accept) {
   }
 };
 
-// ---------- Budget Suggestion System ----------
+// ---------- Budget Suggestion System (unchanged) ----------
 async function checkForSuggestions(questions) {
   const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
   for (const q of pendingWithSuggestion) {
@@ -259,8 +340,7 @@ window.acceptSuggestion = async (questionId) => {
   }
 };
 
-// ---------- Add Funds with Paystack ----------
-// ---------- Add Funds with Paystack (with returnTo support) ----------
+// ---------- Add Funds with Paystack (unchanged) ----------
 async function addFunds(event) {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -270,14 +350,9 @@ async function addFunds(event) {
   try {
     const btn = event?.target;
     if (btn) btn.disabled = true;
-
-    // Capture returnTo from current URL (e.g., ?returnTo=/document/sudah)
     const urlParams = new URLSearchParams(window.location.search);
     const returnTo = urlParams.get('returnTo');
-    if (returnTo) {
-      sessionStorage.setItem('pendingReturnTo', returnTo);
-    }
-
+    if (returnTo) sessionStorage.setItem('pendingReturnTo', returnTo);
     const { url } = await apiFetch('/wallet/paystack/initialize', {
       method: 'POST',
       body: JSON.stringify({ amount: parseFloat(amount) })
@@ -289,27 +364,21 @@ async function addFunds(event) {
   }
 }
 
-// ---------- Handle Payment Return (called on dashboard load) ----------
+// ---------- Handle Payment Return (unchanged) ----------
 async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
   const reference = urlParams.get('reference');
   const trxref = urlParams.get('trxref');
   const pendingReturnTo = sessionStorage.getItem('pendingReturnTo');
-
   if ((reference || trxref) && pendingReturnTo) {
-    // Payment likely completed – wait a moment for backend webhook to process
     showToast('Payment successful! Redirecting...', 'success');
-    // Clear flag
     sessionStorage.removeItem('pendingReturnTo');
-    // Remove query params from URL without reload (clean)
     window.history.replaceState({}, document.title, window.location.pathname);
-    // Redirect back to the document page
-    setTimeout(() => {
-      window.location.href = pendingReturnTo;
-    }, 1500);
+    setTimeout(() => { window.location.href = pendingReturnTo; }, 1500);
   }
 }
-// ---------- Transaction History (pagination) ----------
+
+// ---------- Transaction History (unchanged) ----------
 let transactionPage = 1;
 let transactionHasMore = true;
 
@@ -352,7 +421,7 @@ window.closeTransactionModal = function() {
 };
 document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
 
-// ---------- Polling for suggestions & funds requests (every 30s) ----------
+// ---------- Polling (unchanged) ----------
 setInterval(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
   if (user && user.role === 'student') {
@@ -366,19 +435,15 @@ setInterval(async () => {
   }
 }, 30000);
 
-// Helper: prevent XSS
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-// Start dashboard when DOM is ready
+// ---------- Ensure Add Funds button works ----------
 document.addEventListener('DOMContentLoaded', () => {
+  const addBtn = document.getElementById('addFundsBtn');
+  if (addBtn && typeof addFunds === 'function') addBtn.addEventListener('click', addFunds);
+  const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
+  if (loadMoreBtn) loadMoreBtn.addEventListener('click', loadMoreCompleted);
   loadStudentDashboard();
-   handlePaymentReturn();
+  handlePaymentReturn();
 });
+
+// Also expose toggleUserMenu globally for onclick
+window.toggleUserMenu = toggleUserMenu;

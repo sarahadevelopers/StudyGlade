@@ -88,6 +88,7 @@ body {
   justify-content: center;
 }
 .user-menu {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -102,6 +103,33 @@ body {
 }
 .user-name {
   font-weight: 500;
+}
+
+/* ========== USER DROPDOWN ========== */
+.user-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 120px;
+  z-index: 10;
+}
+.user-dropdown.show {
+  display: block;
+}
+.user-dropdown a {
+  display: block;
+  padding: 8px 12px;
+  color: #1E293B;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+.user-dropdown a:hover {
+  background: #F1F5F9;
+  color: #005BFF;
 }
 
 /* ========== MAIN DASHBOARD LAYOUT ========== */
@@ -188,8 +216,15 @@ body {
 .stat-links a, .stat-link {
   color: #005BFF;
   text-decoration: none;
+  background: transparent;
+  padding: 0.2rem 0.6rem;
+  border-radius: 40px;
+  transition: 0.2s;
 }
-.stat-links a:hover, .stat-link:hover { text-decoration: underline; }
+.stat-links a:hover, .stat-link:hover {
+  background: #EFF6FF;
+  text-decoration: none;
+}
 
 /* Gradient Success Card */
 .gradient-card {
@@ -249,8 +284,15 @@ body {
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 500;
+  background: transparent;
+  padding: 0.2rem 0.6rem;
+  border-radius: 40px;
+  transition: 0.2s;
 }
-.view-all:hover { text-decoration: underline; }
+.view-all:hover {
+  background: #EFF6FF;
+  text-decoration: none;
+}
 
 /* Tables */
 .table-responsive {
@@ -284,6 +326,9 @@ body {
 .status-awaiting { background: #FEF3C7; color: #B45309; }  /* pale amber */
 .status-progress { background: #DBEAFE; color: #1E40AF; }   /* pale blue */
 .status-payment { background: #E9D5FF; color: #6B21A8; }    /* pale purple */
+.status-completed { background: #D1FAE5; color: #065F46; }   /* green */
+.status-overdue { background: #FEE2E2; color: #B91C1C; }      /* red */
+
 /* Action buttons */
 .btn-sm {
   padding: 0.2rem 0.8rem;
@@ -389,7 +434,7 @@ body {
   font-size: 1.2rem;
 }
 
-/* Responsive */
+/* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
   .stats-row { grid-template-columns: repeat(2,1fr); }
   .dashboard-container { flex-direction: column; }
@@ -400,4 +445,67 @@ body {
   .nav-right { justify-content: flex-end; }
   .stats-row { grid-template-columns: 1fr; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+/* Stack table rows into cards on very small screens */
+@media (max-width: 550px) {
+  .data-table,
+  .data-table thead,
+  .data-table tbody,
+  .data-table tr,
+  .data-table th,
+  .data-table td {
+    display: block;
+  }
+  .data-table thead {
+    display: none; /* hide original headers */
+  }
+  .data-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 0.75rem;
+    background: white;
+    position: relative;
+  }
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 0.8rem;
+    gap: 1rem;
+  }
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+  /* Add pseudo‑headers for each cell */
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #1E293B;
+    width: 40%;
+    min-width: 100px;
+  }
+  /* Customise each column’s label (Active Questions table) */
+  #activeQuestionsTable td:nth-child(1)::before { content: "Question"; }
+  #activeQuestionsTable td:nth-child(2)::before { content: "Tutor"; }
+  #activeQuestionsTable td:nth-child(3)::before { content: "Subject"; }
+  #activeQuestionsTable td:nth-child(4)::before { content: "Budget"; }
+  #activeQuestionsTable td:nth-child(5)::before { content: "Status"; }
+  #activeQuestionsTable td:nth-child(6)::before { content: "Actions"; }
+
+  /* Completed Questions table (different column order) */
+  #completedQuestionsTable td:nth-child(1)::before { content: "Question"; }
+  #completedQuestionsTable td:nth-child(2)::before { content: "Subject"; }
+  #completedQuestionsTable td:nth-child(3)::before { content: "Tutor"; }
+  #completedQuestionsTable td:nth-child(4)::before { content: "Budget"; }
+  #completedQuestionsTable td:nth-child(5)::before { content: "Rating"; }
+  #completedQuestionsTable td:nth-child(6)::before { content: "Actions"; }
+
+  /* Adjust button sizes inside stacked view */
+  .btn-sm {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+  }
 }

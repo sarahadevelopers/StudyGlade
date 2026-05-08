@@ -17,9 +17,9 @@
   <div class="nav-container">
     <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
     <div class="nav-center">
-      <a href="#" class="nav-link active">Dashboard</a>
-      <a href="#" class="nav-link">My Questions</a>
-      <a href="#" class="nav-link">Study Materials</a>
+      <a href="index.html" class="nav-link active">Dashboard</a>
+      <a href="post-question.html" class="nav-link">Post a Question</a>
+      <a href="document-library.html" class="nav-link">Study Materials</a>
       <a href="#" class="nav-link">Find Tutors</a>
       <a href="#" class="nav-link">Messages</a>
     </div>
@@ -28,9 +28,9 @@
         <i class="fas fa-bell"></i>
         <span class="badge">3</span>
       </div>
-      <div class="user-menu">
+      <div class="user-menu" onclick="toggleUserMenu()">
         <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Avatar" class="user-avatar">
-        <span class="user-name">Alexandra Chen</span>
+        <span class="user-name">Loading...</span>
         <i class="fas fa-chevron-down"></i>
       </div>
     </div>
@@ -41,6 +41,9 @@
   <div class="dashboard-container">
     <!-- LEFT COLUMN (75%) -->
     <div class="main-column">
+      <!-- Announcement Banner (dynamically filled by loadAnnouncements) -->
+      <div id="announcementBanner" class="announcement-banner" style="display: none;"></div>
+
       <!-- Header -->
       <div class="page-header">
         <h1>Student Dashboard</h1>
@@ -109,7 +112,7 @@
         </div>
       </div>
 
-      <!-- Completed Questions Section -->
+      <!-- Completed Questions Section (with pagination) -->
       <div class="section-card">
         <div class="section-header">
           <h2>Completed Questions</h2>
@@ -122,6 +125,10 @@
             </thead>
             <tbody id="completedQuestions"></tbody>
           </table>
+        </div>
+        <!-- "Load More" button for pagination -->
+        <div style="text-align: center; margin-top: 1rem;">
+          <button id="loadMoreCompletedBtn" class="btn-outline btn-sm" style="display: none;">Load More Completed</button>
         </div>
       </div>
     </div>
@@ -161,7 +168,7 @@
   </div>
 </main>
 
-<!-- Transaction History Modal (kept from original) -->
+<!-- Transaction History Modal -->
 <div id="transactionModal" class="modal-overlay">
   <div class="modal-content">
     <h3>Transaction History</h3>
@@ -171,7 +178,7 @@
   </div>
 </div>
 
-<!-- Rating Modal (kept from original) -->
+<!-- Rating Modal -->
 <div id="ratingModal" class="modal-overlay">
   <div class="modal-content rating-modal">
     <span class="close-modal" onclick="closeRatingModal()">&times;</span>
@@ -192,81 +199,61 @@
 <script src="auth.js"></script>
 <script src="student.js"></script>
 
-  <script>
-// ------------------------------------------------------------------
-// Helper: escape HTML
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-// ------------------------------------------------------------------
-// ANNOUNCEMENT BANNER
-async function loadAnnouncements() {
-  try {
-    const res = await fetch('/api/admin/public/announcements');
-    const announcements = await res.json();
-    const banner = document.getElementById('announcementBanner');
-    if (!banner) return;
-    if (announcements.length > 0) {
-      banner.style.display = 'block';
-      banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
-    } else {
-      banner.style.display = 'none';
+<!-- Additional inline script for announcements and event binding (non‑conflicting) -->
+<script>
+// Avoid duplicate definitions – these functions complement student.js, not override.
+// loadAnnouncements, etc. are safe because they are not defined in student.js.
+if (typeof loadAnnouncements !== 'function') {
+  async function loadAnnouncements() {
+    try {
+      const res = await fetch('/api/admin/public/announcements');
+      const announcements = await res.json();
+      const banner = document.getElementById('announcementBanner');
+      if (!banner) return;
+      if (announcements.length > 0) {
+        banner.style.display = 'block';
+        banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
+      } else {
+        banner.style.display = 'none';
+      }
+    } catch (err) {
+      console.error('Announcement error:', err);
     }
-  } catch (err) {
-    console.error('Announcement error:', err);
   }
 }
 
-// ------------------------------------------------------------------
-// AUTO-TRIGGER ADD FUNDS (when redirected from bid acceptance or insufficient balance)
-if (window.location.search.includes('action=addFunds')) {
-  window.addEventListener('DOMContentLoaded', () => {
+// Helper already defined in student.js, but we'll use the same escapeHtml.
+document.addEventListener('DOMContentLoaded', function() {
+  // Announcements
+  if (typeof loadAnnouncements === 'function') loadAnnouncements();
+
+  // Auto-trigger Add Funds if URL contains action=addFunds
+  if (window.location.search.includes('action=addFunds')) {
     const addFundsBtn = document.getElementById('addFundsBtn');
     if (addFundsBtn) addFundsBtn.click();
     window.history.replaceState({}, document.title, window.location.pathname);
-  });
-}
+  }
 
-// ------------------------------------------------------------------
-// Ensure the Add Funds button (if present) triggers the addFunds function from student.js
-document.addEventListener('DOMContentLoaded', () => {
+  // Ensure Add Funds button triggers addFunds from student.js
   const addBtn = document.getElementById('addFundsBtn');
   if (addBtn && typeof addFunds === 'function') {
+    // Remove any previous listener to avoid duplicates
+    addBtn.removeEventListener('click', addFunds);
     addBtn.addEventListener('click', addFunds);
   }
-});
 
-// ------------------------------------------------------------------
-// RATING MODAL (functions are already in student.js, but we keep the close function for inline use)
-window.closeRatingModal = function() {
-  const modal = document.getElementById('ratingModal');
-  if (modal) modal.style.display = 'none';
-};
-
-// ------------------------------------------------------------------
-// TRANSACTION HISTORY MODAL (functions are already in student.js)
-// Ensure loadMoreTransactions button works
-document.addEventListener('DOMContentLoaded', () => {
-  const loadMoreBtn = document.getElementById('loadMoreTransactions');
-  if (loadMoreBtn && typeof loadTransactionHistory === 'function') {
-    loadMoreBtn.addEventListener('click', () => loadTransactionHistory(false));
+  // Load More Transactions button (defined in student.js)
+  const loadMoreTxBtn = document.getElementById('loadMoreTransactions');
+  if (loadMoreTxBtn && typeof loadTransactionHistory === 'function') {
+    loadMoreTxBtn.addEventListener('click', () => loadTransactionHistory(false));
   }
-});
 
-// ------------------------------------------------------------------
-// LOAD ANNOUNCEMENTS after dashboard loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadAnnouncements);
-} else {
-  loadAnnouncements();
-}
+  // Close rating modal function (already global in student.js)
+  window.closeRatingModal = function() {
+    const modal = document.getElementById('ratingModal');
+    if (modal) modal.style.display = 'none';
+  };
+});
 </script>
 </body>
 </html>

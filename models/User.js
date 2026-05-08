@@ -4,6 +4,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   fullName: { type: String, required: true },
+  avatar: { type: String, default: '' },           // custom avatar URL (Cloudinary)
+  gender: { type: String, enum: ['male', 'female', 'other'], default: 'other' },
   role: { type: String, enum: ['student', 'tutor', 'admin'], default: 'student' },
   isApproved: { type: Boolean, default: false },
   walletBalance: { type: Number, default: 0, min: 0 },
