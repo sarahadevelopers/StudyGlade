@@ -26,17 +26,28 @@ function updateUserMenu(user) {
   }
 }
 
-// ---------- User Dropdown Toggle ----------
-function toggleUserMenu() {
-  let dropdown = document.getElementById('userDropdown');
+// ---------- User Dropdown Toggle (ensure dropdown exists) ----------
+function ensureUserDropdown() {
+  let dropdown = document.querySelector('.user-dropdown');
   if (!dropdown) {
+    const menu = document.querySelector('.user-menu');
+    if (!menu) return;
     dropdown = document.createElement('div');
-    dropdown.id = 'userDropdown';
     dropdown.className = 'user-dropdown';
-    dropdown.innerHTML = `<a href="#" onclick="logoutUser()">Logout</a>`;
-    document.querySelector('.user-menu').appendChild(dropdown);
+    dropdown.innerHTML = `
+      <a href="#" onclick="openAvatarModal(); return false;">Change Avatar</a>
+      <a href="#" onclick="logoutUser(); return false;">Logout</a>
+    `;
+    menu.appendChild(dropdown);
   }
-  dropdown.classList.toggle('show');
+  return dropdown;
+}
+
+function toggleUserMenu(event) {
+  event.stopPropagation();
+  ensureUserDropdown();
+  const menu = document.querySelector('.user-menu');
+  menu.classList.toggle('active');
 }
 
 function logoutUser() {
@@ -44,12 +55,11 @@ function logoutUser() {
   window.location.href = 'login.html';
 }
 
-// Close dropdown when clicking outside
+// Close user dropdown when clicking outside
 document.addEventListener('click', function(e) {
   const menu = document.querySelector('.user-menu');
-  const dropdown = document.getElementById('userDropdown');
-  if (menu && dropdown && !menu.contains(e.target)) {
-    dropdown.classList.remove('show');
+  if (menu && !menu.contains(e.target)) {
+    menu.classList.remove('active');
   }
 });
 
@@ -65,21 +75,17 @@ async function loadStudentDashboard() {
     return;
   }
 
-  // Update user menu with real data
   updateUserMenu(user);
 
-  // Update wallet balance
   const walletEl = document.getElementById('walletBalance');
   if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
 
   const questions = await apiFetch('/questions/my-questions');
   
-  // Separate active and completed
   const active = questions.filter(q => q.status !== 'completed');
   const completed = questions.filter(q => q.status === 'completed');
   allCompletedQuestions = completed;
 
-  // Update counts
   document.getElementById('activeCount').innerText = active.length;
   document.getElementById('completedCount').innerText = completed.length;
   document.getElementById('activeBadge').innerText = active.length;
@@ -88,11 +94,8 @@ async function loadStudentDashboard() {
   const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
   document.getElementById('successRate').innerText = `${successRate}%`;
 
-  // Render active questions (all)
   renderActiveQuestions(active);
-  // Render completed questions (paginated)
   renderCompletedQuestions();
-  // Show/hide load more button
   const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
   if (loadMoreBtn) {
     loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
@@ -123,14 +126,12 @@ function renderCompletedQuestions(reset = true) {
     const row = createQuestionRow(q, true);
     completedTable.innerHTML += row;
   }
-  // Adjust "Load More" button visibility
   const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
   if (loadMoreBtn) {
     loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
   }
 }
 
-// ---------- Load More Completed Questions ----------
 function loadMoreCompleted() {
   completedDisplayCount += 10;
   renderCompletedQuestions(false);
@@ -152,9 +153,7 @@ function createQuestionRow(q, isCompleted) {
     else tutorAvatar = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
   }
 
-  // Determine status badge for active questions
-  let statusText = '';
-  let statusClass = '';
+  let statusText = '', statusClass = '';
   if (q.status === 'pending') {
     statusText = 'Awaiting Response';
     statusClass = 'status-awaiting';
@@ -187,16 +186,7 @@ function createQuestionRow(q, isCompleted) {
 
   if (!isCompleted) {
     const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
-    return `
-      <tr>
-        <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
-        <td>${tutorHtml}</td>
-        <td>${subject}</td>
-        <td>${budget}</td>
-        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-        <td>${actionBtn}</td>
-      </tr>
-    `;
+    return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${tutorHtml}</td><td>${subject}</td><td>${budget}</td><td><span class="status-badge ${statusClass}">${statusText}</span></td><td>${actionBtn}</td></tr>`;
   } else {
     const viewAnswerBtn = q.answerFile
       ? `<button class="btn-sm btn-outline-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
@@ -205,20 +195,11 @@ function createQuestionRow(q, isCompleted) {
     const ratingStars = q.rating && q.rating.score
       ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
       : 'Not rated';
-    return `
-      <tr>
-        <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
-        <td>${subject}</td>
-        <td>${tutorHtml}</td>
-        <td>${budget}</td>
-        <td>${ratingStars}</td>
-        <td>${viewAnswerBtn} ${rateBtn}</td>
-      </tr>
-    `;
+    return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${subject}</td><td>${tutorHtml}</td><td>${budget}</td><td>${ratingStars}</td><td>${viewAnswerBtn} ${rateBtn}</td></tr>`;
   }
 }
 
-// ---------- RATING MODAL (unchanged) ----------
+// ---------- RATING MODAL ----------
 let currentRatingQuestionId = null;
 let selectedRatingValue = 0;
 
@@ -267,7 +248,7 @@ window.closeRatingModal = function() {
   document.getElementById('ratingModal').style.display = 'none';
 };
 
-// ---------- Additional Funds Request (unchanged) ----------
+// ---------- Additional Funds Request ----------
 async function checkForFundsRequests(questions) {
   for (const q of questions) {
     if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
@@ -304,7 +285,7 @@ window.respondToFunds = async function(questionId, accept) {
   }
 };
 
-// ---------- Budget Suggestion System (unchanged) ----------
+// ---------- Budget Suggestion System ----------
 async function checkForSuggestions(questions) {
   const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
   for (const q of pendingWithSuggestion) {
@@ -340,7 +321,7 @@ window.acceptSuggestion = async (questionId) => {
   }
 };
 
-// ---------- Add Funds with Paystack (unchanged) ----------
+// ---------- Add Funds with Paystack ----------
 async function addFunds(event) {
   const amount = prompt('Enter amount to add ($):');
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -364,7 +345,7 @@ async function addFunds(event) {
   }
 }
 
-// ---------- Handle Payment Return (unchanged) ----------
+// ---------- Handle Payment Return ----------
 async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
   const reference = urlParams.get('reference');
@@ -378,7 +359,7 @@ async function handlePaymentReturn() {
   }
 }
 
-// ---------- Transaction History (unchanged) ----------
+// ---------- Transaction History ----------
 let transactionPage = 1;
 let transactionHasMore = true;
 
@@ -421,7 +402,7 @@ window.closeTransactionModal = function() {
 };
 document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
 
-// ---------- Polling (unchanged) ----------
+// ---------- Polling ----------
 setInterval(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
   if (user && user.role === 'student') {
@@ -435,7 +416,139 @@ setInterval(async () => {
   }
 }, 30000);
 
-// ---------- Ensure Add Funds button works ----------
+// ========== AVATAR UPLOAD ==========
+const avatarModal = document.getElementById('avatarUploadModal');
+function openAvatarModal() {
+  if (avatarModal) avatarModal.style.display = 'flex';
+}
+function closeAvatarModal() {
+  if (avatarModal) avatarModal.style.display = 'none';
+}
+window.openAvatarModal = openAvatarModal;
+window.closeAvatarModal = closeAvatarModal;
+
+async function uploadAvatar() {
+  const fileInput = document.getElementById('avatarFile');
+  const file = fileInput.files[0];
+  if (!file) {
+    showToast('Please select an image', 'error');
+    return;
+  }
+  const formData = new FormData();
+  formData.append('avatar', file);
+  const btn = document.querySelector('#avatarUploadModal .btn-primary');
+  const originalText = btn.innerText;
+  btn.disabled = true;
+  btn.innerText = 'Uploading...';
+  try {
+    const response = await fetch('/api/users/avatar', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    const data = await response.json();
+    if (response.ok) {
+      showToast('Avatar updated successfully', 'success');
+      const user = JSON.parse(localStorage.getItem('user'));
+      user.avatar = data.avatarUrl;
+      localStorage.setItem('user', JSON.stringify(user));
+      document.querySelector('.user-avatar').src = data.avatarUrl;
+      closeAvatarModal();
+    } else {
+      showToast(data.error || 'Upload failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = originalText;
+    fileInput.value = '';
+  }
+}
+window.uploadAvatar = uploadAvatar;
+
+// ========== NOTIFICATIONS DROPDOWN ==========
+const notificationBell = document.querySelector('.notification-bell');
+let notificationDropdown = null;
+
+function createNotificationDropdown() {
+  if (notificationDropdown) return;
+  notificationDropdown = document.createElement('div');
+  notificationDropdown.className = 'notification-dropdown';
+  notificationDropdown.innerHTML = `
+    <div class="notification-header">Notifications</div>
+    <div class="notification-list" id="notificationListDropdown">Loading...</div>
+    <div class="notification-footer">
+      <a href="#" onclick="markAllRead(); return false;">Mark all as read</a>
+      <a href="notifications.html">View all</a>
+    </div>
+  `;
+  document.body.appendChild(notificationDropdown);
+}
+
+async function loadNotificationsDropdown() {
+  if (!notificationDropdown) createNotificationDropdown();
+  const listDiv = notificationDropdown.querySelector('.notification-list');
+  listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
+  try {
+    const res = await fetch('/api/admin/public/announcements');
+    const announcements = await res.json();
+    let html = '';
+    if (announcements.length === 0) {
+      html = '<div class="notification-item no-notifications">No new notifications</div>';
+    } else {
+      announcements.forEach(a => {
+        html += `<div class="notification-item"><strong>${escapeHtml(a.title)}</strong><br>${escapeHtml(a.message)}<div class="notification-time">${new Date(a.createdAt).toLocaleString()}</div></div>`;
+      });
+    }
+    listDiv.innerHTML = html;
+  } catch (err) {
+    listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
+  }
+}
+
+function toggleNotificationDropdown(event) {
+  event.stopPropagation();
+  if (!notificationDropdown) createNotificationDropdown();
+  const isVisible = notificationDropdown.style.display === 'block';
+  if (isVisible) {
+    notificationDropdown.style.display = 'none';
+  } else {
+    loadNotificationsDropdown();
+    notificationDropdown.style.display = 'block';
+    const badge = document.querySelector('.notification-bell .badge');
+    if (badge) badge.innerText = '0';
+  }
+}
+
+function closeNotificationDropdown() {
+  if (notificationDropdown) notificationDropdown.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (notificationDropdown && !notificationDropdown.contains(e.target) && !e.target.closest('.notification-bell')) {
+    notificationDropdown.style.display = 'none';
+  }
+});
+
+if (notificationBell) {
+  notificationBell.addEventListener('click', toggleNotificationDropdown);
+}
+
+function markAllRead() {
+  showToast('All notifications marked as read', 'info');
+  const badge = document.querySelector('.notification-bell .badge');
+  if (badge) badge.innerText = '0';
+  loadNotificationsDropdown();
+}
+window.markAllRead = markAllRead;
+
+window.closeNotificationModal = function() {
+  const modal = document.getElementById('notificationModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// ---------- Ensure event listeners (Add Funds, Load More) ----------
 document.addEventListener('DOMContentLoaded', () => {
   const addBtn = document.getElementById('addFundsBtn');
   if (addBtn && typeof addFunds === 'function') addBtn.addEventListener('click', addFunds);
@@ -445,5 +558,5 @@ document.addEventListener('DOMContentLoaded', () => {
   handlePaymentReturn();
 });
 
-// Also expose toggleUserMenu globally for onclick
 window.toggleUserMenu = toggleUserMenu;
+window.logoutUser = logoutUser;

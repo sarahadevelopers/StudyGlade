@@ -28,10 +28,16 @@
         <i class="fas fa-bell"></i>
         <span class="badge">3</span>
       </div>
-      <div class="user-menu" onclick="toggleUserMenu()">
-        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Avatar" class="user-avatar">
+      <!-- USER MENU (single, with dropdown) -->
+      <div class="user-menu" onclick="toggleUserMenu(event)">
+        <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Avatar" class="user-avatar">
         <span class="user-name">Loading...</span>
         <i class="fas fa-chevron-down"></i>
+        <!-- The dropdown menu – initially hidden via CSS, toggled by .active class -->
+        <div class="user-dropdown">
+          <a href="#" onclick="openAvatarModal(); return false;">Change Avatar</a>
+          <a href="#" onclick="logoutUser(); return false;">Logout</a>
+        </div>
       </div>
     </div>
   </div>
@@ -41,7 +47,7 @@
   <div class="dashboard-container">
     <!-- LEFT COLUMN (75%) -->
     <div class="main-column">
-      <!-- Announcement Banner (dynamically filled by loadAnnouncements) -->
+      <!-- Announcement Banner -->
       <div id="announcementBanner" class="announcement-banner" style="display: none;"></div>
 
       <!-- Header -->
@@ -126,7 +132,6 @@
             <tbody id="completedQuestions"></tbody>
           </table>
         </div>
-        <!-- "Load More" button for pagination -->
         <div style="text-align: center; margin-top: 1rem;">
           <button id="loadMoreCompletedBtn" class="btn-outline btn-sm" style="display: none;">Load More Completed</button>
         </div>
@@ -168,7 +173,48 @@
   </div>
 </main>
 
-<!-- Transaction History Modal -->
+<!-- Footer -->
+<footer class="premium-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="footer-logo-wrapper">
+        <a href="#" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      </div>
+      <p class="brand-description">
+        Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.
+      </p>
+      <div class="newsletter-box">
+        <h5>Stay Updated</h5>
+        <form class="newsletter-form" id="footerNewsletterForm">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit">Join</button>
+        </form>
+        <p class="newsletter-note">Join 10k+ students. No spam, ever.</p>
+      </div>
+      <div class="social-links">
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div class="footer-links-grid">
+      <div class="link-column"><h4>Platform</h4><ul><li><a href="#">Post a Question</a></li><li><a href="#">Browse Documents</a></li><li><a href="#">Find a Tutor</a></li><li><a href="#">Online Classroom</a></li><li><a href="#">Study Library</a></li><li><a href="#">Calendar</a></li></ul></div>
+      <div class="link-column"><h4>Resources</h4><ul><li><a href="#">Study Materials</a></li><li><a href="#">Research Papers</a></li><li><a href="#">Practice Tests</a></li><li><a href="#">Subject Guides</a></li><li><a href="#">Academic Tools</a></li><li><a href="#">Free Resources</a></li></ul></div>
+      <div class="link-column"><h4>Support</h4><ul><li><a href="#">Help Centre</a></li><li><a href="#">Contact Us</a></li><li><a href="#">Live Chat</a></li><li><a href="#">How It Works</a></li><li><a href="#">Tutor Support</a></li><li><a href="#">Feedback</a></li></ul></div>
+      <div class="link-column"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li><li><a href="#">Honor Code</a></li></ul></div>
+      <div class="link-column"><h4>About Us</h4><ul><li><a href="#">About StudyGlade</a></li><li><a href="#">Careers</a></li><li><a href="#">Press & Media</a></li><li><a href="#">Blog</a></li><li><a href="#">Partnerships</a></li></ul></div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© <span id="year"></span> StudyGlade. All rights reserved. Empowering students worldwide.</p>
+    <button class="back-to-top" id="backToTopBtn" aria-label="Back to top"><i class="fas fa-arrow-up"></i> Top</button>
+  </div>
+</footer>
+
+<!-- Modals -->
 <div id="transactionModal" class="modal-overlay">
   <div class="modal-content">
     <h3>Transaction History</h3>
@@ -178,7 +224,6 @@
   </div>
 </div>
 
-<!-- Rating Modal -->
 <div id="ratingModal" class="modal-overlay">
   <div class="modal-content rating-modal">
     <span class="close-modal" onclick="closeRatingModal()">&times;</span>
@@ -195,37 +240,66 @@
   </div>
 </div>
 
+<div id="avatarUploadModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 450px;">
+    <span class="close-modal" onclick="closeAvatarModal()">&times;</span>
+    <h3>Change Avatar</h3>
+    <p>Upload a profile picture (JPEG, PNG, GIF)</p>
+    <input type="file" id="avatarFile" accept="image/*">
+    <div style="margin-top: 1rem;">
+      <button onclick="uploadAvatar()" class="btn-primary btn-sm">Upload</button>
+      <button onclick="closeAvatarModal()" class="btn-outline btn-sm">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="notificationModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>Notifications</h3>
+    <div id="notificationList">Loading...</div>
+    <button onclick="closeNotificationModal()" class="btn-outline btn-sm">Close</button>
+  </div>
+</div>
+
 <script src="api.js"></script>
 <script src="auth.js"></script>
 <script src="student.js"></script>
 
-<!-- Additional inline script for announcements and event binding (non‑conflicting) -->
+<!-- Extra inline script for announcements and dynamic year -->
 <script>
-// Avoid duplicate definitions – these functions complement student.js, not override.
-// loadAnnouncements, etc. are safe because they are not defined in student.js.
-if (typeof loadAnnouncements !== 'function') {
-  async function loadAnnouncements() {
-    try {
-      const res = await fetch('/api/admin/public/announcements');
-      const announcements = await res.json();
-      const banner = document.getElementById('announcementBanner');
-      if (!banner) return;
-      if (announcements.length > 0) {
-        banner.style.display = 'block';
-        banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
-      } else {
-        banner.style.display = 'none';
-      }
-    } catch (err) {
-      console.error('Announcement error:', err);
-    }
-  }
-}
+  // Dynamic copyright year
+  document.getElementById('year').textContent = new Date().getFullYear();
 
-// Helper already defined in student.js, but we'll use the same escapeHtml.
-document.addEventListener('DOMContentLoaded', function() {
-  // Announcements
-  if (typeof loadAnnouncements === 'function') loadAnnouncements();
+  // Back to top button functionality
+  const backToTopBtn = document.getElementById('backToTopBtn');
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // Load announcements (if not already defined in student.js)
+  if (typeof loadAnnouncements === 'function') {
+    loadAnnouncements();
+  } else {
+    // Fallback definition (should not happen because student.js defines it)
+    async function loadAnnouncements() {
+      try {
+        const res = await fetch('/api/admin/public/announcements');
+        const announcements = await res.json();
+        const banner = document.getElementById('announcementBanner');
+        if (banner) {
+          if (announcements.length > 0) {
+            banner.style.display = 'block';
+            banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+      } catch (err) { console.error('Announcement error:', err); }
+    }
+    loadAnnouncements();
+  }
 
   // Auto-trigger Add Funds if URL contains action=addFunds
   if (window.location.search.includes('action=addFunds')) {
@@ -233,27 +307,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addFundsBtn) addFundsBtn.click();
     window.history.replaceState({}, document.title, window.location.pathname);
   }
-
-  // Ensure Add Funds button triggers addFunds from student.js
-  const addBtn = document.getElementById('addFundsBtn');
-  if (addBtn && typeof addFunds === 'function') {
-    // Remove any previous listener to avoid duplicates
-    addBtn.removeEventListener('click', addFunds);
-    addBtn.addEventListener('click', addFunds);
-  }
-
-  // Load More Transactions button (defined in student.js)
-  const loadMoreTxBtn = document.getElementById('loadMoreTransactions');
-  if (loadMoreTxBtn && typeof loadTransactionHistory === 'function') {
-    loadMoreTxBtn.addEventListener('click', () => loadTransactionHistory(false));
-  }
-
-  // Close rating modal function (already global in student.js)
-  window.closeRatingModal = function() {
-    const modal = document.getElementById('ratingModal');
-    if (modal) modal.style.display = 'none';
-  };
-});
 </script>
 </body>
 </html>
