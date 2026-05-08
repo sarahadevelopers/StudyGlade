@@ -26,16 +26,102 @@ router.get('/public/announcements', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ========== PUBLIC TUTOR DIRECTORY (no auth required) ==========
+router.get('/public/tutors', async (req, res) => {
+  try {
+    const { search, subject, level, page = 1, limit = 12 } = req.query;
+    let filter = { role: 'tutor', isApproved: true };
 
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (subject && subject.trim() !== '') {
+      filter['tutorProfile.subjects'] = { $in: [new RegExp(subject, 'i')] };
+    }
+    if (level && level.trim() !== '') {
+      filter['tutorProfile.level'] = level;
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const tutors = await User.find(filter)
+      .select('fullName email avatar gender tutorProfile')
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await User.countDocuments(filter);
+
+    res.json({
+      users: tutors,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ========== ALL ADMIN ROUTES BELOW REQUIRE AUTH ==========
 router.use(auth, roleCheck('admin'));
 
 // ========== USERS ==========
+// ========== USERS (with filtering, search, pagination for tutors) ==========
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.find().select('-password -refreshToken -resetPasswordToken -resetPasswordExpires');
-    res.json(users);
+    const { role, isApproved, search, subject, level, page = 1, limit = 20 } = req.query;
+    let filter = {};
+
+    if (role) filter.role = role;
+    if (isApproved !== undefined) filter.isApproved = isApproved === 'true';
+
+    // Search by name or email
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // For tutors, filter by subject (within tutorProfile.subjects)
+    if (subject && subject.trim() !== '') {
+      filter['tutorProfile.subjects'] = { $in: [new RegExp(subject, 'i')] };
+    }
+
+    // For tutors, filter by level (tutorProfile.level)
+    if (level && level.trim() !== '') {
+      filter['tutorProfile.level'] = level;
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const users = await User.find(filter)
+      .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires')
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await User.countDocuments(filter);
+
+    res.json({
+      users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (err) {
+    console.error('Error fetching users:', err);
     res.status(500).json({ error: err.message });
   }
 });
