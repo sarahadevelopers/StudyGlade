@@ -254,36 +254,41 @@ if (window.studentDashboardLoaded) {
   };
 
   // ---------- Additional Funds Request (with null check) ----------
-  async function checkForFundsRequests(questions) {
-    for (const q of questions) {
-      if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
-        if (document.getElementById(`funds-banner-${q._id}`)) continue;
-        const banner = document.createElement('div');
-        banner.id = `funds-banner-${q._id}`;
-        banner.className = 'card';
-        banner.style.backgroundColor = '#fff3cd';
-        banner.style.borderLeft = '4px solid #ffc107';
-        banner.style.marginBottom = '1rem';
-        banner.innerHTML = `
-          <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
-          Tutor requests <strong>$${q.additionalFundsRequest.amount}</strong> extra.<br>
-          Reason: ${escapeHtml(q.additionalFundsRequest.reason)}<br>
-          <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
-          <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
-        `;
-        const container = document.querySelector('.container');
-        // Null check to avoid error
-        if (container && container.firstChild) {
-          container.insertBefore(banner, container.firstChild);
-        } else if (container) {
-          container.appendChild(banner);
+ async function checkForFundsRequests(questions) {
+  for (const q of questions) {
+    if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
+      if (document.getElementById(`funds-banner-${q._id}`)) continue;
+      const banner = document.createElement('div');
+      banner.id = `funds-banner-${q._id}`;
+      banner.className = 'card';
+      banner.style.backgroundColor = '#fff3cd';
+      banner.style.borderLeft = '4px solid #ffc107';
+      banner.style.marginBottom = '1rem';
+      banner.innerHTML = `
+        <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
+        Tutor requests <strong>$${q.additionalFundsRequest.amount}</strong> extra.<br>
+        Reason: ${escapeHtml(q.additionalFundsRequest.reason)}<br>
+        <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
+        <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
+      `;
+      // Insert after the statistics row or before the first section-card
+      const statsRow = document.querySelector('.stats-row');
+      if (statsRow && statsRow.parentNode) {
+        statsRow.parentNode.insertBefore(banner, statsRow.nextSibling);
+      } else {
+        // Fallback: insert into .main-column
+        const mainCol = document.querySelector('.main-column');
+        if (mainCol && mainCol.firstChild) {
+          mainCol.insertBefore(banner, mainCol.firstChild.nextSibling);
+        } else if (mainCol) {
+          mainCol.appendChild(banner);
         } else {
-          console.warn('Container not found, cannot insert funds request banner');
+          console.warn('Cannot find container for funds request banner');
         }
       }
     }
   }
-
+}
   window.respondToFunds = async function(questionId, accept) {
     try {
       await apiFetch(`/questions/${questionId}/respond-funds-request`, {
@@ -299,36 +304,36 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Budget Suggestion System (with null check) ----------
   async function checkForSuggestions(questions) {
-    const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
-    for (const q of pendingWithSuggestion) {
-      const extra = q.suggestedBudget - q.budget;
-      if (document.getElementById(`suggestion-${q._id}`)) continue;
-      const banner = document.createElement('div');
-      banner.id = `suggestion-${q._id}`;
-      banner.className = 'card suggestion-banner';
-      banner.style.backgroundColor = '#fff3cd';
-      banner.style.borderLeft = '4px solid #ffc107';
-      banner.style.marginBottom = '1rem';
-      banner.innerHTML = `
-        <strong>💡 Budget suggestion for "${escapeHtml(q.title)}"</strong><br>
-        The lowest tutor bid is $${q.suggestedBudget}. Add $${extra} to assign this tutor now.
-        <button onclick="acceptSuggestion('${q._id}')" class="btn" style="margin-left: 1rem;">Add $${extra} & Assign</button>
-      `;
-      const walletCard = document.querySelector('.card:first-of-type');
-      if (walletCard && walletCard.parentNode) {
-        walletCard.parentNode.insertBefore(banner, walletCard.nextSibling);
+  const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
+  for (const q of pendingWithSuggestion) {
+    const extra = q.suggestedBudget - q.budget;
+    if (document.getElementById(`suggestion-${q._id}`)) continue;
+    const banner = document.createElement('div');
+    banner.id = `suggestion-${q._id}`;
+    banner.className = 'card suggestion-banner';
+    banner.style.backgroundColor = '#fff3cd';
+    banner.style.borderLeft = '4px solid #ffc107';
+    banner.style.marginBottom = '1rem';
+    banner.innerHTML = `
+      <strong>💡 Budget suggestion for "${escapeHtml(q.title)}"</strong><br>
+      The lowest tutor bid is $${q.suggestedBudget}. Add $${extra} to assign this tutor now.
+      <button onclick="acceptSuggestion('${q._id}')" class="btn" style="margin-left: 1rem;">Add $${extra} & Assign</button>
+    `;
+    const statsRow = document.querySelector('.stats-row');
+    if (statsRow && statsRow.parentNode) {
+      statsRow.parentNode.insertBefore(banner, statsRow.nextSibling);
+    } else {
+      const mainCol = document.querySelector('.main-column');
+      if (mainCol && mainCol.firstChild) {
+        mainCol.insertBefore(banner, mainCol.firstChild.nextSibling);
+      } else if (mainCol) {
+        mainCol.appendChild(banner);
       } else {
-        const container = document.querySelector('.container');
-        if (container && container.firstChild) {
-          container.insertBefore(banner, container.firstChild);
-        } else if (container) {
-          container.appendChild(banner);
-        } else {
-          console.warn('Container not found, cannot insert budget suggestion banner');
-        }
+        console.warn('Cannot find container for budget suggestion banner');
       }
     }
   }
+}
 
   window.acceptSuggestion = async (questionId) => {
     try {
