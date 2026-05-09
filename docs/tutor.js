@@ -245,12 +245,14 @@ function renderAssignmentsByTab(tab) {
     const now = new Date();
     filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
   } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
+  
   const container = document.getElementById('assignmentsList');
   if (!container) return;
   if (filtered.length === 0) {
     container.innerHTML = '<div class="assignment-item">No assignments found.</div>';
     return;
   }
+  
   let html = '';
   filtered.forEach(a => {
     const statusText = a.status === 'assigned' ? 'In Progress' : a.status;
@@ -259,6 +261,7 @@ function renderAssignmentsByTab(tab) {
     if (a.status === 'overdue') statusClass = 'status-overdue';
     const deadlineStatus = a.deadline ? new Date(a.deadline) < new Date() ? 'Overdue' : new Date(a.deadline).toLocaleDateString() : 'No deadline';
     const showCancel = a.additionalFundsRequest && a.additionalFundsRequest.status === 'rejected';
+    
     html += `
       <div class="assignment-item">
         <div class="assignment-header">
@@ -268,18 +271,29 @@ function renderAssignmentsByTab(tab) {
           </div>
           <span class="status-badge ${statusClass}">${statusText}</span>
         </div>
-        ${a.status === 'assigned' ? `
-          <div class="btn-group">
-            <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
-            <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
-            <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}')">✅ Mark Complete</button>
-            <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
-            <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
-            ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
-          </div>
-        ` : (a.status === 'completed' && a.answerFile ? `<div class="btn-group"><a href="${a.answerFileSigned || a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a></div>` : '')}
-      </div>
     `;
+    
+    if (a.status === 'assigned') {
+      html += `
+        <div class="btn-group">
+          <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
+          <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
+          <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}')">✅ Mark Complete</button>
+          <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
+          <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
+          ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
+        </div>
+      `;
+    } else if (a.status === 'completed') {
+      html += `
+        <div class="btn-group">
+          ${a.answerFile ? `<a href="${a.answerFileSigned || a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a>` : ''}
+          <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
+        </div>
+      `;
+    }
+    
+    html += `</div>`;
   });
   container.innerHTML = html;
 }
