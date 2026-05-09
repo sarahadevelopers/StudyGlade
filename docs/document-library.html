@@ -1,246 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Library | StudyGlade</title>
   <meta name="description" content="Thousands of study notes, exam prep, guides, and templates. Search by subject or level. Unlock with your StudyGlade wallet.">
   <meta name="keywords" content="study documents, academic notes, exam papers, tutoring resources, study guides">
-  <title>Document Library - StudyGlade</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    .document-card {
-      background: var(--white);
-      border-radius: 1rem;
-      padding: 1rem;
-      transition: all 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .document-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    .document-title {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
-    }
-    .document-meta {
-      font-size: 0.8rem;
-      color: var(--gray);
-      margin-bottom: 0.5rem;
-    }
-    .document-price {
-      font-weight: 700;
-      color: var(--primary);
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
-    }
-    .btn-unlock {
-      width: 100%;
-      margin-top: 0.5rem;
-    }
-    .filter-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      align-items: flex-end;
-    }
-    .filter-group {
-      flex: 1;
-      min-width: 150px;
-    }
-    .filter-group label {
-      display: block;
-      font-size: 0.8rem;
-      margin-bottom: 0.25rem;
-      font-weight: 500;
-    }
-    .loading {
-      text-align: center;
-      padding: 2rem;
-    }
-    .load-more-btn {
-      display: block;
-      width: 200px;
-      margin: 2rem auto;
-    }
-    /* Smart preview styles */
-    .smart-search {
-      width: 100%;
-      padding: 0.4rem 0.6rem;
-      border-radius: 40px;
-      border: 1px solid #ccc;
-      font-size: 0.8rem;
-      box-sizing: border-box;
-    }
-    .btn-smart-preview {
-      background: #6c757d;
-      color: white;
-      border: none;
-      border-radius: 40px;
-      padding: 0.3rem 0.8rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.2s;
-      width: 100%;
-      margin-top: 0.3rem;
-    }
-    .btn-smart-preview:hover {
-      background: #5a6268;
-    }
-    .smart-preview-result {
-      margin-top: 0.5rem;
-      font-size: 0.8rem;
-      background: #f8f9fa;
-      padding: 0.5rem;
-      border-radius: 12px;
-      display: none;
-    }
-    .btn-sm {
-      font-size: 0.75rem;
-      padding: 0.3rem 0.8rem;
-      border-radius: 40px;
-      text-decoration: none;
-      display: inline-block;
-      margin-right: 0.3rem;
-      border: 1px solid transparent;
-      cursor: pointer;
-    }
-    .btn-outline {
-      background: transparent;
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-    .spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid rgba(0,0,0,0.2);
-      border-top-color: #000;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-      margin-right: 0.3rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+  <!-- Google Fonts + Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="document-library.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <a href="index.html" class="logo">StudyGlade</a>
-      <div class="nav-links" id="navLinks">
-        <a href="document-library.html">Library</a>
-        <!-- Dynamic content -->
+
+<!-- ==================== DARK NAVY NAVBAR ==================== -->
+<nav class="navbar">
+  <div class="container">
+    <a href="index.html" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="document-library.html" class="active">Library</a>
+      <div class="user-controls">
+        <!-- Will be filled by JS -->
       </div>
     </div>
-  </nav>
+  </div>
+</nav>
 
-  <div class="container" style="padding: 2rem 0;">
+<main class="page-main">
+  <div class="container">
     <h1>Document Library</h1>
 
-    <!-- Filters and sort -->
-    <div class="filter-row">
-      <div class="filter-group" style="flex:2;">
-        <label>Search</label>
-        <input type="text" id="searchInput" placeholder="Search by title..." style="width:100%;">
+    <!-- Filters and sort (row 1) -->
+    <div class="filters-section">
+      <div class="filter-row">
+        <div class="filter-group search-group">
+          <label><i class="fas fa-search"></i> Search</label>
+          <input type="text" id="searchInput" placeholder="Search by title...">
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-book"></i> Subject</label>
+          <select id="subjectFilter">
+            <option value="">All Subjects</option>
+            <option>Mathematics</option><option>Science</option><option>Business</option>
+            <option>Programming</option><option>Engineering</option><option>Health & Medical</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-graduation-cap"></i> Level</label>
+          <select id="levelFilter">
+            <option value="">All Levels</option>
+            <option>High School</option><option>College</option><option>Masters</option><option>PhD</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-tag"></i> Type</label>
+          <select id="typeFilter">
+            <option value="">All Types</option>
+            <option>Notes</option><option>Assignment</option><option>Exam Prep</option><option>Guide</option><option>Template</option>
+          </select>
+        </div>
       </div>
-      <div class="filter-group">
-        <label>Subject</label>
-        <select id="subjectFilter">
-          <option value="">All Subjects</option>
-          <option>Mathematics</option>
-          <option>Science</option>
-          <option>Business</option>
-          <option>Programming</option>
-          <option>Engineering</option>
-          <option>Health & Medical</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Level</label>
-        <select id="levelFilter">
-          <option value="">All Levels</option>
-          <option>High School</option>
-          <option>College</option>
-          <option>Masters</option>
-          <option>PhD</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Type</label>
-        <select id="typeFilter">
-          <option value="">All Types</option>
-          <option>Notes</option>
-          <option>Assignment</option>
-          <option>Exam Prep</option>
-          <option>Guide</option>
-          <option>Template</option>
-        </select>
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-group">
-        <label>Min Price ($)</label>
-        <input type="number" id="minPrice" min="0" step="0.5" placeholder="0">
-      </div>
-      <div class="filter-group">
-        <label>Max Price ($)</label>
-        <input type="number" id="maxPrice" min="0" step="0.5" placeholder="Any">
-      </div>
-      <div class="filter-group">
-        <label>Sort by</label>
-        <select id="sortBy">
-          <option value="newest">Newest First</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-          <option value="popular">Most Purchased</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>&nbsp;</label>
-        <button id="applyFiltersBtn" class="btn" style="width:100%;">Apply Filters</button>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label><i class="fas fa-dollar-sign"></i> Min Price ($)</label>
+          <input type="number" id="minPrice" min="0" step="0.5" placeholder="0">
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-dollar-sign"></i> Max Price ($)</label>
+          <input type="number" id="maxPrice" min="0" step="0.5" placeholder="Any">
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-sort"></i> Sort by</label>
+          <select id="sortBy">
+            <option value="newest">Newest First</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="popular">Most Purchased</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>&nbsp;</label>
+          <button id="applyFiltersBtn" class="btn-primary">Apply Filters</button>
+        </div>
       </div>
     </div>
 
     <!-- Documents grid -->
-    <div id="documentsGrid"></div>
+    <div id="documentsGrid" class="documents-grid"></div>
     <div id="loadingMessage" class="loading" style="display: none;">Loading...</div>
-    <div id="loadMoreContainer" style="text-align: center;"></div>
+    <div id="loadMoreContainer" class="load-more-container"></div>
   </div>
+</main>
+<!-- Footer -->
+<footer class="premium-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="footer-logo-wrapper">
+        <a href="#" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      </div>
+      <p class="brand-description">
+        Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.
+      </p>
+      <div class="newsletter-box">
+        <h5>Stay Updated</h5>
+        <form class="newsletter-form" id="footerNewsletterForm">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit">Join</button>
+        </form>
+        <p class="newsletter-note">Join 10k+ students. No spam, ever.</p>
+      </div>
+      <div class="social-links">
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div class="footer-links-grid">
+      <div class="link-column"><h4>Platform</h4><ul><li><a href="#">Post a Question</a></li><li><a href="#">Browse Documents</a></li><li><a href="find-tutors.html">Find a Tutor</a></li><li><a href="#">Online Classroom</a></li><li><a href="#">Study Library</a></li><li><a href="#">Calendar</a></li></ul></div>
+      <div class="link-column"><h4>Resources</h4><ul><li><a href="#">Study Materials</a></li><li><a href="#">Research Papers</a></li><li><a href="#">Practice Tests</a></li><li><a href="#">Subject Guides</a></li><li><a href="#">Academic Tools</a></li><li><a href="#">Free Resources</a></li></ul></div>
+      <div class="link-column"><h4>Support</h4><ul><li><a href="#">Help Centre</a></li><li><a href="#">Contact Us</a></li><li><a href="#">Live Chat</a></li><li><a href="#">How It Works</a></li><li><a href="#">Tutor Support</a></li><li><a href="#">Feedback</a></li></ul></div>
+      <div class="link-column"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li><li><a href="#">Honor Code</a></li></ul></div>
+      <div class="link-column"><h4>About Us</h4><ul><li><a href="#">About StudyGlade</a></li><li><a href="#">Careers</a></li><li><a href="#">Press & Media</a></li><li><a href="#">Blog</a></li><li><a href="#">Partnerships</a></li></ul></div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© <span id="year"></span> StudyGlade. All rights reserved. Empowering students worldwide.</p>
+    <button class="back-to-top" id="backToTopBtn" aria-label="Back to top"><i class="fas fa-arrow-up"></i> Top</button>
+  </div>
+</footer>
 
-  <script src="api.js"></script>
-  <script>
-    // Navbar logic
-    const user = localStorage.getItem('user');
-    const navLinks = document.getElementById('navLinks');
-    if (user) {
-      const userObj = JSON.parse(user);
-      navLinks.innerHTML = `
-        <a href="document-library.html">Library</a>
-        <a href="${userObj.role}-dashboard.html">Dashboard</a>
-        <button id="logoutBtnNav" class="btn btn-outline">Logout</button>
-      `;
-      document.getElementById('logoutBtnNav').addEventListener('click', async () => {
-        try { await apiFetch('/auth/logout', { method: 'POST' }); } catch(e) {}
-        localStorage.clear();
-        window.location.href = 'index.html';
-      });
-    } else {
-      navLinks.innerHTML = `
-        <a href="document-library.html">Library</a>
-        <a href="login.html">Login</a>
-        <a href="register.html" class="btn">Sign Up</a>
-      `;
-    }
-  </script>
-  <script src="library.js"></script>
+<script src="api.js"></script>
+<script src="auth.js"></script>
+<script src="library.js"></script>
+<script>
+  // Navbar logic (same as before, but uses our new dark navy navbar)
+  const user = localStorage.getItem('user');
+  const navLinks = document.getElementById('navLinks');
+  const userControls = document.querySelector('.user-controls');
+  if (user) {
+    const userObj = JSON.parse(user);
+    userControls.innerHTML = `
+      <a href="${userObj.role}-dashboard.html" class="nav-link">Dashboard</a>
+      <button id="logoutBtnNav" class="btn-outline-sm">Logout</button>
+    `;
+    document.getElementById('logoutBtnNav').addEventListener('click', async () => {
+      try { await apiFetch('/auth/logout', { method: 'POST' }); } catch(e) {}
+      localStorage.clear();
+      window.location.href = 'index.html';
+    });
+  } else {
+    userControls.innerHTML = `
+      <a href="login.html" class="nav-link">Login</a>
+      <a href="register.html" class="btn-primary-sm">Sign Up</a>
+    `;
+  }
+</script>
 </body>
 </html>
