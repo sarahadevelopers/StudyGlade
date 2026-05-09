@@ -461,6 +461,68 @@ body {
   text-decoration: none;
 }
 
+/* Notification dropdown – responsive */
+.notification-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 320px;
+  max-width: 90vw;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  z-index: 1000;
+  border: 1px solid #E2E8F0;
+}
+
+/* On small screens, make it full width and anchored to the bell */
+@media (max-width: 640px) {
+  .notification-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90vw;
+    max-width: 90vw;
+    right: auto;
+  }
+}
+
+.notification-header {
+  padding: 12px 16px;
+  background: #F8FAFF;
+  font-weight: 600;
+  border-bottom: 1px solid #E2E8F0;
+}
+.notification-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.notification-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 0.8rem;
+}
+.notification-item strong {
+  color: #0F172A;
+}
+.notification-time {
+  font-size: 0.65rem;
+  color: #94A3B8;
+  margin-top: 5px;
+}
+.notification-footer {
+  padding: 8px 16px;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+}
+.notification-footer a {
+  color: #005BFF;
+  text-decoration: none;
+}
+
 /* ========== PREMIUM MODAL STYLES (added, preserves all original) ========== */
 .modal-overlay {
   display: none;

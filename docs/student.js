@@ -272,7 +272,6 @@ if (window.studentDashboardLoaded) {
           <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
         `;
         const container = document.querySelector('.container');
-        // Null check to avoid error
         if (container && container.firstChild) {
           container.insertBefore(banner, container.firstChild);
         } else if (container) {
@@ -498,7 +497,7 @@ if (window.studentDashboardLoaded) {
   }
   window.uploadAvatar = uploadAvatar;
 
-  // ========== NOTIFICATIONS DROPDOWN ==========
+  // ========== NOTIFICATIONS DROPDOWN (mobile-friendly, with modal for "View all") ==========
   const notificationBell = document.querySelector('.notification-bell');
   let notificationDropdown = null;
 
@@ -507,31 +506,48 @@ if (window.studentDashboardLoaded) {
     notificationDropdown = document.createElement('div');
     notificationDropdown.className = 'notification-dropdown';
     notificationDropdown.innerHTML = `
-      <div class="notification-header">Notifications</div>
+      <div class="notification-header">Recent Notifications</div>
       <div class="notification-list" id="notificationListDropdown">Loading...</div>
       <div class="notification-footer">
         <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
-        <a href="notifications.html">View all</a>
+        <a href="#" onclick="loadAllNotificationsInModal(); return false;">View all</a>
       </div>
     `;
     document.body.appendChild(notificationDropdown);
   }
 
-  async function updateUnreadBadge() {
+  // Load all notifications into the modal (full list)
+  async function loadAllNotificationsInModal() {
+    const modal = document.getElementById('notificationModal');
+    const listDiv = document.getElementById('notificationList');
+    if (!modal || !listDiv) return;
+    modal.style.display = 'flex';
+    listDiv.innerHTML = '<div class="notification-item">Loading all notifications...</div>';
     try {
-      const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+      const res = await fetch('/api/notifications?limit=100', { credentials: 'include' });
       const data = await res.json();
-      const badge = document.querySelector('.notification-bell .badge');
-      if (badge) badge.innerText = data.count > 9 ? '9+' : data.count;
+      let html = '';
+      if (data.notifications.length === 0) {
+        html = '<div class="notification-item">No notifications found</div>';
+      } else {
+        data.notifications.forEach(n => {
+          html += `<div class="notification-item">
+                     <strong>${escapeHtml(n.title)}</strong><br>
+                     ${escapeHtml(n.message)}
+                     <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
+                   </div>`;
+        });
+      }
+      listDiv.innerHTML = html;
     } catch (err) {
-      console.error('Failed to fetch unread count:', err);
+      listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
     }
   }
 
+  // Load only latest 5 for dropdown
   async function loadNotificationsDropdown() {
     if (!notificationDropdown) createNotificationDropdown();
     const listDiv = notificationDropdown.querySelector('.notification-list');
-    if (!listDiv) return;
     listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
     try {
       const res = await fetch('/api/notifications?limit=5', { credentials: 'include' });
@@ -551,6 +567,17 @@ if (window.studentDashboardLoaded) {
       listDiv.innerHTML = html;
     } catch (err) {
       listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
+    }
+  }
+
+  async function updateUnreadBadge() {
+    try {
+      const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+      const data = await res.json();
+      const badge = document.querySelector('.notification-bell .badge');
+      if (badge) badge.innerText = data.count > 9 ? '9+' : data.count;
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
     }
   }
 
