@@ -65,6 +65,35 @@ async function fetchFreshUser() {
   return user;
 }
 
+// ----- Question Preview Modal -----
+async function previewQuestion(questionId) {
+  const modal = document.getElementById('questionPreviewModal');
+  const contentDiv = document.getElementById('previewContent');
+  if (!modal || !contentDiv) return;
+  modal.style.display = 'flex';
+  contentDiv.innerHTML = '<div class="loading">Loading question details...</div>';
+  try {
+    const q = await apiFetch(`/questions/${questionId}`);
+    const deadline = q.deadline ? new Date(q.deadline).toLocaleString() : 'Not set';
+    contentDiv.innerHTML = `
+      <div style="margin-bottom:0.5rem;"><strong>Title:</strong> ${escapeHtml(q.title)}</div>
+      <div><strong>Description:</strong> ${escapeHtml(q.description)}</div>
+      <div><strong>Budget:</strong> $${q.budget}</div>
+      <div><strong>Deadline:</strong> ${deadline}</div>
+      <div><strong>Subject:</strong> ${escapeHtml(q.subject || 'General')}</div>
+      <div><strong>Category:</strong> ${escapeHtml(q.category || '—')}</div>
+      ${q.files && q.files.length ? `<div><strong>Attachments:</strong> ${q.files.map(f => `<a href="${f}" target="_blank">View</a>`).join(', ')}</div>` : ''}
+    `;
+  } catch (err) {
+    contentDiv.innerHTML = '<div class="error">Failed to load question details.</div>';
+  }
+}
+
+function closeQuestionPreview() {
+  const modal = document.getElementById('questionPreviewModal');
+  if (modal) modal.style.display = 'none';
+}
+
 // ----- Load Tutor Dashboard (main) -----
 async function loadTutorDashboard() {
   try {
@@ -136,10 +165,11 @@ async function loadAvailableQuestions(page = 1) {
             </div>
             <span class="match-high">High Match</span>
           </div>
-          <div class="btn-group">
-            <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" style="width:100px;" class="bid-input">
+          <div class="bid-group">
+            <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" class="bid-input">
             <button class="btn-sm btn-primary-sm" onclick="placeBid('${q._id}')">Place Bid</button>
             <button class="btn-sm btn-outline-sm" onclick="acceptQuestion('${q._id}')">Accept at ${formatMoney(q.budget)}</button>
+            <button class="btn-sm btn-outline-sm" onclick="previewQuestion('${q._id}')">Preview</button>
           </div>
         </div>
       `;
@@ -239,12 +269,12 @@ function renderAssignmentsByTab(tab) {
         ${a.status === 'assigned' ? `
           <div class="btn-group">
             <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
-            <button class="btn-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
-            <button class="btn-sm" onclick="completeQuestion('${a._id}')">✅ Mark Complete</button>
-            <button class="btn-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
-            ${showCancel ? `<button class="btn-sm" style="background:#fee2e2;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
+            <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
+            <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}')">✅ Mark Complete</button>
+            <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
+            ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
           </div>
-        ` : (a.status === 'completed' && a.answerFile ? `<div class="btn-group"><a href="${a.answerFile}" download class="btn-sm">⬇ Download Answer</a></div>` : '')}
+        ` : (a.status === 'completed' && a.answerFile ? `<div class="btn-group"><a href="${a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a></div>` : '')}
       </div>
     `;
   });
@@ -264,7 +294,7 @@ function initTabs() {
   });
 }
 
-// ----- Assignment actions (same as before) -----
+// ----- Assignment actions -----
 async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const file = fileInput.files[0];
@@ -361,7 +391,7 @@ async function uploadAvatar() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Announcements and Notifications (similar to student) -----
+// ----- Announcements and Notifications (simple modal) -----
 async function loadAnnouncements() {
   try {
     const res = await fetch('/api/admin/public/announcements');
@@ -375,11 +405,9 @@ async function loadAnnouncements() {
     }
   } catch (err) { console.error(err); }
 }
-// ---- Notification bell (dropdown) ----
+
+// Notification bell (simple modal)
 const notificationBell = document.querySelector('.notification-bell');
-let notificationDropdown = null;
-function createNotificationDropdown() { /* similar to student; can also reuse same logic */ }
-// For brevity, we'll keep it simple: show modal on click
 if (notificationBell) {
   notificationBell.addEventListener('click', () => {
     const modal = document.getElementById('notificationModal');
@@ -398,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (userMenuEl) userMenuEl.addEventListener('click', toggleUserMenu);
 });
 
-// Expose functions globally
+// Expose global functions
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
@@ -408,3 +436,5 @@ window.cancelAssignment = cancelAssignment;
 window.logoutUser = logoutUser;
 window.uploadAvatar = uploadAvatar;
 window.changeAvailablePage = changeAvailablePage;
+window.previewQuestion = previewQuestion;
+window.closeQuestionPreview = closeQuestionPreview;
