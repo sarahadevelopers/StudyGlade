@@ -122,7 +122,7 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 5. Get single question -------------------
+// ------------------- 5. Get single question (UPDATED to allow tutor preview for pending) -------------------
 router.get('/:id', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -131,9 +131,14 @@ router.get('/:id', auth, async (req, res) => {
     if (!question) return res.status(404).json({ error: 'Question not found' });
     const user = await User.findById(req.userId);
     const isStudent = question.studentId._id.toString() === req.userId;
-    const isTutor = question.tutorId && question.tutorId._id.toString() === req.userId;
+    const isAssignedTutor = question.tutorId && question.tutorId._id.toString() === req.userId;
     const isAdmin = user.role === 'admin';
-    if (!isStudent && !isTutor && !isAdmin) return res.status(403).json({ error: 'Access denied' });
+    // Allow any tutor to view pending questions (preview)
+    const isTutorPreview = user.role === 'tutor' && question.status === 'pending';
+
+    if (!isStudent && !isAssignedTutor && !isAdmin && !isTutorPreview) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     res.json(question);
   } catch (err) {
     res.status(500).json({ error: err.message });

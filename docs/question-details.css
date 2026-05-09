@@ -1,0 +1,31 @@
+/* Same navbar, card, button styles as tutor-dashboard.css; adapt as needed */
+body {
+  background: #EFF6FF;
+  font-family: 'Inter', system-ui;
+}
+.navbar {
+  background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+  padding: 1rem 0;
+}
+.logo { color: white; display: flex; align-items: baseline; gap: 4px; }
+.logo i { color: #38BDF8; transform: rotate(12deg); }
+.nav-links { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+.user-menu { position: relative; cursor: pointer; display: flex; align-items: center; gap: 8px; color: white; }
+.user-avatar { width: 36px; border-radius: 50%; border: 2px solid #38BDF8; }
+.user-dropdown { position: absolute; top: 100%; right: 0; background: white; border-radius: 12px; min-width: 120px; display: none; }
+.user-menu.active .user-dropdown { display: block; }
+.user-dropdown a { display: block; padding: 8px 12px; color: #0F172A; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1rem; color: #005BFF; text-decoration: none; }
+.page-main { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+.question-card, .card { background: white; border-radius: 24px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+.card-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+.btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn-primary-sm { background: #005BFF; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 40px; cursor: pointer; }
+.btn-danger-sm { background: #EF4444; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 40px; }
+.btn-success-sm { background: #10B981; color: white; }
+.btn-outline-sm { background: transparent; border: 1px solid #005BFF; color: #005BFF; }
+.comments-list { max-height: 400px; overflow-y: auto; margin-bottom: 1rem; }
+.comment-item { border-left: 3px solid #005BFF; margin-bottom: 1rem; padding-left: 1rem; }
+.add-comment { display: flex; flex-direction: column; gap: 0.5rem; }
+.file-label { background: #F1F5F9; padding: 0.3rem 0.8rem; border-radius: 40px; cursor: pointer; font-size: 0.8rem; }
+.comment-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
