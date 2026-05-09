@@ -73,8 +73,10 @@ async function loadQuestion() {
       question.files.forEach(url => filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download</a></li>`);
       filesHtml += '</ul>';
     }
-    if (question.answerFile) {
-      answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(question.answerFile)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
+    // Use signed URL if available
+    const answerUrl = question.answerFileSigned || question.answerFile;
+    if (answerUrl) {
+      answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
     }
     const html = `
       <h2>${escapeHtml(question.title)}</h2>
@@ -90,7 +92,6 @@ async function loadQuestion() {
     document.getElementById('questionDetails').innerHTML = '<p class="error">Error loading question</p>';
   }
 }
-
 // ---------- Load bids (student only) ----------
 async function loadBids() {
   try {

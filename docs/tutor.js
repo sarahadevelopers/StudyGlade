@@ -31,7 +31,6 @@ function updateUserMenu(user) {
   if (sidebarName) sidebarName.innerText = user.fullName;
   if (topAvatar && user.avatar) topAvatar.src = user.avatar;
   if (sidebarAvatar && user.avatar) sidebarAvatar.src = user.avatar;
-  // fallback if no avatar
   if (!user.avatar) {
     const id = Math.floor(Math.random() * 100);
     let avatarUrl = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
@@ -88,7 +87,6 @@ async function previewQuestion(questionId) {
     contentDiv.innerHTML = '<div class="error">Failed to load question details.</div>';
   }
 }
-
 function closeQuestionPreview() {
   const modal = document.getElementById('questionPreviewModal');
   if (modal) modal.style.display = 'none';
@@ -100,7 +98,6 @@ async function loadTutorDashboard() {
     const user = await fetchFreshUser();
     updateUserMenu(user);
     document.getElementById('tutorName').innerText = user.fullName;
-    // stats
     document.getElementById('tutorRating').innerText = user.tutorProfile?.rating?.toFixed(1) || '0.0';
     const rating = user.tutorProfile?.rating || 0;
     const starsHtml = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
@@ -108,16 +105,13 @@ async function loadTutorDashboard() {
     document.getElementById('totalEarnings').innerText = formatMoney(user.tutorProfile?.totalEarnings || 0);
     document.getElementById('currentBalance').innerText = formatMoney(user.walletBalance);
     document.getElementById('withdrawBalance').innerText = formatMoney(user.walletBalance);
-    // total withdrawals
     try {
       const withdrawData = await apiFetch('/wallet/withdrawals-total');
       document.getElementById('totalWithdrawals').innerText = formatMoney(withdrawData.total);
     } catch(e) { document.getElementById('totalWithdrawals').innerText = '$0.00'; }
 
-    // tutor level
     const level = user.tutorProfile?.level || 'Entry-Level';
     document.getElementById('tutorLevelBadge').innerText = level;
-    // progress to next level (example thresholds)
     const completed = user.tutorProfile?.completedQuestions || 0;
     let nextLevel = 20;
     if (level === 'Entry-Level') nextLevel = 20;
@@ -128,11 +122,9 @@ async function loadTutorDashboard() {
     document.getElementById('levelProgressFill').style.width = progressPercent + '%';
     document.getElementById('levelProgressStats').innerText = `${completed} / ${nextLevel} completed`;
 
-    // load assignments & available questions
     await loadAssignments();
     await loadAvailableQuestions();
 
-    // set date filter default to today
     const dateInput = document.getElementById('dateFilter');
     if (dateInput) dateInput.value = new Date().toISOString().slice(0,10);
   } catch (err) {
@@ -154,7 +146,6 @@ async function loadAvailableQuestions(page = 1) {
       document.getElementById('paginationControls').innerHTML = '';
       return;
     }
-    
     let html = '';
     data.questions.forEach(q => {
       html += `
@@ -171,14 +162,12 @@ async function loadAvailableQuestions(page = 1) {
             <button class="btn-sm btn-primary-sm" onclick="placeBid('${q._id}')">Place Bid</button>
             <button class="btn-sm btn-outline-sm" onclick="acceptQuestion('${q._id}')">Accept at ${formatMoney(q.budget)}</button>
             <button class="btn-sm btn-outline-sm" onclick="previewQuestion('${q._id}')">Preview</button>
-            <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${q._id}'">📄 View Question</button>
+            <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>
           </div>
         </div>
       `;
     });
     container.innerHTML = html;
-    
-    // pagination
     totalAvailablePages = Math.ceil(data.total / PAGE_SIZE);
     const paginationDiv = document.getElementById('paginationControls');
     if (paginationDiv && totalAvailablePages > 1) {
@@ -201,12 +190,17 @@ window.changeAvailablePage = (delta) => {
   loadAvailableQuestions(currentAvailablePage);
 };
 
-// ----- Place Bid -----
+// ----- Place Bid (with UI disabling) -----
 async function placeBid(questionId) {
   const input = document.getElementById(`bid-${questionId}`);
+  const container = input?.closest('.bid-group');
+  const btn = container?.querySelector('.btn-primary-sm');
   if (!input) return;
   const amount = input.value;
   if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+  // disable UI
+  input.disabled = true;
+  if (btn) btn.disabled = true;
   try {
     await apiFetch(`/questions/${questionId}/bid`, {
       method: 'POST',
@@ -214,8 +208,13 @@ async function placeBid(questionId) {
     });
     showToast('Bid placed!', 'success');
     input.value = '';
+    // reload available questions to reflect any changes
     loadAvailableQuestions(currentAvailablePage);
-  } catch (err) { showToast(err.message, 'error'); }
+  } catch (err) {
+    showToast(err.message, 'error');
+    input.disabled = false;
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function acceptQuestion(questionId) {
@@ -226,7 +225,7 @@ async function acceptQuestion(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Load Assignments (with tabs) -----
+// ----- Load Assignments -----
 async function loadAssignments() {
   try {
     const assignments = await apiFetch('/questions/my-assignments');
@@ -246,14 +245,12 @@ function renderAssignmentsByTab(tab) {
     const now = new Date();
     filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
   } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
-  
   const container = document.getElementById('assignmentsList');
   if (!container) return;
   if (filtered.length === 0) {
     container.innerHTML = '<div class="assignment-item">No assignments found.</div>';
     return;
   }
-  
   let html = '';
   filtered.forEach(a => {
     const statusText = a.status === 'assigned' ? 'In Progress' : a.status;
@@ -262,7 +259,6 @@ function renderAssignmentsByTab(tab) {
     if (a.status === 'overdue') statusClass = 'status-overdue';
     const deadlineStatus = a.deadline ? new Date(a.deadline) < new Date() ? 'Overdue' : new Date(a.deadline).toLocaleDateString() : 'No deadline';
     const showCancel = a.additionalFundsRequest && a.additionalFundsRequest.status === 'rejected';
-    
     html += `
       <div class="assignment-item">
         <div class="assignment-header">
@@ -281,12 +277,7 @@ function renderAssignmentsByTab(tab) {
             <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
             ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
           </div>
-        ` : (a.status === 'completed' && a.answerFile ? `
-          <div class="btn-group">
-            <a href="${a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a>
-            <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
-          </div>
-        ` : '')}
+        ` : (a.status === 'completed' && a.answerFile ? `<div class="btn-group"><a href="${a.answerFileSigned || a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a></div>` : '')}
       </div>
     `;
   });
@@ -326,6 +317,11 @@ async function uploadAnswer(questionId) {
 }
 
 async function completeQuestion(id) {
+  const assignment = allAssignments.find(a => a._id === id);
+  if (assignment && !assignment.answerFile) {
+    showToast('Please upload an answer before marking as complete.', 'error');
+    return;
+  }
   try {
     await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
     showToast('Completed! Payment processed.', 'success');
@@ -378,7 +374,7 @@ async function withdrawFunds() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Avatar upload (shared with student) -----
+// ----- Avatar upload -----
 async function uploadAvatar() {
   const fileInput = document.getElementById('avatarFile');
   const file = fileInput.files[0];
@@ -403,22 +399,7 @@ async function uploadAvatar() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Announcements and Notifications (simple modal) -----
-async function loadAnnouncements() {
-  try {
-    const res = await fetch('/api/admin/public/announcements');
-    const announcements = await res.json();
-    const banner = document.getElementById('announcementBanner');
-    if (banner) {
-      if (announcements.length) {
-        banner.style.display = 'block';
-        banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
-      } else banner.style.display = 'none';
-    }
-  } catch (err) { console.error(err); }
-}
-
-// Notification bell (simple modal)
+// ----- Notifications (simple modal) -----
 const notificationBell = document.querySelector('.notification-bell');
 if (notificationBell) {
   notificationBell.addEventListener('click', () => {
@@ -427,13 +408,12 @@ if (notificationBell) {
   });
 }
 
-// ----- Event listeners after DOM ready -----
+// ----- Event listeners -----
 document.addEventListener('DOMContentLoaded', () => {
   loadTutorDashboard();
   initTabs();
   const withdrawBtn = document.getElementById('withdrawBtn');
   if (withdrawBtn) withdrawBtn.addEventListener('click', withdrawFunds);
-  // user menu toggle
   const userMenuEl = document.querySelector('.user-menu');
   if (userMenuEl) userMenuEl.addEventListener('click', toggleUserMenu);
 });

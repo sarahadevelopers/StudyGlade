@@ -12,7 +12,24 @@ const Notification = require('../models/Notification');   // <-- NEW
 const { upload } = require('../server');
 
 const router = express.Router();
-
+// Helper: generate signed URL for private Cloudinary files (answers etc.)
+function getSignedUrl(publicUrl, options = {}) {
+  if (!publicUrl) return null;
+  // Extract public_id from a Cloudinary URL
+  // Example: https://res.cloudinary.com/.../studyglade/answers/abc123.pdf
+  const matches = publicUrl.match(/\/upload\/(?:v\d+\/)?(.+)/);
+  if (!matches) return publicUrl;
+  const publicId = matches[1].split('.')[0];
+  // Determine resource_type: if PDF or other raw, use 'raw'; for images use 'image'
+  const resourceType = publicId.match(/\.(pdf|doc|docx|xls|xlsx|txt)$/i) ? 'raw' : 'image';
+  const signed = cloudinary.url(publicId, {
+    sign_url: true,
+    secure: true,
+    resource_type: resourceType,
+    ...options
+  });
+  return signed;
+}
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -116,7 +133,15 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
     const questions = await Question.find({ tutorId: req.userId })
       .populate('studentId', 'fullName avatar gender')
       .select('+additionalFundsRequest');
-    res.json(questions);
+    // Add signed URL for answerFile if exists
+    const enriched = questions.map(q => {
+      const obj = q.toObject();
+      if (obj.answerFile) {
+        obj.answerFileSigned = getSignedUrl(obj.answerFile);
+      }
+      return obj;
+    });
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -133,13 +158,13 @@ router.get('/:id', auth, async (req, res) => {
     const isStudent = question.studentId._id.toString() === req.userId;
     const isAssignedTutor = question.tutorId && question.tutorId._id.toString() === req.userId;
     const isAdmin = user.role === 'admin';
-    // Allow any tutor to view pending questions (preview)
     const isTutorPreview = user.role === 'tutor' && question.status === 'pending';
-
     if (!isStudent && !isAssignedTutor && !isAdmin && !isTutorPreview) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    res.json(question);
+    const obj = question.toObject();
+    if (obj.answerFile) obj.answerFileSigned = getSignedUrl(obj.answerFile);
+    res.json(obj);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -316,7 +341,11 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
     if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/answers' });
+    // Upload to Cloudinary with auto resource type (handles PDFs, images, etc.)
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'studyglade/answers',
+      resource_type: 'auto'
+    });
     await fs.unlink(req.file.path);
 
     question.answerFile = result.secure_url;
@@ -340,7 +369,6 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
     res.status(500).json({ error: err.message });
   }
 });
-
 // ------------------- 11. Get bids for a question (student/admin) – populate tutor with avatar & rating -------------------
 router.get('/:id/bids', auth, async (req, res) => {
   try {
