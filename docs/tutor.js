@@ -191,13 +191,15 @@ window.changeAvailablePage = (delta) => {
 };
 
 // ----- Place Bid (with UI disabling) -----
+// ----- Place Bid (with UI disabling and logging) -----
 async function placeBid(questionId) {
+  console.log("placeBid called for", questionId);
   const input = document.getElementById(`bid-${questionId}`);
   const container = input?.closest('.bid-group');
   const btn = container?.querySelector('.btn-primary-sm');
   if (!input) return;
   const amount = input.value;
-  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); console.log("Invalid amount"); return; }
   // disable UI
   input.disabled = true;
   if (btn) btn.disabled = true;
@@ -207,16 +209,17 @@ async function placeBid(questionId) {
       body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid from dashboard' })
     });
     showToast('Bid placed!', 'success');
+    console.log("Bid placed successfully");
     input.value = '';
     // reload available questions to reflect any changes
     loadAvailableQuestions(currentAvailablePage);
   } catch (err) {
+    console.error("Bid error:", err);
     showToast(err.message, 'error');
     input.disabled = false;
     if (btn) btn.disabled = false;
   }
 }
-
 async function acceptQuestion(questionId) {
   try {
     await apiFetch(`/questions/${questionId}/accept`, { method: 'PUT' });
@@ -330,19 +333,25 @@ async function uploadAnswer(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// ----- Mark Complete with logging -----
 async function completeQuestion(id) {
+  console.log("completeQuestion called for", id);
   const assignment = allAssignments.find(a => a._id === id);
   if (assignment && !assignment.answerFile) {
+    console.log("No answer file found");
     showToast('Please upload an answer before marking as complete.', 'error');
     return;
   }
   try {
-    await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
+    const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
+    console.log("Complete API response:", response);
     showToast('Completed! Payment processed.', 'success');
     loadTutorDashboard();
-  } catch (err) { showToast(err.message, 'error'); }
+  } catch (err) {
+    console.error("Complete error:", err);
+    showToast(err.message, 'error');
+  }
 }
-
 async function requestAdditionalFunds(questionId) {
   const amount = prompt('Additional amount requested ($):');
   if (!amount) return;

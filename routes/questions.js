@@ -197,6 +197,7 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
 });
 
 // ------------------- 7. Tutor marks complete (updates tutor stats) -------------------
+// ------------------- 7. Tutor marks complete (updates tutor stats) -------------------
 router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -227,7 +228,6 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
       referenceId: question._id
     });
 
-    // Notify student that answer is complete
     await Notification.create({
       userId: question.studentId,
       type: 'answer_uploaded',
@@ -236,8 +236,14 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
       link: `/answer-details.html?id=${question._id}`
     });
 
-    res.json(question);
+    // ✅ Add signed URL here
+    const obj = question.toObject();
+    if (obj.answerFile) {
+      obj.answerFileSigned = getSignedUrl(obj.answerFile);
+    }
+    res.json(obj);
   } catch (err) {
+    console.error('Complete error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -276,6 +282,7 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
 
     res.status(201).json(bid);
   } catch (err) {
+    console.error('Bid error:', err);
     res.status(400).json({ error: err.message });
   }
 });
