@@ -217,10 +217,13 @@
 <!-- Modals -->
 <div id="transactionModal" class="modal-overlay">
   <div class="modal-content">
+    <span class="close-modal" onclick="closeTransactionModal()">&times;</span>
     <h3>Transaction History</h3>
-    <div id="transactionList"></div>
-    <button id="loadMoreTransactions" class="btn-outline btn-sm">Load More</button>
-    <button onclick="closeTransactionModal()" class="btn-outline btn-sm">Close</button>
+    <div id="transactionList" class="transaction-list"></div>
+    <div style="text-align: center; margin-top: 1rem;">
+      <button id="loadMoreTransactions" class="btn-outline btn-sm">Load More</button>
+      <button onclick="closeTransactionModal()" class="btn-outline btn-sm">Close</button>
+    </div>
   </div>
 </div>
 
@@ -236,7 +239,10 @@
       <span class="star" data-value="5">★</span>
     </div>
     <textarea id="ratingFeedback" rows="3" placeholder="Write a review (optional)"></textarea>
-    <button onclick="submitRating()" class="btn-primary btn-sm">Submit Rating</button>
+    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+      <button onclick="closeRatingModal()" class="btn-outline btn-sm">Cancel</button>
+      <button onclick="submitRating()" class="btn-primary btn-sm">Submit Rating</button>
+    </div>
   </div>
 </div>
 
