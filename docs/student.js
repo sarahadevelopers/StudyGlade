@@ -379,13 +379,20 @@ async function loadTransactionHistory(reset = true) {
       return;
     }
     const html = data.transactions.map(t => `
-      <li style="border-bottom:1px solid #eee; padding:0.5rem 0;">
-        <strong>${t.type}</strong> - $${Math.abs(t.amount)}<br>
-        <small>${t.description} (${new Date(t.createdAt).toLocaleString()})</small>
-      </li>
-    `).join('');
-    if (reset) list.innerHTML = `<ul style="list-style:none; padding-left:0;">${html}</ul>`;
-    else list.innerHTML += html;
+  <div class="transaction-item">
+    <div>
+      <span class="transaction-type">${t.type}</span>
+      <div class="transaction-date">${new Date(t.createdAt).toLocaleString()}</div>
+    </div>
+    <div class="transaction-amount ${t.amount > 0 ? 'positive' : 'negative'}">
+      ${t.amount > 0 ? '+' : '-'}$${Math.abs(t.amount).toFixed(2)}
+    </div>
+    <div style="font-size:0.7rem; color:#64748B;">${escapeHtml(t.description)}</div>
+  </div>
+`).join('');
+
+    if (reset) list.innerHTML = `<div class="transaction-list">${html}</div>`;
+else list.innerHTML += html;
     transactionHasMore = transactionPage < data.pagination.pages;
     transactionPage++;
   } catch (err) {
