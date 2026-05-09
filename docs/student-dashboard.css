@@ -117,7 +117,7 @@ body {
   min-width: 120px;
   z-index: 10;
 }
-.user-dropdown.show {
+.user-menu.active .user-dropdown {
   display: block;
 }
 .user-dropdown a {
@@ -144,11 +144,11 @@ body {
   flex-wrap: wrap;
 }
 .main-column {
-  flex: 3; /* 75% */
+  flex: 3;
   min-width: 0;
 }
 .sidebar-column {
-  flex: 1; /* 25% */
+  flex: 1;
 }
 
 /* Page header */
@@ -323,11 +323,11 @@ body {
   font-size: 0.7rem;
   font-weight: 600;
 }
-.status-awaiting { background: #FEF3C7; color: #B45309; }  /* pale amber */
-.status-progress { background: #DBEAFE; color: #1E40AF; }   /* pale blue */
-.status-payment { background: #E9D5FF; color: #6B21A8; }    /* pale purple */
-.status-completed { background: #D1FAE5; color: #065F46; }   /* green */
-.status-overdue { background: #FEE2E2; color: #B91C1C; }      /* red */
+.status-awaiting { background: #FEF3C7; color: #B45309; }
+.status-progress { background: #DBEAFE; color: #1E40AF; }
+.status-payment { background: #E9D5FF; color: #6B21A8; }
+.status-completed { background: #D1FAE5; color: #065F46; }
+.status-overdue { background: #FEE2E2; color: #B91C1C; }
 
 /* Action buttons */
 .btn-sm {
@@ -350,17 +350,11 @@ body {
   color: #005BFF;
 }
 .btn-outline-sm:hover { background: #005BFF; color: white; }
-.rating-stars i, .star-rating .star {
-  font-size: 0.8rem;
-}
-/* Stars default grey */
-.star-rating .star {
-  color: #CBD5E1;
-}
-/* Hover and selected become gold */
-.star-rating .star:hover,
-.star-rating .star.selected {
+
+/* Stars inside tables (completed questions rating) */
+.rating-stars i {
   color: #F59E0B;
+  font-size: 0.7rem;
 }
 
 /* Right Sidebar */
@@ -418,84 +412,6 @@ body {
 }
 .live-chat-btn:hover { background: #004ecc; }
 
-/* Modals (minimal styling) */
-
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 1024px) {
-  .stats-row { grid-template-columns: repeat(2,1fr); }
-  .dashboard-container { flex-direction: column; }
-}
-@media (max-width: 768px) {
-  .nav-container { flex-direction: column; align-items: stretch; }
-  .nav-center { justify-content: center; }
-  .nav-right { justify-content: flex-end; }
-  .stats-row { grid-template-columns: 1fr; }
-  .section-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-}
-/* Stack table rows into cards on very small screens */
-@media (max-width: 550px) {
-  .data-table,
-  .data-table thead,
-  .data-table tbody,
-  .data-table tr,
-  .data-table th,
-  .data-table td {
-    display: block;
-  }
-  .data-table thead {
-    display: none; /* hide original headers */
-  }
-  .data-table tr {
-    margin-bottom: 1rem;
-    border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 0.75rem;
-    background: white;
-    position: relative;
-  }
-  .data-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #E2E8F0;
-    font-size: 0.8rem;
-    gap: 1rem;
-  }
-  .data-table td:last-child {
-    border-bottom: none;
-  }
-  /* Add pseudo‑headers for each cell */
-  .data-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #1E293B;
-    width: 40%;
-    min-width: 100px;
-  }
-  /* Customise each column’s label (Active Questions table) */
-  #activeQuestionsTable td:nth-child(1)::before { content: "Question"; }
-  #activeQuestionsTable td:nth-child(2)::before { content: "Tutor"; }
-  #activeQuestionsTable td:nth-child(3)::before { content: "Subject"; }
-  #activeQuestionsTable td:nth-child(4)::before { content: "Budget"; }
-  #activeQuestionsTable td:nth-child(5)::before { content: "Status"; }
-  #activeQuestionsTable td:nth-child(6)::before { content: "Actions"; }
-
-  /* Completed Questions table (different column order) */
-  #completedQuestionsTable td:nth-child(1)::before { content: "Question"; }
-  #completedQuestionsTable td:nth-child(2)::before { content: "Subject"; }
-  #completedQuestionsTable td:nth-child(3)::before { content: "Tutor"; }
-  #completedQuestionsTable td:nth-child(4)::before { content: "Budget"; }
-  #completedQuestionsTable td:nth-child(5)::before { content: "Rating"; }
-  #completedQuestionsTable td:nth-child(6)::before { content: "Actions"; }
-
-  /* Adjust button sizes inside stacked view */
-  .btn-sm {
-    padding: 0.2rem 0.6rem;
-    font-size: 0.7rem;
-  }
-}
 /* Notification Dropdown */
 .notification-dropdown {
   display: none;
@@ -544,34 +460,277 @@ body {
   color: #005BFF;
   text-decoration: none;
 }
-/* User dropdown menu (already updated) */
-.user-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  min-width: 140px;
-  z-index: 10;
+
+/* ========== PREMIUM MODAL STYLES (added, preserves all original) ========== */
+.modal-overlay {
   display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
 }
-.user-menu.active .user-dropdown {
-  display: block;
+.modal-content {
+  background: white;
+  border-radius: 32px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: modalSlideUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
-.user-dropdown a {
-  display: block;
-  padding: 8px 16px;
-  color: #1E293B;
-  text-decoration: none;
-  font-size: 0.8rem;
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.user-dropdown a:hover {
+.close-modal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
   background: #F1F5F9;
-  color: #005BFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5B6E8C;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+.close-modal:hover { background: #EF4444; color: white; }
+
+/* Rating modal specific */
+.rating-modal h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  color: #0F172A;
+}
+#ratingModalTutorName { color: #005BFF; }
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 2rem 0;
+}
+.star {
+  font-size: 2.2rem;
+  cursor: pointer;
+  color: #E2E8F0;
+  transition: all 0.2s ease;
+}
+.star:hover, .star.selected {
+  color: #F59E0B;
+  transform: scale(1.1);
+  text-shadow: 0 0 5px rgba(245, 158, 11, 0.3);
+}
+#ratingFeedback {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+#ratingFeedback:focus {
+  outline: none;
+  border-color: #005BFF;
+  box-shadow: 0 0 0 2px rgba(0, 91, 255, 0.1);
+}
+.rating-modal .btn-sm {
+  padding: 0.5rem 1.2rem;
+  font-size: 0.85rem;
+  border-radius: 40px;
+  cursor: pointer;
+}
+.rating-modal .btn-outline-sm {
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  color: #5B6E8C;
+}
+.rating-modal .btn-outline-sm:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+.rating-modal .btn-primary-sm {
+  background: #005BFF;
+  color: white;
+  border: none;
+}
+.rating-modal .btn-primary-sm:hover {
+  background: #004ecc;
+  transform: translateY(-1px);
 }
 
-/* Premium Footer */
+/* Transaction modal */
+#transactionModal .modal-content {
+  max-width: 640px;
+  padding: 1.5rem;
+}
+#transactionModal h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #0F172A;
+}
+.transaction-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 0.5rem 0 1.5rem;
+}
+.transaction-item {
+  background: #F8FAFF;
+  border-radius: 20px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.75rem;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.transaction-item:hover {
+  background: #EFF6FF;
+}
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.transaction-type {
+  font-weight: 700;
+  background: #E2E8F0;
+  padding: 0.2rem 0.8rem;
+  border-radius: 40px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #0F172A;
+}
+.transaction-amount {
+  font-weight: 800;
+  font-size: 1rem;
+}
+.transaction-amount.positive { color: #10B981; }
+.transaction-amount.negative { color: #EF4444; }
+.transaction-description {
+  font-size: 0.8rem;
+  color: #5B6E8C;
+  word-break: break-word;
+}
+.transaction-date {
+  font-size: 0.65rem;
+  color: #94A3B8;
+  margin-top: 0.2rem;
+}
+#transactionModal .btn-sm {
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  border-radius: 40px;
+  cursor: pointer;
+}
+#loadMoreTransactions {
+  background: transparent;
+  border: 1px solid #005BFF;
+  color: #005BFF;
+}
+#loadMoreTransactions:hover {
+  background: #005BFF;
+  color: white;
+}
+button[onclick="closeTransactionModal()"] {
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  color: #5B6E8C;
+}
+button[onclick="closeTransactionModal()"]:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+/* ========== MOBILE RESPONSIVENESS (restored from original) ========== */
+@media (max-width: 1024px) {
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .dashboard-container { flex-direction: column; }
+}
+@media (max-width: 768px) {
+  .nav-container { flex-direction: column; align-items: stretch; }
+  .nav-center { justify-content: center; }
+  .nav-right { justify-content: flex-end; }
+  .stats-row { grid-template-columns: 1fr; }
+  .section-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+/* Stack table rows into cards on very small screens (original from earlier) */
+@media (max-width: 550px) {
+  .data-table,
+  .data-table thead,
+  .data-table tbody,
+  .data-table tr,
+  .data-table th,
+  .data-table td {
+    display: block;
+  }
+  .data-table thead {
+    display: none;
+  }
+  .data-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 0.75rem;
+    background: white;
+  }
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 0.8rem;
+    gap: 1rem;
+  }
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #1E293B;
+    width: 40%;
+    min-width: 100px;
+  }
+  #activeQuestionsTable td:nth-child(1)::before { content: "Question"; }
+  #activeQuestionsTable td:nth-child(2)::before { content: "Tutor"; }
+  #activeQuestionsTable td:nth-child(3)::before { content: "Subject"; }
+  #activeQuestionsTable td:nth-child(4)::before { content: "Budget"; }
+  #activeQuestionsTable td:nth-child(5)::before { content: "Status"; }
+  #activeQuestionsTable td:nth-child(6)::before { content: "Actions"; }
+  #completedQuestionsTable td:nth-child(1)::before { content: "Question"; }
+  #completedQuestionsTable td:nth-child(2)::before { content: "Subject"; }
+  #completedQuestionsTable td:nth-child(3)::before { content: "Tutor"; }
+  #completedQuestionsTable td:nth-child(4)::before { content: "Budget"; }
+  #completedQuestionsTable td:nth-child(5)::before { content: "Rating"; }
+  #completedQuestionsTable td:nth-child(6)::before { content: "Actions"; }
+  .btn-sm {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* ========== FOOTER ========== */
 .premium-footer {
   background-color: #1E293B;
   color: #F1F5F9;
@@ -751,371 +910,11 @@ body {
   opacity: 0.7;
   margin: 0;
 }
-
-/* Responsive Breakpoints */
-@media (max-width: 1024px) {
-  .quick-access { grid-template-columns: repeat(2,1fr); }
-  .features-grid { grid-template-columns: repeat(2,1fr); }
-  .steps-wrapper { gap: 1.5rem; }
-  .float-badge { display: none; }
-  .hero-grid { gap: 2rem; }
-  .hero-text-content h1 { font-size: 2.6rem; }
-  .footer-grid { gap: 1.5rem; }
-}
-@media (max-width: 992px) {
-  .steps-wrapper { grid-template-columns: 1fr; gap: 1.2rem; }
-  .progress-line { display: none; }
-  .step-card { max-width: 480px; margin: 0 auto; text-align: left; background: white; }
-  .only-mobile { display: block; }
-  .stats-grid { flex-direction: column; gap: 1.5rem; }
-  .stat-divider { display: none; }
-  .stat h3 { font-size: 2rem; }
-  .footer-container { gap: 2rem; }
-  .footer-links-grid { gap: 1.5rem; }
-}
-
-@media (max-width: 480px) {
-  .stat h3 { font-size: 1.8rem; }
-  .stat-icon { font-size: 1.6rem; }
-  .footer-links-grid { grid-template-columns: 1fr; }
-  .newsletter-box { max-width: 100%; }
-  .brand-description { text-align: left; }
-  .footer-col h4::after {
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .footer-col a { margin: 0 auto 0.6rem; }
-  .social-icons { justify-content: center; }
-  .footer-logo { justify-content: center; }
-}
-
-/* Modal overlay – covers full screen, centers content */
-
-
-/* Star rating container */
-.star-rating {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 1.5rem 0;
-}
-
-.star {
-  font-size: 2rem;
-  cursor: pointer;
-  color: #CBD5E1;        /* grey */
-  transition: color 0.15s, transform 0.15s;
-}
-
-.star:hover,
-.star.selected {
-  color: #F59E0B;        /* gold */
-  transform: scale(1.05);
-}
-
-/* Transaction modal specific */
-#transactionModal .modal-content {
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.transaction-list {
-  max-height: 400px;
-  overflow-y: auto;
-  margin: 1rem 0;
-}
-
-.transaction-item {
-  display: flex;
-  justify-content: space-between;
+.nav-container {
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.transaction-type {
-  font-weight: 600;
-  color: #0F172A;
-}
-.transaction-amount {
-  font-weight: 700;
-}
-.transaction-amount.positive { color: #10B981; }
-.transaction-amount.negative { color: #EF4444; }
-.transaction-date {
-  font-size: 0.7rem;
-  color: #5B6E8C;
-}
-
-/* ========== PREMIUM MODAL STYLES – centered, responsive ========== */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 32px;
-  max-width: 520px;
-  width: 100%;
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 2rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-  position: relative;
-  animation: modalSlideUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-}
-
-@keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.close-modal {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 32px;
-  height: 32px;
-  background: #F1F5F9;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #5B6E8C;
-  font-size: 1.2rem;
-  transition: all 0.2s;
-}
-.close-modal:hover {
-  background: #EF4444;
-  color: white;
-}
-
-/* Rating modal specific */
-.rating-modal h3 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #0F172A;
   text-align: center;
 }
-
-#ratingModalTutorName {
-  color: #005BFF;
-}
-
-/* Star rating – premium touch */
-.star-rating {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin: 2rem 0;
-}
-
-.star {
-  font-size: 2.2rem;
-  cursor: pointer;
-  color: #E2E8F0;      /* soft grey */
-  transition: all 0.2s ease;
-}
-
-.star:hover,
-.star.selected {
-  color: #F59E0B;      /* gold */
-  transform: scale(1.1);
-  text-shadow: 0 0 5px rgba(245, 158, 11, 0.3);
-}
-
-/* Rating feedback textarea */
-#ratingFeedback {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #E2E8F0;
-  border-radius: 20px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  resize: vertical;
-  transition: border 0.2s;
-}
-#ratingFeedback:focus {
-  outline: none;
-  border-color: #005BFF;
-  box-shadow: 0 0 0 2px rgba(0, 91, 255, 0.1);
-}
-
-/* Rating modal buttons */
-.rating-modal .btn-sm {
-  padding: 0.5rem 1.2rem;
-  font-size: 0.85rem;
-  border-radius: 40px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.rating-modal .btn-outline-sm {
-  background: transparent;
-  border: 1px solid #E2E8F0;
-  color: #5B6E8C;
-}
-.rating-modal .btn-outline-sm:hover {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
-}
-.rating-modal .btn-primary-sm {
-  background: #005BFF;
-  color: white;
-  border: none;
-}
-.rating-modal .btn-primary-sm:hover {
-  background: #004ecc;
-  transform: translateY(-1px);
-}
-
-/* Transaction modal – sleek list */
-#transactionModal .modal-content {
-  max-width: 640px;
-  padding: 1.5rem;
-}
-
-#transactionModal h3 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #0F172A;
-}
-
-.transaction-list {
-  max-height: 400px;
-  overflow-y: auto;
-  margin: 0.5rem 0 1.5rem;
-}
-
-.transaction-item {
-  background: #F8FAFF;
-  border-radius: 20px;
-  padding: 0.8rem 1rem;
-  margin-bottom: 0.75rem;
-  transition: background 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.transaction-item:hover {
-  background: #EFF6FF;
-}
-
-.transaction-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.nav-center {
   flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.transaction-type {
-  font-weight: 700;
-  color: #0F172A;
-  background: #E2E8F0;
-  padding: 0.2rem 0.8rem;
-  border-radius: 40px;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
-.transaction-amount {
-  font-weight: 800;
-  font-size: 1rem;
-}
-.transaction-amount.positive { color: #10B981; }
-.transaction-amount.negative { color: #EF4444; }
-
-.transaction-description {
-  font-size: 0.8rem;
-  color: #5B6E8C;
-  word-break: break-word;
-}
-
-.transaction-date {
-  font-size: 0.65rem;
-  color: #94A3B8;
-  margin-top: 0.2rem;
-}
-
-/* Transaction modal buttons */
-#transactionModal .btn-sm {
-  padding: 0.4rem 1rem;
-  font-size: 0.8rem;
-  border-radius: 40px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-#loadMoreTransactions {
-  background: transparent;
-  border: 1px solid #005BFF;
-  color: #005BFF;
-}
-#loadMoreTransactions:hover {
-  background: #005BFF;
-  color: white;
-}
-button[onclick="closeTransactionModal()"] {
-  background: transparent;
-  border: 1px solid #E2E8F0;
-  color: #5B6E8C;
-}
-button[onclick="closeTransactionModal()"]:hover {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
-}
-
-/* ========== MOBILE RESPONSIVENESS ========== */
-@media (max-width: 640px) {
-  .modal-content {
-    padding: 1.2rem;
-    width: 95%;
-  }
-  .star {
-    font-size: 1.8rem;
-    gap: 8px;
-  }
-  .transaction-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .transaction-item {
-    padding: 0.7rem;
-  }
-  .rating-modal .btn-sm {
-    padding: 0.4rem 1rem;
-    font-size: 0.75rem;
-  }
-  .close-modal {
-    top: 12px;
-    right: 12px;
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
-  }
-}
-
-/* Ensure the overlay uses flex for centering */
-.modal-overlay[style*="display: flex"] {
-  display: flex !important;
+  gap: 0.8rem;
 }
