@@ -430,7 +430,7 @@ if (window.studentDashboardLoaded) {
   };
   document.getElementById('loadMoreTransactions')?.addEventListener('click', () => loadTransactionHistory(false));
 
-  // ---------- Polling ----------
+  // ---------- Polling for suggestions & funds requests ----------
   setInterval(async () => {
     const user = JSON.parse(localStorage.getItem('user'));
     if (user && user.role === 'student') {
@@ -629,6 +629,9 @@ if (window.studentDashboardLoaded) {
     notificationBell.addEventListener('click', toggleNotificationDropdown);
   }
 
+  // Expose global functions for inline onclick handlers
+  window.markAllRead = markAllRead;
+  window.loadAllNotificationsInModal = loadAllNotificationsInModal;
   window.closeNotificationModal = function() {
     const modal = document.getElementById('notificationModal');
     if (modal) modal.style.display = 'none';
@@ -647,7 +650,7 @@ if (window.studentDashboardLoaded) {
     handlePaymentReturn();
   });
 
-  // Expose global functions
+  // Expose global functions for inline onclick
   window.toggleUserMenu = toggleUserMenu;
   window.logoutUser = logoutUser;
 }
