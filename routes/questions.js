@@ -8,21 +8,18 @@ const Question = require('../models/Question');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Bid = require('../models/Bid');
-const Notification = require('../models/Notification');   // <-- NEW
+const Notification = require('../models/Notification');
 const { upload } = require('../server');
-const multerMemory = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
-// Helper: generate signed URL for private Cloudinary files (answers etc.)
-function getSignedUrl(publicUrl, options = {}) {
+const multerMemory = multer({ storage: multer.memoryStorage() });
+
+// Helper: generate signed URL for Cloudinary files
+function getSignedUrl(publicUrl, resourceType = 'image', options = {}) {
   if (!publicUrl) return null;
-  // Extract public_id from a Cloudinary URL
-  // Example: https://res.cloudinary.com/.../studyglade/answers/abc123.pdf
   const matches = publicUrl.match(/\/upload\/(?:v\d+\/)?(.+)/);
   if (!matches) return publicUrl;
   const publicId = matches[1].split('.')[0];
-  // Determine resource_type: if PDF or other raw, use 'raw'; for images use 'image'
-  const resourceType = publicId.match(/\.(pdf|doc|docx|xls|xlsx|txt)$/i) ? 'raw' : 'image';
   const signed = cloudinary.url(publicId, {
     sign_url: true,
     secure: true,
@@ -31,13 +28,14 @@ function getSignedUrl(publicUrl, options = {}) {
   });
   return signed;
 }
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Helper to get tutor information (fullName, avatar, gender, rating)
+// Helper to get tutor information
 async function getTutorInfo(tutorId) {
   const tutor = await User.findById(tutorId).select('fullName avatar gender tutorProfile.rating');
   return tutor;
@@ -99,7 +97,7 @@ router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (re
   }
 });
 
-// ------------------- 2. Get pending questions (tutor) with pagination -------------------
+// ------------------- 2. Get pending questions (tutor) -------------------
 router.get('/pending', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -117,7 +115,7 @@ router.get('/pending', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 3. My questions (student) – now populates tutor avatar & rating -------------------
+// ------------------- 3. My questions (student) -------------------
 router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
   try {
     const questions = await Question.find({ studentId: req.userId })
@@ -128,17 +126,17 @@ router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
   }
 });
 
-// ------------------- 4. My assignments (tutor) – also populates additionalFundsRequest -------------------
+// ------------------- 4. My assignments (tutor) – with signed URLs for answers (raw) -------------------
 router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const questions = await Question.find({ tutorId: req.userId })
       .populate('studentId', 'fullName avatar gender')
       .select('+additionalFundsRequest');
-    // Add signed URL for answerFile if exists
     const enriched = questions.map(q => {
       const obj = q.toObject();
       if (obj.answerFile) {
-        obj.answerFileSigned = getSignedUrl(obj.answerFile);
+        // Answer files are stored as 'raw' (PDF, DOC, etc.)
+        obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
       }
       return obj;
     });
@@ -148,7 +146,7 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 5. Get single question (UPDATED to allow tutor preview for pending) -------------------
+// ------------------- 5. Get single question (allows tutor preview) -------------------
 router.get('/:id', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -164,14 +162,16 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     const obj = question.toObject();
-    if (obj.answerFile) obj.answerFileSigned = getSignedUrl(obj.answerFile);
+    if (obj.answerFile) {
+      obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
+    }
     res.json(obj);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 6. Tutor accepts question at existing budget -------------------
+// ------------------- 6. Tutor accepts question -------------------
 router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -181,7 +181,6 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
     question.status = 'assigned';
     await question.save();
 
-    // Optional: notify student that tutor accepted
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
@@ -197,8 +196,7 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 7. Tutor marks complete (updates tutor stats) -------------------
-// ------------------- 7. Tutor marks complete (updates tutor stats) -------------------
+// ------------------- 7. Tutor marks complete (with signed URL in response) -------------------
 router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -237,10 +235,9 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
       link: `/answer-details.html?id=${question._id}`
     });
 
-    // ✅ Add signed URL here
     const obj = question.toObject();
     if (obj.answerFile) {
-      obj.answerFileSigned = getSignedUrl(obj.answerFile);
+      obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
     }
     res.json(obj);
   } catch (err) {
@@ -249,7 +246,7 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 8. Place a bid (restrictions) + NOTIFICATION -------------------
+// ------------------- 8. Place a bid -------------------
 router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const { amount, message } = req.body;
@@ -271,7 +268,6 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
       message
     });
 
-    // 🔔 Notify student
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
@@ -288,7 +284,7 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 9. Accept budget suggestion (student) + NOTIFICATION -------------------
+// ------------------- 9. Accept budget suggestion (student) -------------------
 router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -324,7 +320,6 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
       referenceId: question._id
     });
 
-    // 🔔 Notify tutor
     const tutor = await User.findById(question.tutorId).select('fullName');
     await Notification.create({
       userId: question.tutorId,
@@ -340,8 +335,7 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
   }
 });
 
-// ------------------- 10. Upload answer (tutor) + NOTIFICATION -------------------
-// ------------------- 10. Upload answer (tutor) + NOTIFICATION -------------------
+// ------------------- 10. Upload answer (tutor) – memory storage, raw resource -------------------
 router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single('answer'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -350,10 +344,9 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
     if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Upload to Cloudinary from buffer (memory storage)
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
-        { folder: 'studyglade/answers', resource_type: 'auto' },
+        { folder: 'studyglade/answers', resource_type: 'raw' },
         (error, uploadResult) => {
           if (error) reject(error);
           else resolve(uploadResult);
@@ -366,7 +359,6 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
     question.answerUploadedAt = new Date();
     await question.save();
 
-    // 🔔 Notify student
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
@@ -382,7 +374,8 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
     res.status(500).json({ error: err.message });
   }
 });
-// ------------------- 11. Get bids for a question (student/admin) – populate tutor with avatar & rating -------------------
+
+// ------------------- 11. Get bids for a question (student/admin) -------------------
 router.get('/:id/bids', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -399,7 +392,7 @@ router.get('/:id/bids', auth, async (req, res) => {
   }
 });
 
-// ------------------- 12. Accept a specific bid (student) + NOTIFICATION -------------------
+// ------------------- 12. Accept a specific bid (student) -------------------
 router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -448,7 +441,6 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
     bid.accepted = true;
     await bid.save();
 
-    // 🔔 Notify tutor that their bid was accepted
     const tutor = await User.findById(bid.tutorId).select('fullName');
     await Notification.create({
       userId: bid.tutorId,
@@ -495,7 +487,7 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
   }
 });
 
-// ------------------- 14. Tutor requests additional funds (student must approve) -------------------
+// ------------------- 14. Tutor requests additional funds -------------------
 router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -516,7 +508,6 @@ router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (re
     };
     await question.save();
 
-    // 🔔 Notify student
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
@@ -532,7 +523,7 @@ router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (re
   }
 });
 
-// ------------------- 15. Student responds to additional funds request + NOTIFICATION -------------------
+// ------------------- 15. Student responds to additional funds request -------------------
 router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -559,7 +550,6 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
       });
       request.status = 'approved';
 
-      // 🔔 Notify tutor (approved)
       await Notification.create({
         userId: question.tutorId,
         type: 'funds_response',
@@ -569,7 +559,6 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
       });
     } else {
       request.status = 'rejected';
-      // 🔔 Notify tutor (rejected)
       await Notification.create({
         userId: question.tutorId,
         type: 'funds_response',
@@ -586,7 +575,7 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
   }
 });
 
-// ------------------- 16. Tutor cancels assignment (ONLY after a REJECTED additional funds request) -------------------
+// ------------------- 16. Tutor cancels assignment (only after rejected funds request) -------------------
 router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
