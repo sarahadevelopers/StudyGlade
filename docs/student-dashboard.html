@@ -314,5 +314,45 @@
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 </script>
+
+<script src="api.js"></script>
+<script src="auth.js"></script>
+<script src="student.js"></script>
+
+<!-- existing inline script (for announcements, year, etc.) -->
+<script>
+  // ... your existing inline script ...
+</script>
+
+<!-- NEW: hide/show navbar on scroll -->
+<script>
+  (function() {
+    let lastScrollTop = 0;
+    const navbar = document.querySelector('.dashboard-nav');
+    if (!navbar) return;
+    let ticking = false;
+    function updateNavbar() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollDelta = scrollTop - lastScrollTop;
+      if (scrollDelta > 5 && scrollTop > 60) {
+        navbar.style.transform = 'translateY(-100%)';
+        navbar.style.transition = 'transform 0.3s ease';
+      } else if (scrollDelta < -5 || scrollTop <= 60) {
+        navbar.style.transform = 'translateY(0)';
+      }
+      lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+      ticking = false;
+    }
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(() => { updateNavbar(); ticking = false; });
+        ticking = true;
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
 </body>
 </html>
