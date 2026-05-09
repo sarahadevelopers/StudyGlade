@@ -196,6 +196,7 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
 });
 
 // ----------------- Login -----------------
+// ----------------- Login -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -231,7 +232,16 @@ router.post('/login', async (req, res) => {
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
     
-    res.json({ user: { id: user._id, email, fullName: user.fullName, role: user.role, walletBalance: user.walletBalance } });
+    // ✅ FIXED: include avatar and gender in the response
+    res.json({ user: { 
+      id: user._id, 
+      email, 
+      fullName: user.fullName, 
+      role: user.role, 
+      walletBalance: user.walletBalance,
+      avatar: user.avatar || '',
+      gender: user.gender || 'other'
+    } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
