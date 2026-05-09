@@ -1,31 +1,250 @@
-/* Same navbar, card, button styles as tutor-dashboard.css; adapt as needed */
-body {
-  background: #EFF6FF;
-  font-family: 'Inter', system-ui;
+/* question-details.css – Premium, consistent with StudyGlade */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
+body {
+  font-family: 'Inter', 'Jost', sans-serif;
+  background: #EFF6FF;
+  color: #0F172A;
+  line-height: 1.5;
+}
+
+/* ========== DARK NAVY NAVBAR ========== */
 .navbar {
   background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
   padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-.logo { color: white; display: flex; align-items: baseline; gap: 4px; }
-.logo i { color: #38BDF8; transform: rotate(12deg); }
-.nav-links { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-.user-menu { position: relative; cursor: pointer; display: flex; align-items: center; gap: 8px; color: white; }
-.user-avatar { width: 36px; border-radius: 50%; border: 2px solid #38BDF8; }
-.user-dropdown { position: absolute; top: 100%; right: 0; background: white; border-radius: 12px; min-width: 120px; display: none; }
-.user-menu.active .user-dropdown { display: block; }
-.user-dropdown a { display: block; padding: 8px 12px; color: #0F172A; }
-.back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1rem; color: #005BFF; text-decoration: none; }
-.page-main { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
-.question-card, .card { background: white; border-radius: 24px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-.card-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
-.btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
-.btn-primary-sm { background: #005BFF; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 40px; cursor: pointer; }
-.btn-danger-sm { background: #EF4444; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 40px; }
-.btn-success-sm { background: #10B981; color: white; }
-.btn-outline-sm { background: transparent; border: 1px solid #005BFF; color: #005BFF; }
-.comments-list { max-height: 400px; overflow-y: auto; margin-bottom: 1rem; }
-.comment-item { border-left: 3px solid #005BFF; margin-bottom: 1rem; padding-left: 1rem; }
-.add-comment { display: flex; flex-direction: column; gap: 0.5rem; }
-.file-label { background: #F1F5F9; padding: 0.3rem 0.8rem; border-radius: 40px; cursor: pointer; font-size: 0.8rem; }
-.comment-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.navbar .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.logo {
+  display: flex;
+  align-items: baseline;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+}
+.logo i {
+  font-size: 1.6rem;
+  margin-left: 4px;
+  transform: rotate(12deg);
+  color: #38BDF8;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover {
+  border-bottom-color: #005BFF;
+}
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #38BDF8;
+}
+.user-name {
+  font-weight: 500;
+  color: white;
+}
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 120px;
+  display: none;
+  z-index: 20;
+}
+.user-menu.active .user-dropdown {
+  display: block;
+}
+.user-dropdown a {
+  display: block;
+  padding: 8px 12px;
+  color: #0F172A;
+  text-decoration: none;
+}
+.user-dropdown a:hover {
+  background: #DBEAFE;
+}
+
+/* ========== MAIN CONTENT ========== */
+.page-main {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 1rem;
+  color: #005BFF;
+  text-decoration: none;
+  font-weight: 500;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+.question-card, .card {
+  background: white;
+  border-radius: 28px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.btn-sm {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.75rem;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-primary-sm {
+  background: #005BFF;
+  color: white;
+  border: none;
+}
+.btn-primary-sm:hover {
+  background: #004ecc;
+  transform: translateY(-1px);
+}
+.btn-danger-sm {
+  background: #EF4444;
+  color: white;
+  border: none;
+}
+.btn-danger-sm:hover {
+  background: #dc2626;
+}
+.btn-success-sm {
+  background: #10B981;
+  color: white;
+  border: none;
+}
+.btn-outline-sm {
+  background: transparent;
+  border: 1px solid #005BFF;
+  color: #005BFF;
+}
+.btn-outline-sm:hover {
+  background: #005BFF;
+  color: white;
+}
+.comments-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+.comment-item {
+  border-left: 3px solid #005BFF;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+}
+.add-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.add-comment textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  font-family: inherit;
+  resize: vertical;
+}
+.file-label {
+  background: #F1F5F9;
+  padding: 0.3rem 0.8rem;
+  border-radius: 40px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.error {
+  color: #EF4444;
+}
+@media (max-width: 768px) {
+  .navbar .container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nav-links {
+    justify-content: center;
+  }
+  .page-main {
+    padding: 0 1rem;
+  }
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
