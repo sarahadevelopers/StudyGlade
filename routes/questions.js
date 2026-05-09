@@ -10,6 +10,7 @@ const Transaction = require('../models/Transaction');
 const Bid = require('../models/Bid');
 const Notification = require('../models/Notification');   // <-- NEW
 const { upload } = require('../server');
+const multerMemory = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 // Helper: generate signed URL for private Cloudinary files (answers etc.)
@@ -340,7 +341,8 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
 });
 
 // ------------------- 10. Upload answer (tutor) + NOTIFICATION -------------------
-router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answer'), async (req, res) => {
+// ------------------- 10. Upload answer (tutor) + NOTIFICATION -------------------
+router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single('answer'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
@@ -348,12 +350,16 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
     if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Upload to Cloudinary with auto resource type (handles PDFs, images, etc.)
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'studyglade/answers',
-      resource_type: 'auto'
+    // Upload to Cloudinary from buffer (memory storage)
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'studyglade/answers', resource_type: 'auto' },
+        (error, uploadResult) => {
+          if (error) reject(error);
+          else resolve(uploadResult);
+        }
+      ).end(req.file.buffer);
     });
-    await fs.unlink(req.file.path);
 
     question.answerFile = result.secure_url;
     question.answerFileName = req.file.originalname;
@@ -372,7 +378,7 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), upload.single('answe
 
     res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
   } catch (err) {
-    if (req.file) await fs.unlink(req.file.path).catch(() => {});
+    console.error('Upload answer error:', err);
     res.status(500).json({ error: err.message });
   }
 });

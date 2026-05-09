@@ -9,8 +9,6 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
-const notificationRoutes = require('./routes/notifications');
-
 
 const app = express();
 
@@ -70,18 +68,17 @@ const documentRoutes = require('./routes/documents');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
+const notificationRoutes = require('./routes/notifications');
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
-const Document = require('./models/Document'); // Needed for /document/:slug
+const Document = require('./models/Document');
 
-// ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
 // ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  // Use the raw body buffer directly – do NOT JSON.stringify(req.body)
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
     console.error('Invalid Paystack signature');
@@ -164,14 +161,12 @@ app.use(cookieParser());
 // ---------- 7. EJS SETUP ----------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use('/api/notifications', notificationRoutes);
 
 // ---------- 8. DATABASE CONNECTION ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
 // ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
 app.get('/document/:slug', async (req, res) => {
   try {
@@ -183,7 +178,6 @@ app.get('/document/:slug', async (req, res) => {
     console.log(`[DEBUG] Request for document: ${req.params.slug}`);
     console.log(`[DEBUG] Cookies received:`, req.cookies);
 
-    // Use the same cookie name as auth middleware
     const token = req.cookies.accessToken;
     console.log(`[DEBUG] AccessToken present: ${token ? 'yes' : 'no'}`);
 
@@ -192,7 +186,6 @@ app.get('/document/:slug', async (req, res) => {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Note: your token payload uses 'id', not 'userId'
         console.log(`[DEBUG] Decoded token id: ${decoded.id}`);
         user = await User.findById(decoded.id).select('-password');
         if (user) {
@@ -244,6 +237,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.send('OK'));
@@ -251,7 +245,7 @@ app.get('/health', (req, res) => res.send('OK'));
 // ---------- 12. STATIC FRONTEND (docs folder) ----------
 app.use(express.static(path.join(__dirname, 'docs')));
 
-// Explicit routes for login/register (to preserve clean URLs with query strings)
+// Explicit routes for login/register (preserve clean URLs with query strings)
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'register.html'));
 });
