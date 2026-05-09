@@ -1,187 +1,218 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tutor Dashboard - StudyGlade</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    .premium-card {
-      background: var(--white);
-      border-radius: 1.2rem;
-      padding: 1.5rem;
-      transition: all 0.3s ease;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .premium-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
-    }
-    .stat-card {
-      background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
-      border-radius: 1rem;
-      padding: 1.2rem;
-      text-align: center;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .stat-card h4 {
-      margin: 0 0 0.5rem;
-      color: var(--gray);
-      font-size: 0.9rem;
-      letter-spacing: 0.5px;
-    }
-    .stat-card .value {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-    }
-    .status-pending { background: #fef3c7; color: #b45309; }
-    .status-assigned { background: #dbeafe; color: #1e40af; }
-    .status-completed { background: #d1fae5; color: #065f46; }
-    .deadline-soon { background: #fed7aa; color: #9b2c1d; }
-    .deadline-overdue { background: #fee2e2; color: #b91c1c; }
-    .deadline-normal { background: #e2e3e5; color: #383d41; }
-    .btn-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-top: 0.75rem;
-      align-items: center;
-    }
-    .btn-sm {
-      padding: 0.3rem 0.9rem;
-      font-size: 0.85rem;
-      border-radius: 9999px;
-    }
-    input[type="file"] {
-      padding: 0.4rem;
-      font-size: 0.85rem;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutor Dashboard | StudyGlade</title>
+  <!-- Google Fonts + Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="tutor-dashboard.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <a href="index.html" class="logo">StudyGlade</a>
-      <div class="nav-links">
-        <a href="tutor-dashboard.html" class="btn-sm">⬅ Dashboard</a>
-        <span id="walletDisplay"></span>
-        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  <div class="dashboard-wrapper">
+    <!-- ========== DARK NAVY SIDEBAR ========== -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="index.html" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-section="dashboard"><i class="fas fa-chalkboard-user"></i> Dashboard</a>
+        <a href="#" class="nav-item" data-section="my-questions"><i class="fas fa-question-circle"></i> My Questions</a>
+        <a href="#" class="nav-item" data-section="assignments"><i class="fas fa-tasks"></i> My Assignments</a>
+        <a href="#" class="nav-item"><i class="fas fa-comment-dots"></i> Messages</a>
+        <a href="document-library.html" class="nav-item"><i class="fas fa-book"></i> Study Materials</a>
+        <a href="#" class="nav-item" data-section="wallet"><i class="fas fa-wallet"></i> Wallet</a>
+        <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+      </nav>
+      <div class="sidebar-promo">
+        <div class="promo-card">
+          <i class="fas fa-trophy trophy-icon"></i>
+          <h4>Become a Top Tutor</h4>
+          <p>Increase your earnings and reputation</p>
+          <a href="#" class="btn-sm btn-outline-light">Learn More →</a>
+        </div>
+      </div>
+      <div class="sidebar-profile">
+        <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="avatar" class="profile-avatar" id="sidebarAvatar">
+        <div class="profile-info">
+          <div class="profile-name" id="sidebarName">Loading...</div>
+          <div class="verified-badge"><i class="fas fa-check-circle"></i> Verified Tutor</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========== MAIN CONTENT (Light Ice Blue) ========== -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="welcome-section">
+          <h2>Welcome back, <span id="tutorName">Tutor</span>!</h2>
+          <p>Here’s what’s happening with your tutoring journey.</p>
+        </div>
+        <div class="top-actions">
+          <div class="date-selector">
+            <i class="fas fa-calendar-alt"></i>
+            <input type="date" id="dateFilter" value="">
+          </div>
+          <div class="notification-bell" id="notificationBell">
+            <i class="fas fa-bell"></i>
+            <span class="badge">0</span>
+          </div>
+          <div class="message-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="user-menu" id="userMenu">
+            <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="avatar" class="user-avatar" id="topAvatar">
+            <span class="user-name" id="topName">Loading...</span>
+            <i class="fas fa-chevron-down"></i>
+            <div class="user-dropdown">
+              <a href="#" onclick="openAvatarModal(); return false;">Change Avatar</a>
+              <a href="#" onclick="logoutUser(); return false;">Logout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Title -->
+      <div class="page-header">
+        <h1>Tutor Dashboard</h1>
+        <p>Manage your assignments, track earnings, and help more students succeed.</p>
+      </div>
+
+      <!-- Statistics Row (4 cards) -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-star"></i></div>
+          <div class="stat-content">
+            <h3>Your Rating</h3>
+            <div class="stat-value" id="tutorRating">0.0</div>
+            <div class="stars" id="ratingStars"></div>
+          </div>
+        </div>
+        <div class="stat-card gradient-card">
+          <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+          <div class="stat-content">
+            <h3>Total Earnings</h3>
+            <div class="stat-value" id="totalEarnings">$0.00</div>
+            <span class="trend positive"><i class="fas fa-arrow-up"></i> +12%</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+          <div class="stat-content">
+            <h3>Total Withdrawals</h3>
+            <div class="stat-value" id="totalWithdrawals">$0.00</div>
+          </div>
+        </div>
+        <div class="stat-card gradient-card">
+          <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+          <div class="stat-content">
+            <h3>Current Balance</h3>
+            <div class="stat-value" id="currentBalance">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tutor Level Card (full width) -->
+      <div class="level-card">
+        <div class="level-icon"><i class="fas fa-shield-alt"></i></div>
+        <div class="level-info">
+          <h3>Your Tutor Level</h3>
+          <div class="level-badge" id="tutorLevelBadge">Entry-Level</div>
+          <p>Keep delivering quality to unlock Expert and Premium levels.</p>
+        </div>
+        <div class="level-progress">
+          <div class="progress-label">Progress to next level</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="levelProgressFill" style="width: 0%;"></div>
+          </div>
+          <div class="progress-stats" id="levelProgressStats">0 / 0</div>
+          <a href="#" class="btn-sm btn-outline">View Level Benefits →</a>
+        </div>
+      </div>
+
+      <!-- Two Columns: My Assignments (left) + Available Questions (right) -->
+      <div class="two-columns">
+        <!-- My Assignments Card -->
+        <div class="assignments-card">
+          <div class="card-header">
+            <h2>My Assignments</h2>
+            <div class="tab-buttons">
+              <button class="tab-btn active" data-tab="all">All</button>
+              <button class="tab-btn" data-tab="in-progress">In Progress</button>
+              <button class="tab-btn" data-tab="overdue">Overdue</button>
+              <button class="tab-btn" data-tab="completed">Completed</button>
+            </div>
+          </div>
+          <div id="assignmentsList" class="assignments-list">
+            <div class="loading">Loading assignments...</div>
+          </div>
+        </div>
+
+        <!-- Available Questions Card -->
+        <div class="available-card">
+          <div class="card-header">
+            <h2>Available Questions</h2>
+            <a href="#" class="view-all">View All →</a>
+          </div>
+          <div id="availableQuestionsList" class="available-list">
+            <div class="loading">Loading questions...</div>
+          </div>
+          <div id="paginationControls" class="pagination"></div>
+        </div>
+      </div>
+
+      <!-- Withdraw Funds Section (full width) -->
+      <div class="withdraw-card">
+        <div class="withdraw-icon"><i class="fas fa-university"></i></div>
+        <div class="withdraw-info">
+          <h3>Withdraw Funds</h3>
+          <p>Available balance: <strong id="withdrawBalance">$0.00</strong> (minimum $10)</p>
+        </div>
+        <div class="withdraw-action">
+          <button id="withdrawBtn" class="btn-primary">Withdraw Funds</button>
+        </div>
+        <div class="wallet-illustration">
+          <i class="fas fa-credit-card"></i>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals (Avatar Upload, Notification, etc.) -->
+  <div id="avatarUploadModal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeAvatarModal()">&times;</span>
+      <h3>Change Avatar</h3>
+      <p>Upload a profile picture (JPEG, PNG, GIF)</p>
+      <input type="file" id="avatarFile" accept="image/*">
+      <div style="margin-top: 1rem;">
+        <button onclick="uploadAvatar()" class="btn-primary btn-sm">Upload</button>
+        <button onclick="closeAvatarModal()" class="btn-outline btn-sm">Cancel</button>
       </div>
     </div>
-  </nav>
+  </div>
 
-  <div class="container" style="padding: 2rem 0;">
-    <!-- Announcement Banner -->
-    <div id="announcementBanner" style="display: none; background: #2563eb; color: white; padding: 0.75rem; text-align: center; border-radius: 8px; margin-bottom: 1rem;"></div>
-
-    <h1>Tutor Dashboard</h1>
-
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h4>Your Rating</h4>
-        <div class="value" id="tutorRating">0.0 ⭐</div>
-      </div>
-      <div class="stat-card">
-        <h4>Total Earnings</h4>
-        <div class="value" id="totalEarnings">$0.00</div>
-      </div>
-      <div class="stat-card">
-        <h4>Total Withdrawals</h4>
-        <div class="value" id="totalWithdrawals">$0.00</div>
-      </div>
-      <div class="stat-card">
-        <h4>Current Balance</h4>
-        <div class="value" id="walletBalanceStat">$0.00</div>
-      </div>
-    </div>
-
-    <!-- Tutor Level Card -->
-    <div class="card premium-card">
-      <h3>Your Tutor Level: <span id="tutorLevel">Entry-Level</span></h3>
-      <p>Complete questions, maintain high ratings, and deliver on time to level up.</p>
-    </div>
-
-    <!-- Pending Questions -->
-    <div class="card premium-card">
-      <h3>Available Questions</h3>
-      <div id="pendingQuestions"></div>
-      <div id="paginationControls" style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;"></div>
-    </div>
-
-    <!-- My Assignments -->
-    <div class="card premium-card">
-      <h3>My Assignments</h3>
-      <div id="myAssignments"></div>
-    </div>
-
-    <!-- Withdraw Section -->
-    <div class="card premium-card">
-      <h3>Withdraw Funds</h3>
-      <p>Available balance: <strong id="walletBalance">$0.00</strong></p>
-      <button onclick="withdrawFunds()" class="btn">Withdraw Funds</button>
-    </div>
-
-    <!-- Document Upload Link -->
-    <div style="text-align: center; margin-top: 1rem;">
-      <a href="upload-document.html" class="btn">Upload Document</a>
+  <div id="notificationModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Notifications</h3>
+      <div id="notificationList"></div>
+      <button onclick="closeNotificationModal()" class="btn-outline btn-sm">Close</button>
     </div>
   </div>
 
   <script src="api.js"></script>
   <script src="auth.js"></script>
   <script src="tutor.js"></script>
-
+  <!-- Additional inline for modals and helpers -->
   <script>
-    // Helper: escape HTML (should already be in tutor.js, but define if missing)
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
-    }
-
-    // Fetch and display active announcements
-    async function loadAnnouncements() {
-      try {
-        const res = await fetch('/api/admin/public/announcements');
-        const announcements = await res.json();
-        const banner = document.getElementById('announcementBanner');
-        if (announcements.length > 0) {
-          banner.style.display = 'block';
-          banner.innerHTML = announcements.map(a => `<strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.message)}`).join('<br>');
-        } else {
-          banner.style.display = 'none';
-        }
-      } catch (err) {
-        console.error('Announcement error:', err);
-      }
-    }
-
-    // Load announcements after dashboard loads (tutor.js already loads dashboard)
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadAnnouncements);
-    } else {
-      loadAnnouncements();
-    }
+    function openAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'flex'; }
+    function closeAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'none'; }
+    function closeNotificationModal() { document.getElementById('notificationModal').style.display = 'none'; }
+    window.openAvatarModal = openAvatarModal;
+    window.closeAvatarModal = closeAvatarModal;
+    window.closeNotificationModal = closeNotificationModal;
   </script>
 </body>
 </html>
