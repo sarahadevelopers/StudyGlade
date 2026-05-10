@@ -15,50 +15,66 @@ const app = express();
 // ---------- 1. ENSURE UPLOADS FOLDER EXISTS ----------
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
   console.log('📁 Created uploads folder');
 }
 
-// ---------- 2. MULTER CONFIGURATION ----------
+// ---------- 2. MULTER CONFIGURATION (PDF-friendly) ----------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
+    // Sanitize filename: remove spaces and special chars
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    cb(null, uniqueSuffix + '-' + safeName);
   }
 });
 
+// ✅ FIX: expanded allowed types to include all PDF variants
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif',
+    // Images
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    // PDFs (multiple possible MIME types)
     'application/pdf',
+    'application/x-pdf',
+    'application/octet-stream', // some PDFs report this
+    // Word
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    // Excel
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    // PowerPoint
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'text/plain',
-    'text/csv',
-    'application/zip',
-    'video/mp4', 'video/webm',
-    'image/webp'
+    // Text & other
+    'text/plain', 'text/csv', 'application/zip',
+    // Videos (optional)
+    'video/mp4', 'video/webm'
   ];
-  if (allowedTypes.includes(file.mimetype)) {
+  
+  // Also accept by file extension as fallback
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExt = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm'];
+  
+  if (allowedTypes.includes(file.mimetype) || allowedExt.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type'), false);
+    console.warn(`Rejected file: ${file.originalname} (MIME: ${file.mimetype})`);
+    cb(new Error(`Invalid file type: ${file.mimetype}`), false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }
+  limits: { fileSize: 50 * 1024 * 1024 } // Increased to 50MB to handle PDFs
 });
 
+// Export for routes
 module.exports.upload = upload;
 
 // ---------- 3. REQUIRE ROUTES & MODELS ----------
@@ -82,8 +98,6 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
     console.error('Invalid Paystack signature');
-    console.error('Expected:', req.headers['x-paystack-signature']);
-    console.error('Computed:', hash);
     return res.status(401).send('Unauthorized');
   }
   const event = JSON.parse(req.body.toString());
@@ -158,6 +172,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Debug middleware to log file upload attempts (for troubleshooting)
+app.use((req, res, next) => {
+  if (req.path === '/api/questions' && req.method === 'POST') {
+    console.log('Incoming POST /api/questions with content-type:', req.headers['content-type']);
+  }
+  next();
+});
+
 // ---------- 7. EJS SETUP ----------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -175,29 +197,16 @@ app.get('/document/:slug', async (req, res) => {
       return res.status(404).send('Document not found');
     }
 
-    console.log(`[DEBUG] Request for document: ${req.params.slug}`);
-    console.log(`[DEBUG] Cookies received:`, req.cookies);
-
     const token = req.cookies.accessToken;
-    console.log(`[DEBUG] AccessToken present: ${token ? 'yes' : 'no'}`);
-
     let user = null;
     if (token) {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(`[DEBUG] Decoded token id: ${decoded.id}`);
         user = await User.findById(decoded.id).select('-password');
-        if (user) {
-          console.log(`[DEBUG] User found: ${user.email} (role: ${user.role})`);
-        } else {
-          console.log(`[DEBUG] No user found with that ID`);
-        }
       } catch (err) {
-        console.error(`[DEBUG] Token verification error:`, err.message);
+        console.error('Token verification error:', err.message);
       }
-    } else {
-      console.log(`[DEBUG] No accessToken - user is guest`);
     }
 
     res.render('document', { document, user });
@@ -296,6 +305,13 @@ cron.schedule('0 0 * * *', () => {
 // ---------- 14. GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
+  // Handle multer errors specifically
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'FILE_TOO_LARGE') {
+      return res.status(400).json({ error: 'File too large. Max size is 50MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
   res.status(500).json({ error: err.message });
 });
 
