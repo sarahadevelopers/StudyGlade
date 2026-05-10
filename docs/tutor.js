@@ -286,11 +286,10 @@ function renderAssignmentsByTab(tab) {
         </div>
       `;
     } else if (a.status === 'completed') {
-      const fileUrl = a.answerFileSigned || a.answerFile;
+      // No direct link – use a button that fetches a fresh signed URL
       html += `
         <div class="btn-group">
-          ${fileUrl ? `<a href="${escapeHtml(fileUrl)}" target="_blank" class="btn-sm btn-download">⬇ Download Answer</a>` : '<span class="text-muted">No file available</span>'}
-          <button class="btn-sm btn-warning-sm" onclick="reuploadAnswer('${a._id}')">🔄 Re-upload Answer</button>
+          ${a.answerFile ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer</button>` : '<span class="text-muted">No file uploaded</span>'}
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
         </div>
       `;
@@ -333,30 +332,24 @@ async function uploadAnswer(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// NEW: Re-upload answer for completed assignments (fixes 404)
-async function reuploadAnswer(questionId) {
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.pdf,.doc,.docx,.jpg,.png';
-  fileInput.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('answer', file);
-    try {
-      const res = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      if (!res.ok) throw new Error(await res.text());
-      showToast('Answer re-uploaded successfully!', 'success');
-      loadAssignments(); // refresh the list
-    } catch (err) {
-      showToast(err.message, 'error');
+// NEW: Download answer – fetches a fresh signed URL each time
+async function downloadAnswer(questionId) {
+  try {
+    const question = await apiFetch(`/questions/${questionId}`);
+    if (!question.answerFile) {
+      showToast('No answer file available', 'error');
+      return;
     }
-  };
-  fileInput.click();
+    const url = question.answerFileSigned || question.answerFile;
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      window.open(url, '_blank');
+    } else {
+      showToast('Invalid download link', 'error');
+    }
+  } catch (err) {
+    console.error('Download error:', err);
+    showToast('Failed to get download link', 'error');
+  }
 }
 
 async function completeQuestion(id) {
@@ -471,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
-window.reuploadAnswer = reuploadAnswer;
+window.downloadAnswer = downloadAnswer;   // replaces reuploadAnswer
 window.completeQuestion = completeQuestion;
 window.requestAdditionalFunds = requestAdditionalFunds;
 window.cancelAssignment = cancelAssignment;
