@@ -190,8 +190,7 @@ window.changeAvailablePage = (delta) => {
   loadAvailableQuestions(currentAvailablePage);
 };
 
-// ----- Place Bid (with UI disabling) -----
-// ----- Place Bid (with UI disabling and logging) -----
+// ----- Place Bid -----
 async function placeBid(questionId) {
   console.log("placeBid called for", questionId);
   const input = document.getElementById(`bid-${questionId}`);
@@ -200,7 +199,6 @@ async function placeBid(questionId) {
   if (!input) return;
   const amount = input.value;
   if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); console.log("Invalid amount"); return; }
-  // disable UI
   input.disabled = true;
   if (btn) btn.disabled = true;
   try {
@@ -211,7 +209,6 @@ async function placeBid(questionId) {
     showToast('Bid placed!', 'success');
     console.log("Bid placed successfully");
     input.value = '';
-    // reload available questions to reflect any changes
     loadAvailableQuestions(currentAvailablePage);
   } catch (err) {
     console.error("Bid error:", err);
@@ -220,6 +217,7 @@ async function placeBid(questionId) {
     if (btn) btn.disabled = false;
   }
 }
+
 async function acceptQuestion(questionId) {
   try {
     await apiFetch(`/questions/${questionId}/accept`, { method: 'PUT' });
@@ -288,9 +286,11 @@ function renderAssignmentsByTab(tab) {
         </div>
       `;
     } else if (a.status === 'completed') {
+      const fileUrl = a.answerFileSigned || a.answerFile;
       html += `
         <div class="btn-group">
-          ${a.answerFile ? `<a href="${a.answerFileSigned || a.answerFile}" download class="btn-sm btn-download">⬇ Download Answer</a>` : ''}
+          ${fileUrl ? `<a href="${escapeHtml(fileUrl)}" target="_blank" class="btn-sm btn-download">⬇ Download Answer</a>` : '<span class="text-muted">No file available</span>'}
+          <button class="btn-sm btn-warning-sm" onclick="reuploadAnswer('${a._id}')">🔄 Re-upload Answer</button>
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
         </div>
       `;
@@ -333,7 +333,32 @@ async function uploadAnswer(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Mark Complete with logging -----
+// NEW: Re-upload answer for completed assignments (fixes 404)
+async function reuploadAnswer(questionId) {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf,.doc,.docx,.jpg,.png';
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('answer', file);
+    try {
+      const res = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      if (!res.ok) throw new Error(await res.text());
+      showToast('Answer re-uploaded successfully!', 'success');
+      loadAssignments(); // refresh the list
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+  fileInput.click();
+}
+
 async function completeQuestion(id) {
   console.log("completeQuestion called for", id);
   const assignment = allAssignments.find(a => a._id === id);
@@ -352,6 +377,7 @@ async function completeQuestion(id) {
     showToast(err.message, 'error');
   }
 }
+
 async function requestAdditionalFunds(questionId) {
   const amount = prompt('Additional amount requested ($):');
   if (!amount) return;
@@ -445,6 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
+window.reuploadAnswer = reuploadAnswer;
 window.completeQuestion = completeQuestion;
 window.requestAdditionalFunds = requestAdditionalFunds;
 window.cancelAssignment = cancelAssignment;
