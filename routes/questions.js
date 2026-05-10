@@ -603,4 +603,40 @@ router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res)
   }
 });
 
+// ------------------- 17. Proxy download (bypass Cloudinary signed URLs) -------------------
+router.get('/:id/download-answer', auth, async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question || !question.answerFile) {
+      return res.status(404).json({ error: 'Answer file not found' });
+    }
+
+    // Permission check
+    const user = await User.findById(req.userId);
+    const isStudent = question.studentId.toString() === req.userId;
+    const isTutor = question.tutorId && question.tutorId.toString() === req.userId;
+    if (!isStudent && !isTutor && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Fetch the file from Cloudinary (public URL stored in DB)
+    const response = await fetch(question.answerFile);
+    if (!response.ok) {
+      console.error(`Cloudinary fetch error: ${response.status} for ${question.answerFile}`);
+      return res.status(500).json({ error: 'Failed to fetch file from storage' });
+    }
+
+    // Set headers to force download
+    const fileName = question.answerFileName || 'answer.pdf';
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
+
+    // Stream the file to the client
+    response.body.pipe(res);
+  } catch (err) {
+    console.error('Download proxy error:', err);
+    res.status(500).json({ error: 'Download failed' });
+  }
+});
+
 module.exports = router;

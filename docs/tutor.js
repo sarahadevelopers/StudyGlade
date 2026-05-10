@@ -335,17 +335,14 @@ async function uploadAnswer(questionId) {
 // NEW: Download answer – fetches a fresh signed URL each time
 async function downloadAnswer(questionId) {
   try {
+    // Optional: quick check if answer exists (you can skip this and just open the proxy)
     const question = await apiFetch(`/questions/${questionId}`);
     if (!question.answerFile) {
       showToast('No answer file available', 'error');
       return;
     }
-    const url = question.answerFileSigned || question.answerFile;
-    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-      window.open(url, '_blank');
-    } else {
-      showToast('Invalid download link', 'error');
-    }
+    // Open the backend proxy endpoint (streams the file from Cloudinary)
+    window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
   } catch (err) {
     console.error('Download error:', err);
     showToast('Failed to get download link', 'error');
