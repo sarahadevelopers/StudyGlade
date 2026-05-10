@@ -73,11 +73,16 @@ async function loadQuestion() {
       question.files.forEach(url => filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download</a></li>`);
       filesHtml += '</ul>';
     }
-    // Use signed URL if available
+    
+    // Use signed URL if available – with safety check to prevent chrome-error://
     const answerUrl = question.answerFileSigned || question.answerFile;
-    if (answerUrl) {
+    if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
       answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
+    } else if (answerUrl) {
+      console.warn('Invalid answer URL – not starting with http', answerUrl);
+      answerHtml = `<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable (invalid link). Please contact support.</span></p>`;
     }
+    
     const html = `
       <h2>${escapeHtml(question.title)}</h2>
       <p>${escapeHtml(question.description)}</p>
@@ -92,6 +97,7 @@ async function loadQuestion() {
     document.getElementById('questionDetails').innerHTML = '<p class="error">Error loading question</p>';
   }
 }
+
 // ---------- Load bids (student only) ----------
 async function loadBids() {
   try {

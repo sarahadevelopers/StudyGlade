@@ -15,27 +15,22 @@ const router = express.Router();
 const multerMemory = multer({ storage: multer.memoryStorage() });
 
 // ---------- CORRECT: generate signed URL for Cloudinary files (supports both image and raw) ----------
-function getSignedUrl(publicUrl, resourceType = 'image', options = {}) {
+function getSignedUrl(publicUrl, resourceType = 'image', expiresInSeconds = 300) {
   if (!publicUrl) return null;
   
-  // Extract public_id from URL – handles both /upload/ and /raw/upload/
+  // Extract public_id (e.g., "studyglade/answers/ufmv8a9rb5xczkji2ca9.pdf")
   const match = publicUrl.match(/\/(?:raw\/)?upload\/(?:v\d+\/)?(.+)/);
-  if (!match) return publicUrl; // fallback: return as is (may cause 401 if not public)
-  
+  if (!match) return publicUrl;
   let publicId = match[1];
-  // Optionally remove file extension – Cloudinary can handle it with extension too
-  // publicId = publicId.replace(/\.[^/.]+$/, '');
   
-  // Use Cloudinary's built-in signed URL generator
-  return cloudinary.url(publicId, {
-    sign_url: true,
-    secure: true,
-    resource_type: resourceType,
-    expires_in: options.expiresIn || 300,   // 5 minutes default
-    ...options
-  });
+  const timestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const signature = cloudinary.utils.api_sign_request(
+    { public_id: publicId, timestamp, resource_type: resourceType },
+    process.env.CLOUDINARY_API_SECRET
+  );
+  
+  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${publicId}?signature=${signature}&expires=${timestamp}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 }
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
