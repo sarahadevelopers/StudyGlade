@@ -14,19 +14,26 @@ const { upload } = require('../server');
 const router = express.Router();
 const multerMemory = multer({ storage: multer.memoryStorage() });
 
-// Helper: generate signed URL for Cloudinary files
+// ---------- CORRECT: generate signed URL for Cloudinary files (supports both image and raw) ----------
 function getSignedUrl(publicUrl, resourceType = 'image', options = {}) {
   if (!publicUrl) return null;
-  const matches = publicUrl.match(/\/upload\/(?:v\d+\/)?(.+)/);
-  if (!matches) return publicUrl;
-  const publicId = matches[1].split('.')[0];
-  const signed = cloudinary.url(publicId, {
+  
+  // Extract public_id from URL – handles both /upload/ and /raw/upload/
+  const match = publicUrl.match(/\/(?:raw\/)?upload\/(?:v\d+\/)?(.+)/);
+  if (!match) return publicUrl; // fallback: return as is (may cause 401 if not public)
+  
+  let publicId = match[1];
+  // Optionally remove file extension – Cloudinary can handle it with extension too
+  // publicId = publicId.replace(/\.[^/.]+$/, '');
+  
+  // Use Cloudinary's built-in signed URL generator
+  return cloudinary.url(publicId, {
     sign_url: true,
     secure: true,
     resource_type: resourceType,
+    expires_in: options.expiresIn || 300,   // 5 minutes default
     ...options
   });
-  return signed;
 }
 
 cloudinary.config({
@@ -135,7 +142,6 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
     const enriched = questions.map(q => {
       const obj = q.toObject();
       if (obj.answerFile) {
-        // Answer files are stored as 'raw' (PDF, DOC, etc.)
         obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
       }
       return obj;
