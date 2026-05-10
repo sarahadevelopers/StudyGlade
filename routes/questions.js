@@ -604,6 +604,10 @@ router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res)
 });
 
 // ------------------- 17. Proxy download (bypass Cloudinary signed URLs) -------------------
+// ------------------- 17. Proxy download (bypass Cloudinary signed URLs) -------------------
+// Import Readable from the 'stream' module at the top of your file
+const { Readable } = require('stream');
+
 router.get('/:id/download-answer', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -620,19 +624,19 @@ router.get('/:id/download-answer', auth, async (req, res) => {
     }
 
     // Fetch the file from Cloudinary (public URL stored in DB)
-    const response = await fetch(question.answerFile);
-    if (!response.ok) {
-      console.error(`Cloudinary fetch error: ${response.status} for ${question.answerFile}`);
+    const cloudinaryResponse = await fetch(question.answerFile);
+    if (!cloudinaryResponse.ok) {
+      console.error(`Cloudinary fetch error: ${cloudinaryResponse.status} for ${question.answerFile}`);
       return res.status(500).json({ error: 'Failed to fetch file from storage' });
     }
 
     // Set headers to force download
     const fileName = question.answerFileName || 'answer.pdf';
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
+    res.setHeader('Content-Type', cloudinaryResponse.headers.get('content-type') || 'application/octet-stream');
 
-    // Stream the file to the client
-    response.body.pipe(res);
+    // 🔥 CRITICAL FIX: Convert Web ReadableStream to Node.js stream and pipe
+    Readable.fromWeb(cloudinaryResponse.body).pipe(res);
   } catch (err) {
     console.error('Download proxy error:', err);
     res.status(500).json({ error: 'Download failed' });
