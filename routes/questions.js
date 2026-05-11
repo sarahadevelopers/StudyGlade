@@ -360,6 +360,10 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
     question.answerUploadedAt = new Date();
     await question.save();
 
+    // 🔍 Force a fresh read to confirm the filename was saved
+    const saved = await Question.findById(question._id);
+    console.log(`✅ Uploaded answer for question ${question._id}: file URL = ${saved.answerFile}, original name = ${saved.answerFileName}`);
+
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
@@ -630,12 +634,19 @@ router.get('/:id/download-answer', auth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch file from storage' });
     }
 
-    // Set headers to force download
-    const fileName = question.answerFileName || 'answer.pdf';
+    // ✅ Set proper filename: use stored name, fallback to Cloudinary's last segment
+    let fileName = question.answerFileName;
+    if (!fileName || fileName === 'undefined' || fileName.trim() === '') {
+      const urlParts = question.answerFile.split('/');
+      let lastPart = urlParts[urlParts.length - 1];
+      lastPart = lastPart.split('?')[0];
+      fileName = lastPart.includes('.') ? lastPart : `${lastPart}.pdf`;
+      console.log(`⚠️ Missing original filename, using fallback: ${fileName}`);
+    }
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', cloudinaryResponse.headers.get('content-type') || 'application/octet-stream');
 
-    // 🔥 CRITICAL FIX: Convert Web ReadableStream to Node.js stream and pipe
+    const { Readable } = require('stream');
     Readable.fromWeb(cloudinaryResponse.body).pipe(res);
   } catch (err) {
     console.error('Download proxy error:', err);

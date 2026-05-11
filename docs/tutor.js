@@ -402,23 +402,33 @@ async function completeQuestion(id, event) {
     btn.innerHTML = '<span class="spinner"></span> Completing...';
   }
   
-  try {
-    const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-    console.log("API Response:", response);
-    showToast('Question marked as complete! Payment processed.', 'success');
-    
-    // ✅ Force a full dashboard reload – this fetches fresh assignments and updates stats
-    await loadTutorDashboard();
-    
-  } catch (err) {
-    console.error("Complete error:", err);
-    showToast(`Error: ${err.message}`, 'error');
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = originalText || '✅ Mark Complete';
+  let retried = false;
+  
+  const attempt = async () => {
+    try {
+      const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
+      console.log("API Response:", response);
+      showToast('Question marked as complete! Payment processed.', 'success');
+      await loadTutorDashboard();
+    } catch (err) {
+      console.error("Complete error:", err);
+      // If the error mentions missing answer file and we haven't retried yet
+      if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer')) && !retried) {
+        retried = true;
+        console.log("Retrying after 1 second...");
+        setTimeout(attempt, 1000);
+      } else {
+        showToast(`Error: ${err.message}`, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText || '✅ Mark Complete';
+        }
+      }
     }
-  }
-} 
+  };
+  
+  attempt();
+}
 async function requestAdditionalFunds(questionId) {
   const amount = prompt('Additional amount requested ($):');
   if (!amount) return;
