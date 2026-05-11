@@ -393,64 +393,32 @@ async function completeQuestion(id, event) {
     event.preventDefault();
   }
   
-  console.log("🔵 COMPLETE QUESTION CLICKED for ID:", id);
+  console.log("Marking complete for question:", id);
   
-  // Find the button and disable it
-  let btn = event?.target;
-  if (btn && !btn.classList?.contains('btn-success-sm')) {
-    btn = btn.closest('.btn-success-sm');
-  }
+  const btn = event?.target?.closest('.btn-success-sm');
   const originalText = btn?.innerHTML;
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Completing...';
   }
   
-  // Get assignment from current list
-  const assignment = allAssignments.find(a => a._id === id);
-  if (!assignment) {
-    showToast('Assignment not found', 'error');
-    if (btn) btn.disabled = false;
-    return;
-  }
-  
-  if (!assignment.answerFile) {
-    showToast('Please upload an answer first', 'error');
-    if (btn) btn.disabled = false;
-    return;
-  }
-  
   try {
-    console.log("📡 Calling API: PUT /questions/" + id + "/complete");
     const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-    console.log("✅ API Response:", response);
-    
+    console.log("API Response:", response);
     showToast('Question marked as complete! Payment processed.', 'success');
     
-    // Remove this assignment from the local array
-    const index = allAssignments.findIndex(a => a._id === id);
-    if (index !== -1) {
-      allAssignments.splice(index, 1);
-      console.log(`🗑️ Removed question ${id} from assignments list`);
-    }
-    
-    // Re-render the current tab (so it disappears)
-    renderAssignmentsByTab(currentTab);
-    console.log("🔄 Re-rendered tab:", currentTab);
-    
-    // Update dashboard stats (balance, completed count) in background
-    loadTutorDashboard().catch(console.warn);
+    // ✅ Force a full dashboard reload – this fetches fresh assignments and updates stats
+    await loadTutorDashboard();
     
   } catch (err) {
-    console.error("❌ Complete error:", err);
-    showToast(`Failed: ${err.message}`, 'error');
+    console.error("Complete error:", err);
+    showToast(`Error: ${err.message}`, 'error');
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = originalText || '✅ Mark Complete';
     }
   }
-}
-
+} 
 async function requestAdditionalFunds(questionId) {
   const amount = prompt('Additional amount requested ($):');
   if (!amount) return;
