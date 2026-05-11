@@ -121,7 +121,9 @@ router.get('/pending', auth, roleCheck('tutor'), async (req, res) => {
 router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
   try {
     const questions = await Question.find({ studentId: req.userId })
-      .populate('tutorId', 'fullName avatar gender tutorProfile.rating');
+      .populate('tutorId', 'fullName avatar gender tutorProfile.rating')
+      .select('+additionalFundsRequest')
+      .sort({ createdAt: -1 }); // latest first
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -503,27 +505,38 @@ router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (re
       return res.status(400).json({ error: 'Request already pending' });
     }
 
-    const { amount, reason } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    let { amount, reason } = req.body;
+    // Convert amount to number and validate
+    amount = parseFloat(amount);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount. Must be a positive number.' });
+    }
+
+    // Store the request
     question.additionalFundsRequest = {
-      amount,
-      reason,
+      amount: amount,          // ensure it's a number
+      reason: reason || '',
       status: 'pending',
       requestedAt: new Date()
     };
     await question.save();
 
+    // 🔍 Verify the saved value (optional, for debugging)
+    const saved = await Question.findById(question._id).select('+additionalFundsRequest');
+    console.log(`✅ Funds request saved for question ${question._id}: amount = ${saved.additionalFundsRequest.amount}, reason = ${saved.additionalFundsRequest.reason}`);
+
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
       userId: question.studentId,
-      type: 'question_posted',
+      type: 'question_posted',   // could also be 'funds_request' if you add to enum
       title: 'Additional Funds Request',
       message: `${tutor.fullName} requests an additional $${amount} for "${question.title}". Reason: ${reason}`,
       link: `/question-details.html?id=${question._id}`
     });
 
-    res.json({ message: 'Request sent to student' });
+    res.json({ message: 'Request sent to student', amount: amount });
   } catch (err) {
+    console.error('Error in request-additional-funds:', err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -145,7 +145,14 @@ if (window.studentDashboardLoaded) {
   // ---------- Create a single table row ----------
   function createQuestionRow(q, isCompleted) {
     const safeTitle = escapeHtml(q.title);
-    const subject = escapeHtml(q.subject || 'General');
+    let subject = 'General';
+if (q.subcategory && q.subcategory !== 'Other') {
+  subject = escapeHtml(q.subcategory);
+} else if (q.category && q.category !== 'Other') {
+  subject = escapeHtml(q.category);
+} else if (q.subject) {
+  subject = escapeHtml(q.subject);
+}
     const budget = `$${q.budget}`;
     const tutor = q.tutorId || null;
     const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
@@ -255,33 +262,33 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Additional Funds Request (with null check) ----------
   async function checkForFundsRequests(questions) {
-    for (const q of questions) {
-      if (q.additionalFundsRequest && q.additionalFundsRequest.status === 'pending') {
-        if (document.getElementById(`funds-banner-${q._id}`)) continue;
-        const banner = document.createElement('div');
-        banner.id = `funds-banner-${q._id}`;
-        banner.className = 'card';
-        banner.style.backgroundColor = '#fff3cd';
-        banner.style.borderLeft = '4px solid #ffc107';
-        banner.style.marginBottom = '1rem';
-        banner.innerHTML = `
-          <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
-          Tutor requests <strong>$${q.additionalFundsRequest.amount}</strong> extra.<br>
-          Reason: ${escapeHtml(q.additionalFundsRequest.reason)}<br>
-          <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
-          <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
-        `;
-        const container = document.querySelector('.container');
-        if (container && container.firstChild) {
-          container.insertBefore(banner, container.firstChild);
-        } else if (container) {
-          container.appendChild(banner);
-        } else {
-          console.warn('Container not found, cannot insert funds request banner');
-        }
+  for (const q of questions) {
+    const req = q.additionalFundsRequest;
+    if (req && req.status === 'pending') {
+      if (document.getElementById(`funds-banner-${q._id}`)) continue;
+      const banner = document.createElement('div');
+      banner.id = `funds-banner-${q._id}`;
+      banner.className = 'card';
+      banner.style.backgroundColor = '#fff3cd';
+      banner.style.borderLeft = '4px solid #ffc107';
+      banner.style.marginBottom = '1rem';
+      const amount = (req.amount !== undefined && req.amount !== null) ? req.amount : '?';
+      banner.innerHTML = `
+        <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
+        Tutor requests <strong>$${amount}</strong> extra.<br>
+        Reason: ${escapeHtml(req.reason)}<br>
+        <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
+        <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
+      `;
+      const container = document.querySelector('.dashboard-container') || document.querySelector('.container');
+      if (container && container.firstChild) {
+        container.insertBefore(banner, container.firstChild);
+      } else if (container) {
+        container.appendChild(banner);
       }
     }
   }
+}
 
   window.respondToFunds = async function(questionId, accept) {
     try {
