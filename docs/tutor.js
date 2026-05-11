@@ -190,7 +190,7 @@ window.changeAvailablePage = (delta) => {
   loadAvailableQuestions(currentAvailablePage);
 };
 
-// ----- Place Bid -----
+// ----- Place Bid (with immediate blur + disable, no reload) -----
 async function placeBid(questionId) {
   console.log("placeBid called for", questionId);
   const input = document.getElementById(`bid-${questionId}`);
@@ -211,13 +211,13 @@ async function placeBid(questionId) {
     });
     showToast('Bid placed successfully!', 'success');
     
-    // ✅ Blur and disable the card permanently (no reload)
+    // Blur and disable the card permanently (no reload)
     if (container) {
       container.style.opacity = '0.6';
       container.style.pointerEvents = 'none';
       container.style.backgroundColor = '#f5f5f5';
       container.title = 'You have already placed a bid on this question';
-      // Optionally add a checkmark icon
+      // Add a checkmark badge
       const header = container.querySelector('.available-header');
       if (header && !header.querySelector('.bid-placed-check')) {
         const checkSpan = document.createElement('span');
@@ -235,9 +235,6 @@ async function placeBid(questionId) {
     // Re-enable on error
     if (input) input.disabled = false;
     if (btn) { btn.disabled = false; btn.innerHTML = 'Place Bid'; }
-  } finally {
-    // If we didn't reload, we still need to re-enable button? No, keep disabled.
-    // But note: if the API fails, we already re-enable in catch. If success, we keep disabled.
   }
 }
 
@@ -302,14 +299,13 @@ function renderAssignmentsByTab(tab) {
         <div class="btn-group">
           <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
           <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
-          <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}')">✅ Mark Complete</button>
+          <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
           <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
           ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
         </div>
       `;
     } else if (a.status === 'completed') {
-      // No direct link – use a button that fetches a fresh signed URL
       html += `
         <div class="btn-group">
           ${a.answerFile ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer</button>` : '<span class="text-muted">No file uploaded</span>'}
@@ -336,7 +332,7 @@ function initTabs() {
   });
 }
 
-// ----- Assignment actions -----
+// ----- Upload Answer (manual local update, no full reload) -----
 async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const file = fileInput.files[0];
@@ -357,13 +353,13 @@ async function uploadAnswer(questionId) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     
-    // ✅ MANUALLY UPDATE the local assignment with the new file URL
+    // Manually update local assignment
     const assignment = allAssignments.find(a => a._id === questionId);
     if (assignment) {
-      assignment.answerFile = data.fileUrl;    // the Cloudinary URL
+      assignment.answerFile = data.fileUrl;
       assignment.answerFileName = file.name;
     }
-    // Re-render the current tab – now the "Mark Complete" button will see answerFile
+    // Re-render current tab – "Mark Complete" button sees the file
     renderAssignmentsByTab(currentTab);
     
     showToast('Answer uploaded! You can now mark as complete.', 'success');
@@ -376,7 +372,7 @@ async function uploadAnswer(questionId) {
   }
 }
 
-// NEW: Download answer – fetches a fresh signed URL each time
+// ----- Download Answer (backend proxy) -----
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
@@ -390,35 +386,48 @@ async function downloadAnswer(questionId) {
   }
 }
 
-async function completeQuestion(id) {
-  console.log("completeQuestion called for", id);
+// ----- Mark Complete (instant spinner, removal from list, background refresh) -----
+async function completeQuestion(id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  
+  const btn = event?.target?.closest('.btn-success-sm');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Completing...';
+  }
   
   const assignment = allAssignments.find(a => a._id === id);
   if (!assignment) {
     showToast('Assignment not found', 'error');
+    if (btn) btn.disabled = false;
     return;
   }
   
-  // Directly use the locally updated answerFile (from uploadAnswer)
   if (!assignment.answerFile) {
     showToast('Please upload an answer before marking as complete.', 'error');
+    if (btn) btn.disabled = false;
     return;
   }
   
-  const btn = event?.target;
-  const originalText = btn?.innerHTML;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Completing...'; }
-  
   try {
-    const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-    console.log("Complete API response:", response);
+    await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
     showToast('Question marked as complete! Payment processed.', 'success');
-    // Refresh entire dashboard – this moves the question to the "Completed" tab
-    await loadTutorDashboard();
+    
+    // Remove from local array and re-render current tab
+    const index = allAssignments.findIndex(a => a._id === id);
+    if (index !== -1) allAssignments.splice(index, 1);
+    renderAssignmentsByTab(currentTab);
+    // Update stats in background (no user flicker)
+    loadTutorDashboard();
   } catch (err) {
-    console.error("Complete error:", err);
     showToast(err.message, 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '✅ Mark Complete';
+    }
   }
 }
 
@@ -515,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.placeBid = placeBid;
 window.acceptQuestion = acceptQuestion;
 window.uploadAnswer = uploadAnswer;
-window.downloadAnswer = downloadAnswer;   // replaces reuploadAnswer
+window.downloadAnswer = downloadAnswer;
 window.completeQuestion = completeQuestion;
 window.requestAdditionalFunds = requestAdditionalFunds;
 window.cancelAssignment = cancelAssignment;
