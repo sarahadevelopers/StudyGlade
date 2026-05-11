@@ -5,7 +5,8 @@ const auth = require('../middleware/auth');
 const Comment = require('../models/Comment');
 const Question = require('../models/Question');
 const User = require('../models/User');
-const { upload } = require('../server');   // global upload with validation
+const Notification = require('../models/Notification');   // 👈 import Notification model
+const { upload } = require('../server');
 
 const router = express.Router();
 
@@ -16,14 +17,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Get comments for a specific question (auth required to check role)
+// Get comments for a specific question
 router.get('/question/:questionId', auth, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     const isAdmin = user.role === 'admin';
     let filter = { questionId: req.params.questionId };
     if (!isAdmin) {
-      filter.deleted = { $ne: true }; // hide deleted comments from non‑admins
+      filter.deleted = { $ne: true };
     }
     const comments = await Comment.find(filter).sort({ createdAt: 1 });
     res.json(comments);
@@ -32,7 +33,7 @@ router.get('/question/:questionId', auth, async (req, res) => {
   }
 });
 
-// Add a comment (tutor, student, admin) with optional file attachment
+// Add a comment (tutor, student, admin) with optional file attachment AND send notification
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
     const { questionId, text } = req.body;
@@ -65,9 +66,46 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       userName: user.fullName,
       text: text || '',
       fileUrl,
-      deleted: false,       // explicit default
+      deleted: false,
       deletedAt: null
     });
+
+    // ---------- Send notification(s) ----------
+    const commentPreview = text ? text.substring(0, 100) : (req.file ? '📎 Attached a file' : 'New comment');
+    const link = `/question-details.html?id=${question._id}`;
+
+    // Determine who should be notified
+    const recipients = [];
+
+    if (isAdmin) {
+      // Admin commented: notify both student and tutor (if any)
+      recipients.push({ userId: question.studentId, role: 'student' });
+      if (question.tutorId) {
+        recipients.push({ userId: question.tutorId, role: 'tutor' });
+      }
+    } else if (isOwner) {
+      // Student commented: notify the assigned tutor (if any)
+      if (question.tutorId) {
+        recipients.push({ userId: question.tutorId, role: 'tutor' });
+      }
+    } else if (isAssignedTutor) {
+      // Tutor commented: notify the student
+      recipients.push({ userId: question.studentId, role: 'student' });
+    }
+
+    // Create notifications (avoid notifying the commenter themselves)
+    for (const recipient of recipients) {
+      if (recipient.userId && recipient.userId.toString() !== req.userId) {
+        await Notification.create({
+          userId: recipient.userId,
+          type: 'comment_added',
+          title: `New comment on "${question.title}"`,
+          message: `${user.fullName} (${user.role}): ${commentPreview}`,
+          link: link
+        });
+      }
+    }
+
     res.status(201).json(comment);
   } catch (err) {
     if (req.file) await fs.unlink(req.file.path).catch(() => {});
@@ -88,7 +126,6 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Soft delete instead of hard delete
     comment.deleted = true;
     comment.deletedAt = new Date();
     await comment.save();

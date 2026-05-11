@@ -1,22 +1,23 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // null for admin-wide
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   type: { 
     type: String, 
     enum: [
-      'tutor_application',   // admin
-      'withdrawal',          // admin
-      'document_upload',     // admin
-      'question_posted',     // student: tutor accepts or budget increased
-      'user_suspended',      // admin
-      'new_bid',             // student: tutor placed a bid
-      'answer_uploaded',     // student: tutor uploaded answer or marked complete
-      'funds_response'       // tutor: student responded to additional funds request
+      'tutor_application',
+      'withdrawal',
+      'document_upload',
+      'question_posted',
+      'user_suspended',
+      'new_bid',
+      'answer_uploaded',
+      'funds_response',
+      'comment_added'   // 👈 added for chat notifications
     ],
     required: true
   },
-  title: { type: String },   // optional but used in your code
+  title: String,
   message: String,
   link: String,
   read: { type: Boolean, default: false },
