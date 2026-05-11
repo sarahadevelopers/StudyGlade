@@ -194,27 +194,50 @@ window.changeAvailablePage = (delta) => {
 async function placeBid(questionId) {
   console.log("placeBid called for", questionId);
   const input = document.getElementById(`bid-${questionId}`);
-  const container = input?.closest('.bid-group');
+  const container = input?.closest('.available-item');
   const btn = container?.querySelector('.btn-primary-sm');
-  if (!input) return;
-  const amount = input.value;
-  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); console.log("Invalid amount"); return; }
-  input.disabled = true;
-  if (btn) btn.disabled = true;
+  const amount = input?.value;
+  
+  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+  
+  // Disable input and button immediately
+  if (input) input.disabled = true;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Placing...'; }
+  
   try {
     await apiFetch(`/questions/${questionId}/bid`, {
       method: 'POST',
       body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid from dashboard' })
     });
-    showToast('Bid placed!', 'success');
-    console.log("Bid placed successfully");
-    input.value = '';
-    loadAvailableQuestions(currentAvailablePage);
+    showToast('Bid placed successfully!', 'success');
+    
+    // ✅ Blur and disable the card permanently (no reload)
+    if (container) {
+      container.style.opacity = '0.6';
+      container.style.pointerEvents = 'none';
+      container.style.backgroundColor = '#f5f5f5';
+      container.title = 'You have already placed a bid on this question';
+      // Optionally add a checkmark icon
+      const header = container.querySelector('.available-header');
+      if (header && !header.querySelector('.bid-placed-check')) {
+        const checkSpan = document.createElement('span');
+        checkSpan.className = 'bid-placed-check';
+        checkSpan.innerHTML = ' ✅ Bid placed';
+        checkSpan.style.marginLeft = '10px';
+        checkSpan.style.color = 'green';
+        checkSpan.style.fontSize = '0.8rem';
+        header.appendChild(checkSpan);
+      }
+    }
   } catch (err) {
     console.error("Bid error:", err);
     showToast(err.message, 'error');
-    input.disabled = false;
-    if (btn) btn.disabled = false;
+    // Re-enable on error
+    if (input) input.disabled = false;
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Place Bid'; }
+  } finally {
+    // If we didn't reload, we still need to re-enable button? No, keep disabled.
+    // But note: if the API fails, we already re-enable in catch. If success, we keep disabled.
   }
 }
 
@@ -318,6 +341,11 @@ async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const file = fileInput.files[0];
   if (!file) { showToast('Select a file', 'error'); return; }
+  
+  const btn = fileInput.closest('.btn-group')?.querySelector('.btn-primary-sm');
+  const originalText = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...'; }
+  
   const formData = new FormData();
   formData.append('answer', file);
   try {
@@ -326,45 +354,71 @@ async function uploadAnswer(questionId) {
       credentials: 'include',
       body: formData
     });
-    if (!res.ok) throw new Error(await res.text());
-    showToast('Answer uploaded!', 'success');
-    loadAssignments();
-  } catch (err) { showToast(err.message, 'error'); }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    
+    // ✅ MANUALLY UPDATE the local assignment with the new file URL
+    const assignment = allAssignments.find(a => a._id === questionId);
+    if (assignment) {
+      assignment.answerFile = data.fileUrl;    // the Cloudinary URL
+      assignment.answerFileName = file.name;
+    }
+    // Re-render the current tab – now the "Mark Complete" button will see answerFile
+    renderAssignmentsByTab(currentTab);
+    
+    showToast('Answer uploaded! You can now mark as complete.', 'success');
+  } catch (err) {
+    console.error('Upload error:', err);
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+    fileInput.value = '';
+  }
 }
 
 // NEW: Download answer – fetches a fresh signed URL each time
 async function downloadAnswer(questionId) {
   try {
-    // Optional: quick check if answer exists (you can skip this and just open the proxy)
     const question = await apiFetch(`/questions/${questionId}`);
     if (!question.answerFile) {
       showToast('No answer file available', 'error');
       return;
     }
-    // Open the backend proxy endpoint (streams the file from Cloudinary)
     window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
   } catch (err) {
-    console.error('Download error:', err);
     showToast('Failed to get download link', 'error');
   }
 }
 
 async function completeQuestion(id) {
   console.log("completeQuestion called for", id);
+  
   const assignment = allAssignments.find(a => a._id === id);
-  if (assignment && !assignment.answerFile) {
-    console.log("No answer file found");
+  if (!assignment) {
+    showToast('Assignment not found', 'error');
+    return;
+  }
+  
+  // Directly use the locally updated answerFile (from uploadAnswer)
+  if (!assignment.answerFile) {
     showToast('Please upload an answer before marking as complete.', 'error');
     return;
   }
+  
+  const btn = event?.target;
+  const originalText = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Completing...'; }
+  
   try {
     const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
     console.log("Complete API response:", response);
-    showToast('Completed! Payment processed.', 'success');
-    loadTutorDashboard();
+    showToast('Question marked as complete! Payment processed.', 'success');
+    // Refresh entire dashboard – this moves the question to the "Completed" tab
+    await loadTutorDashboard();
   } catch (err) {
     console.error("Complete error:", err);
     showToast(err.message, 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
   }
 }
 
