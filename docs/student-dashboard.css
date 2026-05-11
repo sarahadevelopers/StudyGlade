@@ -1011,9 +1011,9 @@ button[onclick="closeTransactionModal()"]:hover {
 .notification-sound-toggle.muted {
   opacity: 0.4;
 }
-.notification-sound-toggle.muted i {
-  /* optional: icon change is handled by JS, but we keep consistency */
-}
+/*.notification-sound-toggle.muted i {
+   optional: icon change is handled by JS, but we keep consistency 
+}*/
 
 /* Notification dropdown (already present, but ensure load-more button style) */
 .load-more-btn {
