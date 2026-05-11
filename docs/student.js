@@ -513,43 +513,17 @@ if (q.subcategory && q.subcategory !== 'Other') {
     notificationDropdown = document.createElement('div');
     notificationDropdown.className = 'notification-dropdown';
     notificationDropdown.innerHTML = `
-      <div class="notification-header">Recent Notifications</div>
-      <div class="notification-list" id="notificationListDropdown">Loading...</div>
-      <div class="notification-footer">
-        <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
-        <a href="#" onclick="loadAllNotificationsInModal(); return false;">View all</a>
-      </div>
-    `;
+  <div class="notification-header">Recent Notifications</div>
+  <div class="notification-list" id="notificationListDropdown">Loading...</div>
+  <div class="notification-footer">
+    <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
+  </div>
+`;
     document.body.appendChild(notificationDropdown);
   }
 
   // Load all notifications into the modal (full list)
-  async function loadAllNotificationsInModal() {
-    const modal = document.getElementById('notificationModal');
-    const listDiv = document.getElementById('notificationList');
-    if (!modal || !listDiv) return;
-    modal.style.display = 'flex';
-    listDiv.innerHTML = '<div class="notification-item">Loading all notifications...</div>';
-    try {
-      const res = await fetch('/api/notifications?limit=100', { credentials: 'include' });
-      const data = await res.json();
-      let html = '';
-      if (data.notifications.length === 0) {
-        html = '<div class="notification-item">No notifications found</div>';
-      } else {
-        data.notifications.forEach(n => {
-          html += `<div class="notification-item">
-                     <strong>${escapeHtml(n.title)}</strong><br>
-                     ${escapeHtml(n.message)}
-                     <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
-                   </div>`;
-        });
-      }
-      listDiv.innerHTML = html;
-    } catch (err) {
-      listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
-    }
-  }
+ 
 
   // Load only latest 5 for dropdown
   async function loadNotificationsDropdown() {
@@ -557,7 +531,7 @@ if (q.subcategory && q.subcategory !== 'Other') {
     const listDiv = notificationDropdown.querySelector('.notification-list');
     listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
     try {
-      const res = await fetch('/api/notifications?limit=5', { credentials: 'include' });
+      const res = await fetch('/api/notifications?limit=10', { credentials: 'include' });
       const data = await res.json();
       let html = '';
       if (data.notifications.length === 0) {
@@ -638,11 +612,7 @@ if (q.subcategory && q.subcategory !== 'Other') {
 
   // Expose global functions for inline onclick handlers
   window.markAllRead = markAllRead;
-  window.loadAllNotificationsInModal = loadAllNotificationsInModal;
-  window.closeNotificationModal = function() {
-    const modal = document.getElementById('notificationModal');
-    if (modal) modal.style.display = 'none';
-  };
+ 
 
   setInterval(updateUnreadBadge, 30000);
   updateUnreadBadge();

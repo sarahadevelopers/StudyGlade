@@ -37,37 +37,36 @@ const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     // Images
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    // PDFs (multiple possible MIME types)
-    'application/pdf',
-    'application/x-pdf',
-    'application/octet-stream', // some PDFs report this
-    // Word
+    // PDFs
+    'application/pdf', 'application/x-pdf', 'application/octet-stream',
+    // Word (doc, docx)
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/zip',                         // some phones send .docx as zip
+    'application/x-zip-compressed',
     // Excel
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     // PowerPoint
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // Text & other
+    // Others
     'text/plain', 'text/csv', 'application/zip',
-    // Videos (optional)
+    // Videos
     'video/mp4', 'video/webm'
   ];
   
-  // Also accept by file extension as fallback
   const ext = path.extname(file.originalname).toLowerCase();
   const allowedExt = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm'];
   
+  // Allow if MIME type matches or file extension is allowed
   if (allowedTypes.includes(file.mimetype) || allowedExt.includes(ext)) {
     cb(null, true);
   } else {
-    console.warn(`Rejected file: ${file.originalname} (MIME: ${file.mimetype})`);
-    cb(new Error(`Invalid file type: ${file.mimetype}`), false);
+    console.warn(`Rejected file: ${file.originalname} (MIME: ${file.mimetype}, ext: ${ext})`);
+    cb(new Error(`File type not supported: ${file.mimetype}`), false);
   }
 };
-
 const upload = multer({
   storage,
   fileFilter,

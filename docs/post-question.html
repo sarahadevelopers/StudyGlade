@@ -92,9 +92,10 @@
           <input type="text" id="course" name="course">
         </div>
         <div class="form-group">
-          <label>Upload files (images, PDFs, Word, Excel, ZIP - max 10MB each)</label>
-          <input type="file" id="files" name="files" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
-          <small>You can select multiple files</small>
+          <label>Upload files (images, PDFs, Word, Excel, ZIP - max 50MB each)</label>
+          <!-- Updated accept attribute: use file extensions for better mobile compatibility -->
+          <input type="file" id="files" name="files" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
+          <small>You can select multiple files (max 50MB each)</small>
         </div>
         <button type="submit" class="btn">Post Question & Pay</button>
       </form>
