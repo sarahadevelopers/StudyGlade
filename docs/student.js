@@ -146,13 +146,13 @@ if (window.studentDashboardLoaded) {
   function createQuestionRow(q, isCompleted) {
     const safeTitle = escapeHtml(q.title);
     let subject = 'General';
-if (q.subcategory && q.subcategory !== 'Other') {
-  subject = escapeHtml(q.subcategory);
-} else if (q.category && q.category !== 'Other') {
-  subject = escapeHtml(q.category);
-} else if (q.subject) {
-  subject = escapeHtml(q.subject);
-}
+    if (q.subcategory && q.subcategory !== 'Other') {
+      subject = escapeHtml(q.subcategory);
+    } else if (q.category && q.category !== 'Other') {
+      subject = escapeHtml(q.category);
+    } else if (q.subject) {
+      subject = escapeHtml(q.subject);
+    }
     const budget = `$${q.budget}`;
     const tutor = q.tutorId || null;
     const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
@@ -262,33 +262,33 @@ if (q.subcategory && q.subcategory !== 'Other') {
 
   // ---------- Additional Funds Request (with null check) ----------
   async function checkForFundsRequests(questions) {
-  for (const q of questions) {
-    const req = q.additionalFundsRequest;
-    if (req && req.status === 'pending') {
-      if (document.getElementById(`funds-banner-${q._id}`)) continue;
-      const banner = document.createElement('div');
-      banner.id = `funds-banner-${q._id}`;
-      banner.className = 'card';
-      banner.style.backgroundColor = '#fff3cd';
-      banner.style.borderLeft = '4px solid #ffc107';
-      banner.style.marginBottom = '1rem';
-      const amount = (req.amount !== undefined && req.amount !== null) ? req.amount : '?';
-      banner.innerHTML = `
-        <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
-        Tutor requests <strong>$${amount}</strong> extra.<br>
-        Reason: ${escapeHtml(req.reason)}<br>
-        <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
-        <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
-      `;
-      const container = document.querySelector('.dashboard-container') || document.querySelector('.container');
-      if (container && container.firstChild) {
-        container.insertBefore(banner, container.firstChild);
-      } else if (container) {
-        container.appendChild(banner);
+    for (const q of questions) {
+      const req = q.additionalFundsRequest;
+      if (req && req.status === 'pending') {
+        if (document.getElementById(`funds-banner-${q._id}`)) continue;
+        const banner = document.createElement('div');
+        banner.id = `funds-banner-${q._id}`;
+        banner.className = 'card';
+        banner.style.backgroundColor = '#fff3cd';
+        banner.style.borderLeft = '4px solid #ffc107';
+        banner.style.marginBottom = '1rem';
+        const amount = (req.amount !== undefined && req.amount !== null) ? req.amount : '?';
+        banner.innerHTML = `
+          <strong>💰 Additional funds request for "${escapeHtml(q.title)}"</strong><br>
+          Tutor requests <strong>$${amount}</strong> extra.<br>
+          Reason: ${escapeHtml(req.reason)}<br>
+          <button onclick="respondToFunds('${q._id}', true)" class="btn">✅ Approve & Pay</button>
+          <button onclick="respondToFunds('${q._id}', false)" class="btn-outline">❌ Reject</button>
+        `;
+        const container = document.querySelector('.dashboard-container') || document.querySelector('.container');
+        if (container && container.firstChild) {
+          container.insertBefore(banner, container.firstChild);
+        } else if (container) {
+          container.appendChild(banner);
+        }
       }
     }
   }
-}
 
   window.respondToFunds = async function(questionId, accept) {
     try {
@@ -504,38 +504,45 @@ if (q.subcategory && q.subcategory !== 'Other') {
   }
   window.uploadAvatar = uploadAvatar;
 
-  // ========== NOTIFICATIONS DROPDOWN (mobile-friendly, with modal for "View all") ==========
+  // ========== NOTIFICATIONS DROPDOWN (with pagination & "Load more") ==========
   const notificationBell = document.querySelector('.notification-bell');
   let notificationDropdown = null;
+  let notificationPage = 1;
+  let notificationHasMore = true;
+  let isLoadingNotifications = false;
 
   function createNotificationDropdown() {
     if (notificationDropdown) return;
     notificationDropdown = document.createElement('div');
     notificationDropdown.className = 'notification-dropdown';
     notificationDropdown.innerHTML = `
-  <div class="notification-header">Recent Notifications</div>
-  <div class="notification-list" id="notificationListDropdown">Loading...</div>
-  <div class="notification-footer">
-    <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
-  </div>
-`;
+      <div class="notification-header">Recent Notifications</div>
+      <div class="notification-list" id="notificationListDropdown">Loading...</div>
+      <div class="notification-footer">
+        <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
+        <button id="loadMoreNotifications" class="load-more-btn" style="display: none;">Load more</button>
+      </div>
+    `;
     document.body.appendChild(notificationDropdown);
   }
 
-  // Load all notifications into the modal (full list)
- 
-
-  // Load only latest 5 for dropdown
-  async function loadNotificationsDropdown() {
+  async function loadNotificationsDropdown(reset = true) {
+    if (isLoadingNotifications) return;
+    isLoadingNotifications = true;
     if (!notificationDropdown) createNotificationDropdown();
     const listDiv = notificationDropdown.querySelector('.notification-list');
-    listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
+    if (reset) {
+      notificationPage = 1;
+      notificationHasMore = true;
+      listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
+    }
     try {
-      const res = await fetch('/api/notifications?limit=10', { credentials: 'include' });
+      const res = await fetch(`/api/notifications?limit=10&page=${notificationPage}`, { credentials: 'include' });
       const data = await res.json();
       let html = '';
-      if (data.notifications.length === 0) {
-        html = '<div class="notification-item no-notifications">No new notifications</div>';
+      if (data.notifications.length === 0 && reset) {
+        html = '<div class="notification-item no-notifications">No notifications</div>';
+        notificationHasMore = false;
       } else {
         data.notifications.forEach(n => {
           html += `<div class="notification-item" data-id="${n._id}">
@@ -544,11 +551,28 @@ if (q.subcategory && q.subcategory !== 'Other') {
                      <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
                    </div>`;
         });
+        notificationHasMore = data.pagination && notificationPage < data.pagination.pages;
       }
-      listDiv.innerHTML = html;
+      if (reset) {
+        listDiv.innerHTML = html;
+      } else {
+        listDiv.insertAdjacentHTML('beforeend', html);
+      }
+      const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotifications');
+      if (loadMoreBtn) {
+        loadMoreBtn.style.display = notificationHasMore ? 'inline-block' : 'none';
+      }
     } catch (err) {
       listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
+    } finally {
+      isLoadingNotifications = false;
     }
+  }
+
+  async function loadMoreNotifications() {
+    if (!notificationHasMore || isLoadingNotifications) return;
+    notificationPage++;
+    await loadNotificationsDropdown(false);
   }
 
   async function updateUnreadBadge() {
@@ -569,8 +593,14 @@ if (q.subcategory && q.subcategory !== 'Other') {
     if (isVisible) {
       notificationDropdown.style.display = 'none';
     } else {
-      await loadNotificationsDropdown();
+      await loadNotificationsDropdown(true);
       notificationDropdown.style.display = 'block';
+      // Attach load-more event listener after dropdown is visible
+      const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotifications');
+      if (loadMoreBtn && !loadMoreBtn.hasListener) {
+        loadMoreBtn.addEventListener('click', loadMoreNotifications);
+        loadMoreBtn.hasListener = true;
+      }
     }
   }
 
@@ -586,7 +616,7 @@ if (q.subcategory && q.subcategory !== 'Other') {
         const badge = document.querySelector('.notification-bell .badge');
         if (badge) badge.innerText = '0';
         if (notificationDropdown && notificationDropdown.style.display === 'block') {
-          loadNotificationsDropdown();
+          loadNotificationsDropdown(true);
         }
       } else {
         showToast('Failed to mark as read', 'error');
@@ -612,7 +642,7 @@ if (q.subcategory && q.subcategory !== 'Other') {
 
   // Expose global functions for inline onclick handlers
   window.markAllRead = markAllRead;
- 
+  window.loadMoreNotifications = loadMoreNotifications;
 
   setInterval(updateUnreadBadge, 30000);
   updateUnreadBadge();
