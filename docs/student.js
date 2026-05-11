@@ -85,8 +85,7 @@ if (window.studentDashboardLoaded) {
     const walletEl = document.getElementById('walletBalance');
     if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
 
-    const questions = await apiFetch('/questions/my-questions');
-    
+    const questions = await apiFetch('/questions/my-questions');    
     const active = questions.filter(q => q.status !== 'completed');
     const completed = questions.filter(q => q.status === 'completed');
     allCompletedQuestions = completed;
@@ -207,7 +206,7 @@ if (window.studentDashboardLoaded) {
       const ratingStars = q.rating && q.rating.score
         ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
         : 'Not rated';
-      return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${subject}</td><td>${tutorHtml}</td><td>${budget}</td><td>${ratingStars}</td><td>${viewAnswerBtn} ${rateBtn}</td></tr>`;
+      return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${subject}</td><td>${tutorHtml}</td><td>${budget}</td><td>${ratingStars}</td><td>${viewAnswerBtn} ${rateBtn}</td><table>`;
     }
   }
 
@@ -504,6 +503,51 @@ if (window.studentDashboardLoaded) {
   }
   window.uploadAvatar = uploadAvatar;
 
+  // ========== NOTIFICATION SOUND CONTROL ==========
+  let notificationSoundEnabled = localStorage.getItem('notificationSound') !== 'false'; // default true
+  const audio = new Audio('/sounds/notification.mp3');
+
+  function playNotificationSound() {
+    if (!notificationSoundEnabled) return;
+    audio.play().catch(() => {
+      // fallback beep using Web Audio API
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.frequency.value = 800;
+        gain.gain.value = 0.5;
+        oscillator.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+        oscillator.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    });
+  }
+
+  const soundToggle = document.getElementById('notificationSoundToggle');
+  if (soundToggle) {
+    function updateSoundToggleUI() {
+      if (notificationSoundEnabled) {
+        soundToggle.classList.remove('muted');
+        soundToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+      } else {
+        soundToggle.classList.add('muted');
+        soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
+      }
+    }
+    soundToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notificationSoundEnabled = !notificationSoundEnabled;
+      localStorage.setItem('notificationSound', notificationSoundEnabled);
+      updateSoundToggleUI();
+      if (notificationSoundEnabled) playNotificationSound();
+    });
+    updateSoundToggleUI();
+  }
+
   // ========== NOTIFICATIONS DROPDOWN (with pagination & "Load more") ==========
   const notificationBell = document.querySelector('.notification-bell');
   let notificationDropdown = null;
@@ -575,17 +619,6 @@ if (window.studentDashboardLoaded) {
     await loadNotificationsDropdown(false);
   }
 
-  async function updateUnreadBadge() {
-    try {
-      const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
-      const data = await res.json();
-      const badge = document.querySelector('.notification-bell .badge');
-      if (badge) badge.innerText = data.count > 9 ? '9+' : data.count;
-    } catch (err) {
-      console.error('Failed to fetch unread count:', err);
-    }
-  }
-
   async function toggleNotificationDropdown(event) {
     event.stopPropagation();
     if (!notificationDropdown) createNotificationDropdown();
@@ -595,7 +628,6 @@ if (window.studentDashboardLoaded) {
     } else {
       await loadNotificationsDropdown(true);
       notificationDropdown.style.display = 'block';
-      // Attach load-more event listener after dropdown is visible
       const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotifications');
       if (loadMoreBtn && !loadMoreBtn.hasListener) {
         loadMoreBtn.addEventListener('click', loadMoreNotifications);
@@ -640,14 +672,32 @@ if (window.studentDashboardLoaded) {
     notificationBell.addEventListener('click', toggleNotificationDropdown);
   }
 
-  // Expose global functions for inline onclick handlers
   window.markAllRead = markAllRead;
   window.loadMoreNotifications = loadMoreNotifications;
 
-  setInterval(updateUnreadBadge, 30000);
-  updateUnreadBadge();
+  // ========== UNREAD COUNT WITH SOUND ==========
+  let lastUnreadCount = 0;
 
-  // ---------- Event listeners ----------
+  async function updateUnreadCountAndSound() {
+    try {
+      const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+      const data = await res.json();
+      const currentCount = data.count;
+      if (currentCount > lastUnreadCount && notificationSoundEnabled) {
+        playNotificationSound();
+      }
+      lastUnreadCount = currentCount;
+      const badge = document.querySelector('.notification-bell .badge');
+      if (badge) badge.innerText = currentCount > 9 ? '9+' : currentCount;
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
+    }
+  }
+
+  updateUnreadCountAndSound();
+  setInterval(updateUnreadCountAndSound, 30000);
+
+  // ========== EVENT LISTENERS ==========
   document.addEventListener('DOMContentLoaded', () => {
     const addBtn = document.getElementById('addFundsBtn');
     if (addBtn && typeof addFunds === 'function') addBtn.addEventListener('click', addFunds);

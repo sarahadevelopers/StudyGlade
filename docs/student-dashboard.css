@@ -995,3 +995,48 @@ button[onclick="closeTransactionModal()"]:hover {
 .load-more-btn:hover {
   background: #f5f5f5;
 }
+
+/* Notification sound toggle */
+.notification-sound-toggle {
+  cursor: pointer;
+  margin-right: 1rem;
+  font-size: 1.2rem;
+  color: #fff;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.notification-sound-toggle:hover {
+  opacity: 1;
+}
+.notification-sound-toggle.muted {
+  opacity: 0.4;
+}
+.notification-sound-toggle.muted i {
+  /* optional: icon change is handled by JS, but we keep consistency */
+}
+
+/* Notification dropdown (already present, but ensure load-more button style) */
+.load-more-btn {
+  background: none;
+  border: none;
+  color: #005BFF;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 8px;
+  width: 100%;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
+.load-more-btn:hover {
+  background: #f5f5f5;
+}
+
+/* Optional: adjustments for notification items */
+.notification-item {
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.notification-time {
+  font-size: 0.7rem;
+  color: #888;
+}
