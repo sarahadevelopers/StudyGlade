@@ -79,10 +79,14 @@
           <label>Budget ($)</label>
           <input type="number" id="budget" name="budget" min="3" required>
         </div>
+
+        <!-- NEW: Deadline picker with date & time -->
         <div class="form-group">
-          <label>Deadline (days from now)</label>
-          <input type="number" id="deadlineDays" name="deadlineDays" min="1" value="3">
+          <label>Deadline (date and time)</label>
+          <input type="datetime-local" id="deadlineDateTime" name="deadlineDateTime" required>
+          <small>Set the exact date and time (e.g., tomorrow at 6pm).</small>
         </div>
+
         <div class="form-group">
           <label>School (optional)</label>
           <input type="text" id="school" name="school">
@@ -93,7 +97,6 @@
         </div>
         <div class="form-group">
           <label>Upload files (images, PDFs, Word, Excel, ZIP - max 50MB each)</label>
-          <!-- Updated accept attribute: use file extensions for better mobile compatibility -->
           <input type="file" id="files" name="files" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
           <small>You can select multiple files (max 50MB each)</small>
         </div>
@@ -103,6 +106,20 @@
   </div>
 <script src="api.js"></script>
 <script>
+  // Set default deadline to 3 days from now (but allows user to change)
+  function setDefaultDeadline() {
+    const now = new Date();
+    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const yyyy = threeDaysLater.getFullYear();
+    const mm = String(threeDaysLater.getMonth() + 1).padStart(2, '0');
+    const dd = String(threeDaysLater.getDate()).padStart(2, '0');
+    const hh = String(threeDaysLater.getHours()).padStart(2, '0');
+    const min = String(threeDaysLater.getMinutes()).padStart(2, '0');
+    const defaultValue = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    document.getElementById('deadlineDateTime').value = defaultValue;
+  }
+  setDefaultDeadline();
+
   document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -111,11 +128,25 @@
     submitBtn.innerHTML = '<span class="spinner"></span> Posting...';
 
     const formData = new FormData(e.target);
-    const deadline = new Date();
-    const days = parseInt(formData.get('deadlineDays')) || 3;
-    deadline.setDate(deadline.getDate() + days);
+    // Read the datetime-local value and convert to ISO string
+    const deadlineDateTime = document.getElementById('deadlineDateTime').value;
+    if (!deadlineDateTime) {
+      showToast('Please select a deadline.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+      return;
+    }
+    const deadline = new Date(deadlineDateTime);
+    if (isNaN(deadline.getTime())) {
+      showToast('Invalid deadline.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+      return;
+    }
+    // Append deadline as ISO string
     formData.append('deadline', deadline.toISOString());
-    formData.delete('deadlineDays');
+    // Remove the temporary field
+    formData.delete('deadlineDateTime');
 
     try {
       const res = await fetch(`${window.API_BASE}/questions`, {
