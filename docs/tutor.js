@@ -250,19 +250,21 @@ async function acceptQuestion(questionId) {
 }
 
 // ----- Load Assignments (with pagination) -----
-async function loadAssignments() {
+async function loadAssignments(page = 1) {
   try {
-    const assignments = await apiFetch('/questions/my-assignments');
-    allAssignments = assignments;
+    const all = await apiFetch('/questions/my-assignments');
+    // Sort by createdAt descending (newest first)
+    all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    allAssignments = all;
     assignmentsTotalPages = Math.ceil(allAssignments.length / ASSIGNMENTS_PER_PAGE);
-    assignmentsPage = Math.min(assignmentsPage, assignmentsTotalPages) || 1;
+    assignmentsPage = Math.min(page, assignmentsTotalPages) || 1;
     renderAssignmentsByTab(currentTab);
+    renderAssignmentsPagination();
   } catch (err) {
     console.error(err);
     document.getElementById('assignmentsList').innerHTML = '<div>Error loading assignments</div>';
   }
 }
-
 function renderAssignmentsByTab(tab) {
   let filtered = [];
   if (tab === 'all') filtered = allAssignments;
