@@ -19,61 +19,65 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 Created uploads folder');
 }
 
-// ---------- 2. MULTER CONFIGURATION (PDF-friendly) ----------
+// ---------- 2. MULTER CONFIGURATION (Office‑friendly) ----------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    // Sanitize filename: remove spaces and special chars
     const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + safeName);
   }
 });
 
-// ✅ FIX: expanded allowed types to include all PDF variants
 const fileFilter = (req, file, cb) => {
+  // Always allow by file extension first (most reliable)
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExt = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp',
+    '.pdf',
+    '.doc', '.docx',
+    '.xls', '.xlsx',
+    '.ppt', '.pptx',
+    '.zip', '.txt', '.csv',
+    '.mp4', '.webm'
+  ];
+  
+  if (allowedExt.includes(ext)) {
+    cb(null, true);
+    return;
+  }
+  
+  // Fallback: allow by MIME type
   const allowedTypes = [
-    // Images
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    // PDFs
-    'application/pdf', 'application/x-pdf', 'application/octet-stream',
-    // Word (doc, docx)
+    'application/pdf', 'application/x-pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/zip',                         // some phones send .docx as zip
-    'application/x-zip-compressed',
-    // Excel
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    // PowerPoint
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // Others
-    'text/plain', 'text/csv', 'application/zip',
-    // Videos
+    'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
+    'text/plain', 'text/csv',
     'video/mp4', 'video/webm'
   ];
   
-  const ext = path.extname(file.originalname).toLowerCase();
-  const allowedExt = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm'];
-  
-  // Allow if MIME type matches or file extension is allowed
-  if (allowedTypes.includes(file.mimetype) || allowedExt.includes(ext)) {
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    console.warn(`Rejected file: ${file.originalname} (MIME: ${file.mimetype}, ext: ${ext})`);
-    cb(new Error(`File type not supported: ${file.mimetype}`), false);
+    console.warn(`❌ Rejected file: ${file.originalname} (MIME: ${file.mimetype}, ext: ${ext})`);
+    cb(new Error(`Unsupported file type: ${file.mimetype}`), false);
   }
 };
+
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 } // Increased to 50MB to handle PDFs
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB to handle large PPTs
 });
 
-// Export for routes
 module.exports.upload = upload;
 
 // ---------- 3. REQUIRE ROUTES & MODELS ----------
@@ -304,10 +308,9 @@ cron.schedule('0 0 * * *', () => {
 // ---------- 14. GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
-  // Handle multer errors specifically
   if (err instanceof multer.MulterError) {
     if (err.code === 'FILE_TOO_LARGE') {
-      return res.status(400).json({ error: 'File too large. Max size is 50MB.' });
+      return res.status(400).json({ error: 'File too large. Max size is 100MB.' });
     }
     return res.status(400).json({ error: err.message });
   }
