@@ -965,3 +965,68 @@ body {
   border-radius: 40px;
   cursor: pointer;
 }
+/* Mobile top navigation – hidden on desktop */
+.mobile-nav {
+  display: none;
+  background: white;
+  border-radius: 20px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.mobile-logo {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-grey);
+  padding-bottom: 0.5rem;
+}
+.mobile-logo a {
+  text-decoration: none;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+.mobile-logo i {
+  font-size: 1.3rem;
+  color: var(--sky-blue);
+  margin-left: 4px;
+  transform: rotate(12deg);
+}
+
+.mobile-nav-links {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 0.2rem;
+}
+
+.mobile-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1rem;
+  background: var(--pale-blue);
+  border-radius: 40px;
+  text-decoration: none;
+  color: var(--brand-blue);
+  font-size: 0.8rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.mobile-nav-item.active {
+  background: var(--brand-blue);
+  color: white;
+}
+.mobile-nav-item i {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: block;
+  }
+}
