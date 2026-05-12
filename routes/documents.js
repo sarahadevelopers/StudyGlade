@@ -25,6 +25,11 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
+function getResourceType(mimetype) {
+  if (mimetype.startsWith('image/')) return 'image';
+  return 'raw';
+}
+
 // Helper: lazy‑load PDF/DOCX parsers
 async function extractPreviewText(filePath, originalName) {
   try {
@@ -56,7 +61,6 @@ router.get('/test2', (req, res) => {
   res.json({ message: 'test2 works' });
 });
 
-// ========== MAIN GET – ALWAYS RETURNS JSON ==========
 // ========== DEDICATED LIBRARY ENDPOINT (used by frontend) ==========
 router.get('/library', async (req, res) => {
   console.log('📚 GET /api/documents/library called');
@@ -129,12 +133,15 @@ router.get('/library', async (req, res) => {
 
 // ========== UPLOAD ==========
 router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'), async (req, res) => {
-  // [your existing upload code – unchanged]
   try {
     const { title, description, subject, subcategory, level, type, price } = req.body;
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/documents' });
+    const resourceType = getResourceType(req.file.mimetype);
+const result = await cloudinary.uploader.upload(req.file.path, {
+  folder: 'studyglade/documents',
+  resource_type: resourceType
+});
     const previewText = await extractPreviewText(req.file.path, req.file.originalname);
     let previewImageUrl = '';
     if (req.file.mimetype === 'application/pdf') {
@@ -209,7 +216,7 @@ router.post('/:id/unlock', auth, async (req, res) => {
   }
 });
 
-// ========== PREVIEW (SEO) ==========
+// ========== PREVIEW (SEO) – FULL HTML ==========
 router.get('/preview/:id', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -227,7 +234,151 @@ router.get('/preview/:id', async (req, res) => {
       "offers": { "@type": "Offer", "price": doc.price, "priceCurrency": "USD" }
     };
 
-    const html = `...`; // keep your existing HTML (truncated for brevity)
+    // Determine if user is logged in
+    let user = null;
+    const token = req.cookies.accessToken;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        user = await User.findById(decoded.id).select('-password');
+      } catch (err) {}
+    }
+
+    const fullText = doc.previewText || 'Preview not available.';
+    const teaserLength = 180;
+    const teaser = fullText.substring(0, teaserLength);
+    const remainder = fullText.substring(teaserLength);
+    const showBlur = remainder.length > 0;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>${escapeHtml(doc.title)} - StudyGlade</title>
+        <meta name="description" content="${escapeHtml(doc.description?.substring(0, 160) || 'Academic document on ' + doc.subject)}">
+        <meta property="og:title" content="${escapeHtml(doc.title)}">
+        <meta property="og:description" content="${escapeHtml(doc.description?.substring(0, 160) || 'Academic document on ' + doc.subject)}">
+        <meta property="og:image" content="${escapeHtml(doc.previewImageUrl)}">
+        <meta name="twitter:card" content="summary_large_image">
+        <link rel="canonical" href="https://studyglade.onrender.com/document/${doc.slug}">
+        <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
+        <style>
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family:'Inter',sans-serif; background:linear-gradient(135deg,#f8fafc,#eef2f6); min-height:100vh; padding:2rem 1rem; }
+          .container { max-width:1280px; margin:0 auto; }
+          .document-grid { display:grid; grid-template-columns:1fr 380px; gap:2rem; }
+          @media (max-width:900px){ .document-grid{ grid-template-columns:1fr; gap:1.5rem; } }
+          .card { background:#fff; border-radius:32px; box-shadow:0 20px 35px -12px rgba(0,0,0,0.1); overflow:hidden; }
+          .card-content { padding:2rem; }
+          .sidebar-card { position:sticky; top:2rem; }
+          h1 { font-size:2rem; font-weight:700; margin-bottom:1rem; color:#0a0c10; }
+          .badge-group { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem; }
+          .badge { background:#eef2ff; color:#1e40af; padding:0.25rem 0.75rem; border-radius:40px; font-size:0.75rem; font-weight:500; }
+          .description { color:#334155; margin-bottom:1.5rem; }
+          .preview-img { width:100%; border-radius:20px; margin:1.5rem 0; border:1px solid #e9edf2; }
+          .preview-content { background:#fafcff; border-radius:24px; padding:1.5rem; border:1px solid #eef2f8; line-height:1.6; color:#1e293b; }
+          .blurred-text { filter:blur(5px); user-select:none; }
+          .preview-overlay { margin-top:1rem; padding:1rem; background:#f1f5f9; border-radius:20px; text-align:center; border:1px solid #e2e8f0; }
+          .btn-small { background:#fff; border:1px solid #cbd5e1; padding:0.5rem 1rem; border-radius:40px; cursor:pointer; text-decoration:none; display:inline-block; font-size:0.8rem; }
+          .btn-primary { display:block; width:100%; background:#3b82f6; color:white; border:none; padding:1rem; border-radius:60px; cursor:pointer; text-align:center; font-weight:600; transition:0.2s; }
+          .btn-primary:hover { background:#2563eb; transform:translateY(-1px); }
+          .price-box { background:#f8fafc; border-radius:24px; padding:1rem; text-align:center; }
+          .price-value { font-size:2.8rem; font-weight:800; color:#0f172a; }
+          .trust-badges { display:flex; justify-content:center; gap:1rem; margin-top:1rem; font-size:0.7rem; color:#5b6e8c; }
+          footer { text-align:center; margin-top:3rem; font-size:0.75rem; color:#6c7a91; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="document-grid">
+            <div class="card">
+              <div class="card-content">
+                <h1>${escapeHtml(doc.title)}</h1>
+                <div class="badge-group">
+                  <span class="badge">${escapeHtml(doc.subject)}</span>
+                  <span class="badge">${escapeHtml(doc.level)}</span>
+                  <span class="badge">${escapeHtml(doc.type)}</span>
+                </div>
+                <p class="description">${escapeHtml(doc.description || 'No description provided.')}</p>
+                ${doc.previewImageUrl ? `<img class="preview-img" src="${escapeHtml(doc.previewImageUrl)}" alt="Document preview">` : ''}
+                <div class="preview-content">
+                  <div>${escapeHtml(teaser)}${showBlur ? `<span class="blurred-text">${escapeHtml(remainder)}</span>` : ''}</div>
+                  ${showBlur ? `
+                    <div class="preview-overlay">
+                      ${!user ? `
+                        <p>✨ Unlock the full document to read all ${fullText.length} characters, plus the complete file.</p>
+                        <a href="/register?returnTo=/document/${doc.slug}" class="btn-small">Sign up to unlock</a>
+                        <a href="/login?returnTo=/document/${doc.slug}" style="display:inline-block; margin-left:0.5rem; font-size:0.8rem;">Log in</a>
+                      ` : `
+                        <p>🔒 The full preview is hidden. Unlock to access the complete document.</p>
+                        <button id="unlockFromPreviewBtn" class="btn-small">Unlock full document</button>
+                      `}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-card">
+              <div class="card">
+                <div class="card-content">
+                  <div class="price-box">
+                    <div class="price-value">$${doc.price.toFixed(2)}<span> USD</span></div>
+                  </div>
+                  ${!user ? `
+                    <a href="/register?returnTo=/document/${doc.slug}" class="btn-primary">🔓 Unlock & Download</a>
+                    <a href="/login?returnTo=/document/${doc.slug}" style="display:block; margin-top:0.5rem; text-align:center;">Log in</a>
+                  ` : `
+                    <button id="unlockBtn" class="btn-primary">🔓 Unlock for $${doc.price.toFixed(2)}</button>
+                    <div id="message"></div>
+                  `}
+                  <div class="trust-badges">
+                    <span>✅ Instant access</span>
+                    <span>💳 Secure payment</span>
+                    <span>🔄 7‑day refund policy</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer>© StudyGlade — Academic knowledge shared securely</footer>
+        </div>
+        ${user ? `
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            const unlockBtn = document.getElementById('unlockBtn');
+            const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
+            async function handleUnlock() {
+              const btn = unlockBtn || previewUnlockBtn;
+              if (!btn) return;
+              btn.disabled = true;
+              btn.innerText = 'Processing...';
+              try {
+                const response = await fetch('/api/documents/${doc._id}/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const data = await response.json();
+                if (response.ok) {
+                  document.getElementById('message').innerHTML = '<span style="color:#059669;">✓ Unlocked! <a href="' + data.fileUrl + '" target="_blank">Download now</a></span>';
+                  if (unlockBtn) unlockBtn.style.display = 'none';
+                  if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
+                } else {
+                  document.getElementById('message').innerHTML = '<span style="color:#dc2626;">' + (data.error || 'Insufficient balance.') + ' <a href="/student-dashboard.html?returnTo=' + encodeURIComponent(window.location.pathname) + '">Add funds now</a></span>';
+                  btn.disabled = false;
+                  btn.innerText = 'Unlock';
+                }
+              } catch (err) {
+                document.getElementById('message').innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
+                btn.disabled = false;
+                btn.innerText = 'Unlock';
+              }
+            }
+            if (unlockBtn) unlockBtn.addEventListener('click', handleUnlock);
+            if (previewUnlockBtn) previewUnlockBtn.addEventListener('click', handleUnlock);
+          });
+        </script>
+        ` : ''}
+      </body>
+      </html>
+    `;
     res.send(html);
   } catch (err) {
     console.error('Preview error:', err);
@@ -235,18 +386,55 @@ router.get('/preview/:id', async (req, res) => {
   }
 });
 
-// ========== SMART PREVIEW ==========
+// ========== SMART PREVIEW (with sentence extraction) ==========
 router.post('/smart-preview/:id', async (req, res) => {
   try {
     const { query } = req.body;
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
+
     if (!doc.previewText || doc.previewText.length < 20) {
-      return res.json({ snippet: 'No readable preview available.', hasMatch: false });
+      return res.json({ snippet: 'No readable preview available for this document.', hasMatch: false });
     }
+
     const { segment } = require('sentencex');
-    // ... (rest of your smart‑preview logic)
-    res.json({ snippet: '...', hasMatch: true });
+
+    const previewLower = doc.previewText.toLowerCase();
+    const queryLower = query.toLowerCase();
+    let matchIndex = previewLower.indexOf(queryLower);
+    if (matchIndex === -1) {
+      const keywords = queryLower.split(/\s+/);
+      for (const word of keywords) {
+        if (word.length > 3 && previewLower.includes(word)) {
+          matchIndex = previewLower.indexOf(word);
+          break;
+        }
+      }
+    }
+
+    let contextualSnippet = "";
+    if (matchIndex !== -1) {
+      const sentences = segment(doc.previewText);
+      for (const sentence of sentences) {
+        if (sentence.toLowerCase().includes(queryLower)) {
+          contextualSnippet += sentence + " ";
+        }
+      }
+      if (!contextualSnippet) {
+        const start = Math.max(0, matchIndex - 100);
+        const end = Math.min(doc.previewText.length, matchIndex + 200);
+        contextualSnippet = "..." + doc.previewText.substring(start, end) + "...";
+      }
+    } else {
+      contextualSnippet = doc.previewText.substring(0, 300);
+    }
+
+    contextualSnippet = contextualSnippet.trim();
+    if (contextualSnippet.length > 500) {
+      contextualSnippet = contextualSnippet.substring(0, 500) + '...';
+    }
+
+    res.json({ snippet: contextualSnippet, hasMatch: matchIndex !== -1 });
   } catch (err) {
     console.error('Smart preview error:', err);
     res.status(500).json({ error: 'Failed to generate preview' });

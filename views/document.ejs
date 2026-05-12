@@ -11,8 +11,31 @@
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://studyglade.onrender.com/document/<%= document.slug %>">
+
+  <!-- ✅ STRUCTURED DATA (JSON‑LD) – improves rich snippets in search results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "name": "<%= document.title.replace(/"/g, '\\"') %>",
+    "description": "<%= (document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject).replace(/"/g, '\\"') %>",
+    "educationalLevel": "<%= document.level %>",
+    "learningResourceType": "<%= document.type %>",
+    "creator": {
+      "@type": "Person",
+      "name": "<%= document.uploaderName.replace(/"/g, '\\"') %>"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "<%= document.price.toFixed(2) %>",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* your existing CSS – unchanged */
     * {
       margin: 0;
       padding: 0;
@@ -327,7 +350,7 @@
           </div>
         </div>
 
-        <!-- NEW: Smart Preview section (dynamic question answering) -->
+        <!-- Smart Preview section -->
         <div class="smart-input-group">
           <label style="font-size:0.8rem; font-weight:500;">🔎 Ask a question about this document</label>
           <input type="text" id="smartQuery" class="smart-input" placeholder="e.g., What is the formula for quadratic equations?">
@@ -380,7 +403,7 @@
     return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
   }
 
-  // ----- Smart Preview (dynamic question) with debounce & enter key -----
+  // Smart Preview logic (unchanged)
   document.addEventListener('DOMContentLoaded', function() {
     const smartBtn = document.getElementById('smartPreviewBtn');
     const smartQuery = document.getElementById('smartQuery');
@@ -388,15 +411,12 @@
     let debounceTimer;
 
     if (smartQuery) {
-      // Clear result when user starts typing
       smartQuery.addEventListener('input', function() {
         if (smartResult && smartResult.style.display === 'block') {
           smartResult.style.display = 'none';
           smartResult.innerHTML = '';
         }
       });
-
-      // Press Enter to trigger search
       smartQuery.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -415,7 +435,6 @@
         }
 
         if (debounceTimer) clearTimeout(debounceTimer);
-
         debounceTimer = setTimeout(async () => {
           smartResult.style.display = 'block';
           smartResult.innerHTML = '<span class="spinner"></span> Searching document...';
@@ -457,52 +476,48 @@
     const messageBox = document.getElementById('message');
     const previewUnlockBtn = document.getElementById('unlockFromPreviewBtn');
 
-    // Helper: fetch latest user data (wallet, etc.)
-async function refreshUser() {
-  try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include'
-    });
-    if (response.ok) {
-      const userData = await response.json();
-      localStorage.setItem('user', JSON.stringify(userData));
-      return userData;
+    async function refreshUser() {
+      try {
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
+        if (response.ok) {
+          const userData = await response.json();
+          localStorage.setItem('user', JSON.stringify(userData));
+          return userData;
+        }
+      } catch (err) {
+        console.error('Failed to refresh user:', err);
+      }
+      return null;
     }
-  } catch (err) {
-    console.error('Failed to refresh user:', err);
-  }
-  return null;
-}
 
-   async function handleUnlock() {
-  if (!unlockBtn) return;
-  unlockBtn.disabled = true;
-  unlockBtn.innerText = 'Processing...';
-  
-  try {
-    const response = await fetch(`/api/documents/<%= document._id %>/unlock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await response.json();
-    
-    if (response.ok) {
-      messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
-      if (unlockBtn) unlockBtn.style.display = 'none';
-      if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
-    } else {
-      // ✅ ADD THE "ADD FUNDS" LINK HERE
-      messageBox.innerHTML = `<span style="color:#dc2626;">${data.error || 'Insufficient balance.'} <a href="/student-dashboard.html?returnTo=${encodeURIComponent(window.location.pathname)}" style="color:#2563eb;">Add funds now</a></span>`;
-      unlockBtn.disabled = false;
-      unlockBtn.innerText = 'Unlock';
+    async function handleUnlock() {
+      if (!unlockBtn) return;
+      unlockBtn.disabled = true;
+      unlockBtn.innerText = 'Processing...';
+      
+      try {
+        const response = await fetch(`/api/documents/<%= document._id %>/unlock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          messageBox.innerHTML = `<span style="color:#059669;">✓ Unlocked! <a href="<%= document.fileUrl %>" target="_blank" style="color:#2563eb;">Download now</a></span>`;
+          if (unlockBtn) unlockBtn.style.display = 'none';
+          if (previewUnlockBtn) previewUnlockBtn.style.display = 'none';
+        } else {
+          messageBox.innerHTML = `<span style="color:#dc2626;">${data.error || 'Insufficient balance.'} <a href="/student-dashboard.html?returnTo=${encodeURIComponent(window.location.pathname)}" style="color:#2563eb;">Add funds now</a></span>`;
+          unlockBtn.disabled = false;
+          unlockBtn.innerText = 'Unlock';
+        }
+      } catch (err) {
+        console.error('Unlock error:', err);
+        messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
+        unlockBtn.disabled = false;
+        unlockBtn.innerText = 'Unlock';
+      }
     }
-  } catch (err) {
-    console.error('Unlock error:', err);
-    messageBox.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
-    unlockBtn.disabled = false;
-    unlockBtn.innerText = 'Unlock';
-  }
-}
 
     if (unlockBtn) unlockBtn.addEventListener('click', handleUnlock);
     if (previewUnlockBtn) previewUnlockBtn.addEventListener('click', handleUnlock);

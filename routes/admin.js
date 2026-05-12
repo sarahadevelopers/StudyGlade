@@ -11,6 +11,7 @@ const Breach = require('../models/Breach');
 const Announcement = require('../models/Announcement');
 const Comment = require('../models/Comment');
 const PDFDocument = require('pdfkit');
+const pingGoogleSitemap = require('../utils/notifyGoogle'); // ✅ added
 const router = express.Router();
 
 // ========== PUBLIC ROUTE (no authentication required) – MUST BE FIRST ==========
@@ -209,6 +210,8 @@ router.put('/documents/:id/approve', async (req, res) => {
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     doc.isApproved = true;
     await doc.save();
+    // ✅ Ping Google to refresh sitemap
+    await pingGoogleSitemap();
     res.json({ message: 'Document approved' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -227,6 +230,8 @@ router.put('/documents/:id', async (req, res) => {
     if (level) doc.level = level;
     if (type) doc.type = type;
     await doc.save();
+    // ✅ Ping Google after content update (title, price, etc.)
+    await pingGoogleSitemap();
     res.json({ message: 'Document updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -639,8 +644,6 @@ router.get('/questions/:id/full', async (req, res) => {
 });
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
-// ========== COMPREHENSIVE FINANCIAL REPORT ==========
-// ========== COMPREHENSIVE FINANCIAL REPORT (with pagination) ==========
 // Helper function to fetch financial data (used by both JSON and PDF endpoints)
 async function fetchFinancialReportData(userId, from, to, page = 1, limit = 20) {
   const dateFilter = {};
