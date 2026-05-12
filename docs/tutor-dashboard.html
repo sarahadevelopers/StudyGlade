@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Tutor Dashboard | StudyGlade</title>
   <!-- Google Fonts + Font Awesome -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="dashboard-wrapper">
-    <!-- ========== DARK NAVY SIDEBAR ========== -->
+    <!-- ========== DARK NAVY SIDEBAR (desktop) ========== -->
     <aside class="sidebar">
       <div class="sidebar-logo">
         <a href="index.html" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
@@ -39,8 +39,16 @@
       </div>
     </aside>
 
-    <!-- ========== MAIN CONTENT (Light Ice Blue) ========== -->
+    <!-- ========== MAIN CONTENT ========== -->
     <main class="main-content">
+      <!-- 🔹 MOBILE TOP NAVIGATION (visible only on small screens) -->
+      <div class="mobile-nav">
+        <a href="#" class="mobile-nav-item active" data-section="dashboard"><i class="fas fa-chalkboard-user"></i> Dashboard</a>
+        <a href="upload-document.html" class="mobile-nav-item"><i class="fas fa-upload"></i> Upload</a>
+        <a href="document-library.html" class="mobile-nav-item"><i class="fas fa-book"></i> Materials</a>
+        <a href="#mywallet" class="mobile-nav-item" data-section="wallet"><i class="fas fa-wallet"></i> Wallet</a>
+      </div>
+
       <!-- Top Bar -->
       <div class="top-bar">
         <div class="welcome-section">
@@ -51,6 +59,10 @@
           <div class="date-selector">
             <i class="fas fa-calendar-alt"></i>
             <input type="date" id="dateFilter" value="">
+          </div>
+          <!-- 🔔 SOUND TOGGLE (NEW) -->
+          <div class="notification-sound-toggle" id="notificationSoundToggle">
+            <i class="fas fa-volume-up"></i>
           </div>
           <div class="notification-bell" id="notificationBell">
             <i class="fas fa-bell"></i>
@@ -111,7 +123,7 @@
         </div>
       </div>
 
-      <!-- Tutor Level Card (full width) -->
+      <!-- Tutor Level Card -->
       <div class="level-card">
         <div class="level-icon"><i class="fas fa-shield-alt"></i></div>
         <div class="level-info">
@@ -129,9 +141,9 @@
         </div>
       </div>
 
-      <!-- Two Columns: My Assignments (left) + Available Questions (right) -->
+      <!-- Two Columns: Assignments + Available Questions -->
       <div class="two-columns">
-        <!-- My Assignments Card -->
+        <!-- My Assignments -->
         <div class="assignments-card">
           <div class="card-header">
             <h2>My Assignments</h2>
@@ -147,7 +159,7 @@
           </div>
         </div>
 
-        <!-- Available Questions Card -->
+        <!-- Available Questions -->
         <div class="available-card">
           <div class="card-header">
             <h2>Available Questions</h2>
@@ -160,7 +172,7 @@
         </div>
       </div>
 
-      <!-- Withdraw Funds Section (full width) -->
+      <!-- Withdraw Funds Section -->
       <div class="withdraw-card" id="mywallet">
         <div class="withdraw-icon"><i class="fas fa-university"></i></div>
         <div class="withdraw-info">
@@ -177,7 +189,7 @@
     </main>
   </div>
 
-  <!-- Footer -->
+  <!-- FOOTER (unchanged, but kept for completeness) -->
   <footer class="premium-footer">
     <div class="footer-container">
       <div class="footer-brand">
@@ -218,7 +230,7 @@
     </div>
   </footer>
 
-  <!-- Modals -->
+  <!-- MODALS -->
   <div id="avatarUploadModal" class="modal-overlay">
     <div class="modal-content">
       <span class="close-modal" onclick="closeAvatarModal()">&times;</span>
@@ -229,14 +241,6 @@
         <button onclick="uploadAvatar()" class="btn-primary btn-sm">Upload</button>
         <button onclick="closeAvatarModal()" class="btn-outline btn-sm">Cancel</button>
       </div>
-    </div>
-  </div>
-
-  <div id="notificationModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Notifications</h3>
-      <div id="notificationList"></div>
-      <button onclick="closeNotificationModal()" class="btn-outline btn-sm">Close</button>
     </div>
   </div>
 
@@ -255,10 +259,8 @@
   <script>
     function openAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'flex'; }
     function closeAvatarModal() { document.getElementById('avatarUploadModal').style.display = 'none'; }
-    function closeNotificationModal() { document.getElementById('notificationModal').style.display = 'none'; }
     window.openAvatarModal = openAvatarModal;
     window.closeAvatarModal = closeAvatarModal;
-    window.closeNotificationModal = closeNotificationModal;
   </script>
 </body>
 </html>

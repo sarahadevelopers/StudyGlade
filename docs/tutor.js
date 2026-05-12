@@ -190,7 +190,7 @@ window.changeAvailablePage = (delta) => {
   loadAvailableQuestions(currentAvailablePage);
 };
 
-// ----- Place Bid (with immediate blur + disable, no reload) -----
+// ----- Place Bid -----
 async function placeBid(questionId) {
   console.log("placeBid called for", questionId);
   const input = document.getElementById(`bid-${questionId}`);
@@ -200,7 +200,6 @@ async function placeBid(questionId) {
   
   if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
   
-  // Disable input and button immediately
   if (input) input.disabled = true;
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Placing...'; }
   
@@ -211,13 +210,11 @@ async function placeBid(questionId) {
     });
     showToast('Bid placed successfully!', 'success');
     
-    // Blur and disable the card permanently (no reload)
     if (container) {
       container.style.opacity = '0.6';
       container.style.pointerEvents = 'none';
       container.style.backgroundColor = '#f5f5f5';
       container.title = 'You have already placed a bid on this question';
-      // Add a checkmark badge
       const header = container.querySelector('.available-header');
       if (header && !header.querySelector('.bid-placed-check')) {
         const checkSpan = document.createElement('span');
@@ -232,7 +229,6 @@ async function placeBid(questionId) {
   } catch (err) {
     console.error("Bid error:", err);
     showToast(err.message, 'error');
-    // Re-enable on error
     if (input) input.disabled = false;
     if (btn) { btn.disabled = false; btn.innerHTML = 'Place Bid'; }
   }
@@ -264,6 +260,7 @@ function renderAssignmentsByTab(tab) {
   else if (tab === 'in-progress') filtered = allAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress');
   else if (tab === 'overdue') {
     const now = new Date();
+    // Only non‑completed, deadline passed
     filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
   } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
   
@@ -280,7 +277,14 @@ function renderAssignmentsByTab(tab) {
     let statusClass = 'status-in-progress';
     if (a.status === 'completed') statusClass = 'status-completed';
     if (a.status === 'overdue') statusClass = 'status-overdue';
-    const deadlineStatus = a.deadline ? new Date(a.deadline) < new Date() ? 'Overdue' : new Date(a.deadline).toLocaleDateString() : 'No deadline';
+    
+    // Display deadline with full date+time
+    let deadlineDisplay = 'No deadline';
+    if (a.deadline) {
+      const deadlineDate = new Date(a.deadline);
+      deadlineDisplay = deadlineDate.toLocaleString();
+    }
+    
     const showCancel = a.additionalFundsRequest && a.additionalFundsRequest.status === 'rejected';
     
     html += `
@@ -288,7 +292,7 @@ function renderAssignmentsByTab(tab) {
         <div class="assignment-header">
           <div>
             <div class="assignment-title"><i class="fas fa-file-alt" style="margin-right:6px;"></i> ${escapeHtml(a.title)}</div>
-            <div class="assignment-meta">Student: ${escapeHtml(a.studentId.fullName)} • Budget: ${formatMoney(a.budget)} • Due: ${deadlineStatus}</div>
+            <div class="assignment-meta">Student: ${escapeHtml(a.studentId.fullName)} • Budget: ${formatMoney(a.budget)} • Deadline: ${deadlineDisplay}</div>
           </div>
           <span class="status-badge ${statusClass}">${statusText}</span>
         </div>
@@ -306,11 +310,18 @@ function renderAssignmentsByTab(tab) {
         </div>
       `;
     } else if (a.status === 'completed') {
+      // Show answer submission time if available
+      let answerTimeHtml = '';
+      if (a.answerUploadedAt) {
+        const submittedDate = new Date(a.answerUploadedAt);
+        answerTimeHtml = `<div class="assignment-meta" style="margin-top:4px;">Answer submitted: ${submittedDate.toLocaleString()}</div>`;
+      }
       html += `
         <div class="btn-group">
           ${a.answerFile ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer</button>` : '<span class="text-muted">No file uploaded</span>'}
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
         </div>
+        ${answerTimeHtml}
       `;
     }
     
@@ -319,7 +330,6 @@ function renderAssignmentsByTab(tab) {
   container.innerHTML = html;
 }
 
-// ----- Tab switching -----
 function initTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
   tabs.forEach(btn => {
@@ -332,7 +342,6 @@ function initTabs() {
   });
 }
 
-// ----- Upload Answer (manual local update, no full reload) -----
 async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const file = fileInput.files[0];
@@ -353,15 +362,12 @@ async function uploadAnswer(questionId) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     
-    // Manually update local assignment
     const assignment = allAssignments.find(a => a._id === questionId);
     if (assignment) {
       assignment.answerFile = data.fileUrl;
       assignment.answerFileName = file.name;
     }
-    // Re-render current tab – "Mark Complete" button sees the file
     renderAssignmentsByTab(currentTab);
-    
     showToast('Answer uploaded! You can now mark as complete.', 'success');
   } catch (err) {
     console.error('Upload error:', err);
@@ -372,7 +378,6 @@ async function uploadAnswer(questionId) {
   }
 }
 
-// ----- Download Answer (backend proxy) -----
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
@@ -386,7 +391,6 @@ async function downloadAnswer(questionId) {
   }
 }
 
-// ----- Mark Complete (instant spinner, removal from list, background refresh) -----
 async function completeQuestion(id, event) {
   if (event) {
     event.stopPropagation();
@@ -412,7 +416,6 @@ async function completeQuestion(id, event) {
       await loadTutorDashboard();
     } catch (err) {
       console.error("Complete error:", err);
-      // If the error mentions missing answer file and we haven't retried yet
       if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer')) && !retried) {
         retried = true;
         console.log("Retrying after 1 second...");
@@ -429,6 +432,7 @@ async function completeQuestion(id, event) {
   
   attempt();
 }
+
 async function requestAdditionalFunds(questionId) {
   const amount = prompt('Additional amount requested ($):');
   if (!amount) return;
@@ -458,7 +462,6 @@ async function cancelAssignment(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Withdraw Funds -----
 async function withdrawFunds() {
   const amount = prompt('Amount to withdraw (min $10):');
   if (!amount || isNaN(amount) || parseFloat(amount) < 10) { showToast('Invalid amount', 'error'); return; }
@@ -474,7 +477,6 @@ async function withdrawFunds() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Avatar upload -----
 async function uploadAvatar() {
   const fileInput = document.getElementById('avatarFile');
   const file = fileInput.files[0];
@@ -499,14 +501,206 @@ async function uploadAvatar() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Notifications (simple modal) -----
-const notificationBell = document.querySelector('.notification-bell');
-if (notificationBell) {
-  notificationBell.addEventListener('click', () => {
-    const modal = document.getElementById('notificationModal');
-    if (modal) modal.style.display = 'flex';
+// ========== NOTIFICATION SOUND CONTROL ==========
+let notificationSoundEnabled = localStorage.getItem('notificationSound') !== 'false';
+const audio = new Audio('/sounds/notification.mp3');
+
+function playNotificationSound() {
+  if (!notificationSoundEnabled) return;
+  audio.play().catch(() => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.frequency.value = 800;
+      gain.gain.value = 0.5;
+      oscillator.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+      oscillator.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
   });
 }
+
+const soundToggle = document.getElementById('notificationSoundToggle');
+if (soundToggle) {
+  function updateSoundToggleUI() {
+    if (notificationSoundEnabled) {
+      soundToggle.classList.remove('muted');
+      soundToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+    } else {
+      soundToggle.classList.add('muted');
+      soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
+    }
+  }
+  soundToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    notificationSoundEnabled = !notificationSoundEnabled;
+    localStorage.setItem('notificationSound', notificationSoundEnabled);
+    updateSoundToggleUI();
+    if (notificationSoundEnabled) playNotificationSound();
+  });
+  updateSoundToggleUI();
+}
+
+// ========== NOTIFICATIONS DROPDOWN (with pagination) ==========
+const notificationBell = document.querySelector('.notification-bell');
+let notificationDropdown = null;
+let notificationPage = 1;
+let notificationHasMore = true;
+let isLoadingNotifications = false;
+
+function createNotificationDropdown() {
+  if (notificationDropdown) return;
+  notificationDropdown = document.createElement('div');
+  notificationDropdown.className = 'notification-dropdown';
+  notificationDropdown.innerHTML = `
+    <div class="notification-header">Recent Notifications</div>
+    <div class="notification-list" id="notificationListDropdown">Loading...</div>
+    <div class="notification-footer">
+      <a href="#" onclick="markAllRead(event); return false;">Mark all as read</a>
+      <button id="loadMoreNotifications" class="load-more-btn" style="display: none;">Load more</button>
+    </div>
+  `;
+  document.body.appendChild(notificationDropdown);
+}
+
+async function loadNotificationsDropdown(reset = true) {
+  if (isLoadingNotifications) return;
+  isLoadingNotifications = true;
+  if (!notificationDropdown) createNotificationDropdown();
+  const listDiv = notificationDropdown.querySelector('.notification-list');
+  if (reset) {
+    notificationPage = 1;
+    notificationHasMore = true;
+    listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
+  }
+  try {
+    const res = await fetch(`/api/notifications?limit=10&page=${notificationPage}`, { credentials: 'include' });
+    const data = await res.json();
+    let html = '';
+    if (data.notifications.length === 0 && reset) {
+      html = '<div class="notification-item no-notifications">No notifications</div>';
+      notificationHasMore = false;
+    } else {
+      data.notifications.forEach(n => {
+        html += `<div class="notification-item" data-id="${n._id}">
+                   <strong>${escapeHtml(n.title)}</strong><br>
+                   ${escapeHtml(n.message)}
+                   <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
+                 </div>`;
+      });
+      notificationHasMore = data.pagination && notificationPage < data.pagination.pages;
+    }
+    if (reset) {
+      listDiv.innerHTML = html;
+    } else {
+      listDiv.insertAdjacentHTML('beforeend', html);
+    }
+    const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotifications');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = notificationHasMore ? 'inline-block' : 'none';
+    }
+  } catch (err) {
+    listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
+  } finally {
+    isLoadingNotifications = false;
+  }
+}
+
+async function loadMoreNotifications() {
+  if (!notificationHasMore || isLoadingNotifications) return;
+  notificationPage++;
+  await loadNotificationsDropdown(false);
+}
+
+async function toggleNotificationDropdown(event) {
+  event.stopPropagation();
+  if (!notificationDropdown) createNotificationDropdown();
+  const isVisible = notificationDropdown.style.display === 'block';
+  if (isVisible) {
+    notificationDropdown.style.display = 'none';
+  } else {
+    await loadNotificationsDropdown(true);
+    notificationDropdown.style.display = 'block';
+    const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotifications');
+    if (loadMoreBtn && !loadMoreBtn.hasListener) {
+      loadMoreBtn.addEventListener('click', loadMoreNotifications);
+      loadMoreBtn.hasListener = true;
+    }
+  }
+}
+
+async function markAllRead(event) {
+  if (event) event.preventDefault();
+  try {
+    const res = await fetch('/api/notifications/read-all', {
+      method: 'PUT',
+      credentials: 'include'
+    });
+    if (res.ok) {
+      showToast('All notifications marked as read', 'info');
+      const badge = document.querySelector('.notification-bell .badge');
+      if (badge) badge.innerText = '0';
+      if (notificationDropdown && notificationDropdown.style.display === 'block') {
+        loadNotificationsDropdown(true);
+      }
+    } else {
+      showToast('Failed to mark as read', 'error');
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function closeNotificationDropdown() {
+  if (notificationDropdown) notificationDropdown.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (notificationDropdown && !notificationDropdown.contains(e.target) && !e.target.closest('.notification-bell')) {
+    notificationDropdown.style.display = 'none';
+  }
+});
+
+if (notificationBell) {
+  notificationBell.addEventListener('click', toggleNotificationDropdown);
+}
+
+window.markAllRead = markAllRead;
+window.loadMoreNotifications = loadMoreNotifications;
+
+// ========== LIVE UNREAD COUNT + SOUND ==========
+let lastUnreadCount = 0;
+
+async function updateUnreadCountAndSound() {
+  try {
+    const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+    const data = await res.json();
+    const currentCount = data.count;
+    if (currentCount > lastUnreadCount && notificationSoundEnabled) {
+      playNotificationSound();
+    }
+    lastUnreadCount = currentCount;
+    const badge = document.querySelector('.notification-bell .badge');
+    if (badge) badge.innerText = currentCount > 9 ? '9+' : currentCount;
+  } catch (err) {
+    console.error('Failed to fetch unread count:', err);
+  }
+}
+
+updateUnreadCountAndSound();
+setInterval(updateUnreadCountAndSound, 30000);
+
+// Also refresh assignments & available questions every 30 seconds (optional)
+setInterval(() => {
+  if (document.querySelector('.main-content')) {
+    loadAssignments();
+    loadAvailableQuestions(currentAvailablePage);
+  }
+}, 30000);
 
 // ----- Event listeners -----
 document.addEventListener('DOMContentLoaded', () => {

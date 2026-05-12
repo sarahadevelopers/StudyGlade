@@ -917,3 +917,66 @@ body {
   opacity: 0.7;
   margin: 0;
 }
+
+/* Mobile top navigation (hidden on desktop) */
+.mobile-nav {
+  display: none;
+  background: white;
+  border-radius: 20px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1rem;
+  background: var(--pale-blue);
+  border-radius: 40px;
+  margin-right: 0.5rem;
+  text-decoration: none;
+  color: var(--brand-blue);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.mobile-nav-item.active {
+  background: var(--brand-blue);
+  color: white;
+}
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: flex;
+  }
+  /* Adjust main content spacing */
+  .main-content {
+    padding: 1rem;
+  }
+}
+
+/* Prevent overflow on tables and long text */
+.assignments-list, .available-list {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.assignment-meta, .assignment-title {
+  word-break: break-word;
+}
+.bid-group, .btn-group {
+  flex-wrap: wrap;
+}
+@media (max-width: 550px) {
+  .bid-input, .btn-sm {
+    width: 100%;
+  }
+  .assignment-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .status-badge {
+    margin-top: 0.25rem;
+  }
+}
