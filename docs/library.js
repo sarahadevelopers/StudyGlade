@@ -57,16 +57,24 @@ async function loadDocuments(reset = true) {
     hasMore = currentPage < pagination.pages;
     
     const grid = document.getElementById('documentsGrid');
+    const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+    
     docs.forEach(doc => {
       const card = document.createElement('div');
       card.className = 'document-card';
       
       const previewUrl = doc.slug ? `/document/${doc.slug}` : `/api/documents/preview/${doc._id}`;
-      const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+      
+      // Check if current user is the uploader and document is not approved
+      const isPending = user && !doc.isApproved && doc.uploaderId === user.id;
+      const pendingBadge = isPending ? '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:20px; font-size:0.7rem; margin-left:8px; white-space:nowrap;">⏳ Pending</span>' : '';
       
       card.innerHTML = `
         <div>
-          <div class="document-title">${escapeHtml(doc.title)}</div>
+          <div class="document-title">
+            ${escapeHtml(doc.title)}
+            ${pendingBadge}
+          </div>
           <div class="document-meta">
             ${escapeHtml(doc.subject)} • ${escapeHtml(doc.level)} • ${escapeHtml(doc.type)}<br>
             Uploaded by ${escapeHtml(doc.uploaderName)} • ${new Date(doc.createdAt).toLocaleDateString()}

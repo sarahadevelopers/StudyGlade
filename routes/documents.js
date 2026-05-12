@@ -102,6 +102,7 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
 });
 
 // ---------- 2. Get approved documents with pagination, filtering, sorting (returns slug) ----------
+// ---------- 2. Get documents (approved + user's own pending) with pagination ----------
 router.get('/', async (req, res) => {
   try {
     const { 
@@ -116,8 +117,34 @@ router.get('/', async (req, res) => {
       limit = 20 
     } = req.query;
 
-    // Build filter object
-    let filter = { isApproved: true };
+    // Build filter: either approved OR (user's own uploads if logged in)
+    let user = null;
+    let userId = null;
+    // Check token from cookie
+    const token = req.cookies.accessToken;
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+        user = await User.findById(userId);
+      } catch (err) {
+        // invalid token – treat as guest
+      }
+    }
+
+    let filter = {};
+    if (userId) {
+      // Show approved docs OR user's own uploads (even if not approved)
+      filter.$or = [
+        { isApproved: true },
+        { uploaderId: userId }
+      ];
+    } else {
+      filter.isApproved = true;
+    }
+
+    // Apply other filters
     if (subject) filter.subject = subject;
     if (level) filter.level = level;
     if (type) filter.type = type;
@@ -137,17 +164,15 @@ router.get('/', async (req, res) => {
       default: sortOption = { createdAt: -1 };
     }
 
-    // Pagination
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // ✅ Explicitly select fields including slug
     const docs = await Document.find(filter)
-      .select('title description subject level type price slug previewImageUrl downloads createdAt uploaderName')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNum);
+  .select('title description subject level type price slug previewImageUrl downloads createdAt uploaderName uploaderId isApproved')
+  .sort(sortOption)
+  .skip(skip)
+  .limit(limitNum);
     const total = await Document.countDocuments(filter);
 
     res.json({
