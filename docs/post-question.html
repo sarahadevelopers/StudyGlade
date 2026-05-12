@@ -4,109 +4,274 @@
   <meta charset="UTF-8">
   <title>Post a Question - StudyGlade</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* ========== POST QUESTION PAGE – MOBILE RESPONSIVE ========== */
+
+/* Base container adjustment */
+.post-question-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Back link – touch friendly */
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+  text-decoration: none;
+  color: var(--primary);
+}
+
+/* Form card */
+.form-card {
+  background: var(--white);
+  border-radius: 28px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+}
+
+/* Form groups – vertical spacing */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: #1F2937;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 40px;
+  font-family: inherit;
+  font-size: 1rem;
+  background: var(--white);
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+textarea {
+  border-radius: 20px;
+  resize: vertical;
+}
+
+/* Deadline datetime-local – ensure consistent height */
+input[type="datetime-local"] {
+  padding: 0.65rem 1rem;
+}
+
+/* File input – custom styles for better touch */
+input[type="file"] {
+  padding: 0.75rem 0;
+  border: none;
+  background: transparent;
+}
+
+/* Small helper text */
+small {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  color: #6B7280;
+}
+
+/* Submit button */
+.submit-btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive: tablets */
+@media (max-width: 768px) {
+  .post-question-container {
+    padding: 0 1rem;
+    margin: 1rem auto;
+  }
+
+  .form-card {
+    padding: 1.2rem;
+    border-radius: 24px;
+  }
+
+  input, select, textarea {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .submit-btn {
+    padding: 0.75rem;
+  }
+}
+
+/* Responsive: mobile phones (under 480px) */
+@media (max-width: 480px) {
+  .post-question-container {
+    margin: 0.5rem auto;
+  }
+
+  .form-card {
+    padding: 1rem;
+  }
+
+  label {
+    font-size: 0.85rem;
+  }
+
+  input, select, textarea {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 30px;
+  }
+
+  .submit-btn {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+  }
+
+  small {
+    font-size: 0.65rem;
+  }
+
+  /* Make select dropdown native on mobile for better UX */
+  select {
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%236B7280' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.5rem;
+  }
+}
+  </style>
 </head>
 <body>
-  <div class="container" style="max-width: 800px; margin-top: 2rem;">
-    <a href="student-dashboard.html" style="display: inline-block; margin-bottom: 1rem;">← Back to Dashboard</a>
-    <div class="card">
-      <h2>Post a New Question</h2>
-      <form id="postQuestionForm" enctype="multipart/form-data">
-        <div class="form-group">
-          <label>Title</label>
-          <input type="text" id="title" name="title" required>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea id="description" name="description" rows="5" required></textarea>
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-          <select id="category" name="category">
-            <optgroup label="Business">
-              <option>Accounting</option><option>Advertising</option><option>Business</option><option>Business Law</option><option>Communications</option>
-              <option>Data Analytics</option><option>Entrepreneurship</option><option>Excel</option><option>Management</option><option>Marketing</option>
-              <option>Real Estate</option><option>Risk Management</option><option>Sales</option><option>Supply Chain</option><option>Tourism</option>
-            </optgroup>
-            <optgroup label="Economics">
-              <option>Developmental Economics</option><option>Economics</option><option>Finance</option><option>Game Theory</option>
-              <option>International Economics</option><option>Macro Economics</option><option>Micro Economics</option>
-            </optgroup>
-            <optgroup label="Writing">
-              <option>Article Writing</option><option>Creative Writing</option><option>Editing</option><option>Proofreading</option>
-              <option>Research & Summaries</option><option>Resume Writing</option><option>Scriptwriting</option>
-            </optgroup>
-            <optgroup label="Humanities">
-              <option>Anthropology</option><option>Art</option><option>Education & Teaching</option><option>English</option><option>History</option>
-              <option>Philosophy</option><option>Political Science</option><option>Psychology</option><option>Sociology</option>
-            </optgroup>
-            <optgroup label="Law">
-              <option>Criminal Justice</option><option>International Law</option><option>Law</option><option>Policy</option>
-            </optgroup>
-            <optgroup label="Mathematics">
-              <option>Algebra</option><option>Applied Mathematics</option><option>Calculus</option><option>Geometry</option>
-              <option>Linear Algebra</option><option>Statistics</option><option>Trigonometry</option>
-            </optgroup>
-            <optgroup label="Science">
-              <option>Biology</option><option>Chemistry</option><option>Environmental Science</option><option>Genetics</option>
-              <option>Microbiology</option><option>Physics</option><option>Zoology</option>
-            </optgroup>
-            <optgroup label="Health & Medical">
-              <option>Anatomy</option><option>Dentistry</option><option>Nursing</option><option>Nutrition</option><option>Public Health</option>
-            </optgroup>
-            <optgroup label="Computer Science">
-              <option>Algorithms</option><option>Artificial Intelligence</option><option>Cyber Security</option><option>Databases</option>
-              <option>Machine Learning</option><option>Networking</option><option>Operating Systems</option>
-            </optgroup>
-            <optgroup label="Programming">
-              <option>C / C++</option><option>HTML / CSS</option><option>Java</option><option>JavaScript</option><option>PHP</option>
-              <option>Python</option><option>Ruby</option><option>Swift</option>
-            </optgroup>
-            <optgroup label="Engineering">
-              <option>Aerospace Engineering</option><option>Chemical Engineering</option><option>Civil Engineering</option>
-              <option>Electrical Engineering</option><option>Mechanical Engineering</option><option>Software Engineering</option>
-            </optgroup>
-            <optgroup label="Foreign Languages">
-              <option>Arabic</option><option>Chinese</option><option>French</option><option>German</option><option>Italian</option>
-              <option>Japanese</option><option>Latin</option><option>Russian</option><option>Spanish</option>
-            </optgroup>
-            <optgroup label="Other">
-              <option>College Applications</option><option>Data Entry</option><option>Internship</option><option>Job Applications</option>
-              <option>Proofreading</option><option>Scholarship</option><option>Other</option>
-            </optgroup>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Budget ($)</label>
-          <input type="number" id="budget" name="budget" min="3" required>
-        </div>
-
-        <!-- NEW: Deadline picker with date & time -->
-        <div class="form-group">
-          <label>Deadline (date and time)</label>
-          <input type="datetime-local" id="deadlineDateTime" name="deadlineDateTime" required>
-          <small>Set the exact date and time (e.g., tomorrow at 6pm).</small>
-        </div>
-
-        <div class="form-group">
-          <label>School (optional)</label>
-          <input type="text" id="school" name="school">
-        </div>
-        <div class="form-group">
-          <label>Course (optional)</label>
-          <input type="text" id="course" name="course">
-        </div>
-        <div class="form-group">
-          <label>Upload files (images, PDFs, Word, Excel, ZIP - max 50MB each)</label>
-          <input type="file" id="files" name="files" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
-          <small>You can select multiple files (max 50MB each)</small>
-        </div>
-        <button type="submit" class="btn">Post Question & Pay</button>
-      </form>
-    </div>
+ <div class="post-question-container">
+  <a href="student-dashboard.html" class="back-link">← Back to Dashboard</a>
+  <div class="form-card">
+    <h2>Post a New Question</h2>
+    <form id="postQuestionForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="description" name="description" rows="5" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="category" name="category">
+          <optgroup label="Business">
+            <option>Accounting</option><option>Advertising</option><option>Business</option><option>Business Law</option><option>Communications</option>
+            <option>Data Analytics</option><option>Entrepreneurship</option><option>Excel</option><option>Management</option><option>Marketing</option>
+            <option>Real Estate</option><option>Risk Management</option><option>Sales</option><option>Supply Chain</option><option>Tourism</option>
+          </optgroup>
+          <optgroup label="Economics">
+            <option>Developmental Economics</option><option>Economics</option><option>Finance</option><option>Game Theory</option>
+            <option>International Economics</option><option>Macro Economics</option><option>Micro Economics</option>
+          </optgroup>
+          <optgroup label="Writing">
+            <option>Article Writing</option><option>Creative Writing</option><option>Editing</option><option>Proofreading</option>
+            <option>Research & Summaries</option><option>Resume Writing</option><option>Scriptwriting</option>
+          </optgroup>
+          <optgroup label="Humanities">
+            <option>Anthropology</option><option>Art</option><option>Education & Teaching</option><option>English</option><option>History</option>
+            <option>Philosophy</option><option>Political Science</option><option>Psychology</option><option>Sociology</option>
+          </optgroup>
+          <optgroup label="Law">
+            <option>Criminal Justice</option><option>International Law</option><option>Law</option><option>Policy</option>
+          </optgroup>
+          <optgroup label="Mathematics">
+            <option>Algebra</option><option>Applied Mathematics</option><option>Calculus</option><option>Geometry</option>
+            <option>Linear Algebra</option><option>Statistics</option><option>Trigonometry</option>
+          </optgroup>
+          <optgroup label="Science">
+            <option>Biology</option><option>Chemistry</option><option>Environmental Science</option><option>Genetics</option>
+            <option>Microbiology</option><option>Physics</option><option>Zoology</option>
+          </optgroup>
+          <optgroup label="Health & Medical">
+            <option>Anatomy</option><option>Dentistry</option><option>Nursing</option><option>Nutrition</option><option>Public Health</option>
+          </optgroup>
+          <optgroup label="Computer Science">
+            <option>Algorithms</option><option>Artificial Intelligence</option><option>Cyber Security</option><option>Databases</option>
+            <option>Machine Learning</option><option>Networking</option><option>Operating Systems</option>
+          </optgroup>
+          <optgroup label="Programming">
+            <option>C / C++</option><option>HTML / CSS</option><option>Java</option><option>JavaScript</option><option>PHP</option>
+            <option>Python</option><option>Ruby</option><option>Swift</option>
+          </optgroup>
+          <optgroup label="Engineering">
+            <option>Aerospace Engineering</option><option>Chemical Engineering</option><option>Civil Engineering</option>
+            <option>Electrical Engineering</option><option>Mechanical Engineering</option><option>Software Engineering</option>
+          </optgroup>
+          <optgroup label="Foreign Languages">
+            <option>Arabic</option><option>Chinese</option><option>French</option><option>German</option><option>Italian</option>
+            <option>Japanese</option><option>Latin</option><option>Russian</option><option>Spanish</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option>College Applications</option><option>Data Entry</option><option>Internship</option><option>Job Applications</option>
+            <option>Proofreading</option><option>Scholarship</option><option>Other</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Budget ($)</label>
+        <input type="number" id="budget" name="budget" min="3" required>
+      </div>
+      <div class="form-group">
+        <label>Deadline (date and time)</label>
+        <input type="datetime-local" id="deadlineDateTime" name="deadlineDateTime" required>
+        <small>Set the exact date and time (e.g., tomorrow at 6pm).</small>
+      </div>
+      <div class="form-group">
+        <label>School (optional)</label>
+        <input type="text" id="school" name="school">
+      </div>
+      <div class="form-group">
+        <label>Course (optional)</label>
+        <input type="text" id="course" name="course">
+      </div>
+      <div class="form-group">
+        <label>Upload files (images, PDFs, Word, Excel, ZIP - max 50MB each)</label>
+        <input type="file" id="files" name="files" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
+        <small>You can select multiple files (max 50MB each)</small>
+      </div>
+      <button type="submit" class="submit-btn">Post Question & Pay</button>
+    </form>
   </div>
+</div>
+
 <script src="api.js"></script>
 <script>
-  // Set default deadline to 3 days from now (but allows user to change)
   function setDefaultDeadline() {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -128,7 +293,6 @@
     submitBtn.innerHTML = '<span class="spinner"></span> Posting...';
 
     const formData = new FormData(e.target);
-    // Read the datetime-local value and convert to ISO string
     const deadlineDateTime = document.getElementById('deadlineDateTime').value;
     if (!deadlineDateTime) {
       showToast('Please select a deadline.', 'error');
@@ -143,9 +307,7 @@
       submitBtn.innerHTML = originalText;
       return;
     }
-    // Append deadline as ISO string
     formData.append('deadline', deadline.toISOString());
-    // Remove the temporary field
     formData.delete('deadlineDateTime');
 
     try {
