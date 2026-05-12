@@ -106,28 +106,17 @@ router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'),
 router.get('/', async (req, res) => {
   try {
     const { 
-      subject, 
-      level, 
-      type, 
-      search, 
-      minPrice, 
-      maxPrice, 
-      sort = 'newest',
-      page = 1, 
-      limit = 20 
+      subject, level, type, search, minPrice, maxPrice, sort = 'newest',
+      page = 1, limit = 20 
     } = req.query;
 
-    // Build filter: either approved OR (user's own uploads if logged in)
-    let user = null;
     let userId = null;
-    // Check token from cookie
     const token = req.cookies.accessToken;
     if (token) {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         userId = decoded.id;
-        user = await User.findById(userId);
       } catch (err) {
         // invalid token – treat as guest
       }
@@ -135,16 +124,11 @@ router.get('/', async (req, res) => {
 
     let filter = {};
     if (userId) {
-      // Show approved docs OR user's own uploads (even if not approved)
-      filter.$or = [
-        { isApproved: true },
-        { uploaderId: userId }
-      ];
+      filter.$or = [{ isApproved: true }, { uploaderId: userId }];
     } else {
       filter.isApproved = true;
     }
 
-    // Apply other filters
     if (subject) filter.subject = subject;
     if (level) filter.level = level;
     if (type) filter.type = type;
@@ -155,7 +139,6 @@ router.get('/', async (req, res) => {
       if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
 
-    // Sorting
     let sortOption = { createdAt: -1 };
     switch (sort) {
       case 'price_asc': sortOption = { price: 1 }; break;
@@ -169,10 +152,10 @@ router.get('/', async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const docs = await Document.find(filter)
-  .select('title description subject level type price slug previewImageUrl downloads createdAt uploaderName uploaderId isApproved')
-  .sort(sortOption)
-  .skip(skip)
-  .limit(limitNum);
+      .select('title description subject level type price slug previewImageUrl downloads createdAt uploaderName uploaderId isApproved')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNum);
     const total = await Document.countDocuments(filter);
 
     res.json({
@@ -185,8 +168,9 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error fetching documents:', err);
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error in /api/documents:', err);
+    // Ensure we send JSON even on error
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 

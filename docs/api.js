@@ -39,11 +39,18 @@ async function apiFetch(endpoint, options = {}) {
     headers: { 'Content-Type': 'application/json', ...options.headers }
   });
 
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    console.error('Non-JSON response:', text.substring(0, 200));
+    throw new Error('Server returned HTML instead of JSON. Please check the backend route.');
+  }
+
   if (res.status === 401) {
     localStorage.clear();
     showToast('Session expired. Please log in again.', 'error');
     window.location.href = 'login.html';
-    throw new Error('Session expired. Please log in again.');
+    throw new Error('Session expired');
   }
 
   if (!res.ok) {
