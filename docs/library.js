@@ -49,7 +49,8 @@ async function loadDocuments(reset = true) {
     if (currentFilters.sortBy) params.append('sort', currentFilters.sortBy);
 
     // ✅ CHANGED: use the dedicated library endpoint
-    const url = `/api/documents/library?${params.toString()}`;
+    // ✅ CORRECT - Uses the correct path for the API endpoint
+const url = `/documents/library?${params.toString()}`;
     const data = await apiFetch(url);
     
     const docs = data.documents || [];
