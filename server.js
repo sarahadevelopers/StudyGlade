@@ -164,7 +164,7 @@ app.use((req, res, next) => {
   if (host && host.endsWith('onrender.com')) {
     // Redirect to the same path on www.studyglade.com (or studyglade.com)
     // Change to 'https://studyglade.com' if you prefer naked domain.
-    return res.redirect(301, `https://www.studyglade.com${req.originalUrl}`);
+    return res.redirect(301, `https://studyglade.com${req.originalUrl}`);
   }
   next();
 });
@@ -214,7 +214,7 @@ app.get('/document/:slug', async (req, res) => {
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
-    const baseUrl = 'https://www.studyglade.com'; // Use your main production domain
+    const baseUrl = 'https://studyglade.com'; // Use your main production domain
     let urls = documents.map(doc => `
       <url>
         <loc>${baseUrl}/document/${doc.slug}</loc>

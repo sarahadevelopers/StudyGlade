@@ -7,6 +7,6 @@ const transporter = nodemailer.createTransport({
   }
 });
 async function sendEmail(to, subject, text) {
-  await transporter.sendMail({ from: 'noreply@studyglade.com', to, subject, text });
+  await transporter.sendMail({ from: 'info@studyglade.com', to, subject, text });
 }
 module.exports = sendEmail;

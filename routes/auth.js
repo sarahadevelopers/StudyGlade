@@ -279,7 +279,7 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
     // ✅ Updated production reset link – use your main domain (www.studyglade.com)
-    const resetLink = `https://www.studyglade.com/reset-password.html?token=${token}`;
+    const resetLink = `https://studyglade.com/reset-password.html?token=${token}`;
     await sendEmail(user.email, 'Password Reset', `Click here to reset your password: ${resetLink}`);
     res.json({ message: 'Reset link sent to your email' });
   } catch (err) {
