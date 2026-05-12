@@ -1,6 +1,5 @@
-window.API_BASE = window.location.hostname === 'localhost' 
-  ? '/api' 
-  : 'https://studyglade.onrender.com/api';
+// Use relative path: works on localhost and production (same origin)
+window.API_BASE = '/api';
 
 function showToast(message, type = 'info') {
   let toast = document.querySelector('.toast');
@@ -14,8 +13,20 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-function showSpinner(element) { /* ... unchanged ... */ }
-function hideSpinner(element) { /* ... unchanged ... */ }
+function showSpinner(element) {
+  if (!element) return;
+  const originalText = element.textContent;
+  element.disabled = true;
+  element.dataset.originalText = originalText;
+  element.innerHTML = '<span class="spinner"></span> Loading...';
+}
+
+function hideSpinner(element) {
+  if (!element) return;
+  element.disabled = false;
+  element.innerHTML = element.dataset.originalText || 'Submit';
+  delete element.dataset.originalText;
+}
 
 async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${window.API_BASE}${endpoint}`, {

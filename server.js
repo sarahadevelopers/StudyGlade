@@ -19,12 +19,10 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 Created uploads folder');
 }
 
-// ========== 2. MULTER CONFIGURATION ==========
+// ========== 2. MULTER CONFIGURATION (unchanged) ==========
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => {
     const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + safeName);
@@ -34,28 +32,23 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   console.log(`📎 Uploading: ${file.originalname} (MIME: ${file.mimetype})`);
   const ext = path.extname(file.originalname).toLowerCase();
-  const allowedExt = [
-    '.jpg', '.jpeg', '.png', '.gif', '.webp',
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-    '.ppt', '.pptx', '.zip', '.txt', '.csv',
-    '.mp4', '.webm'
-  ];
+  const allowedExt = ['.jpg','.jpeg','.png','.gif','.webp','.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.zip','.txt','.csv','.mp4','.webm'];
   if (allowedExt.includes(ext)) {
     console.log(`✅ Allowed by extension: ${ext}`);
     cb(null, true);
     return;
   }
   const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf', 'application/x-pdf',
+    'image/jpeg','image/png','image/gif','image/webp',
+    'application/pdf','application/x-pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
-    'text/plain', 'text/csv', 'video/mp4', 'video/webm'
+    'application/zip','application/x-zip-compressed','application/octet-stream',
+    'text/plain','text/csv','video/mp4','video/webm'
   ];
   if (allowedTypes.includes(file.mimetype)) {
     console.log(`✅ Allowed by MIME type: ${file.mimetype}`);
@@ -66,11 +59,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 200 * 1024 * 1024 }
-});
+const upload = multer({ storage, fileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
 module.exports.upload = upload;
 
 // ========== 3. REQUIRE ROUTES & MODELS ==========
@@ -88,9 +77,8 @@ const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
 
-// ========== 4. PAYSTACK WEBHOOK (raw body) ==========
+// ========== 4. PAYSTACK WEBHOOK (raw body) – unchanged ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
-  // ... unchanged ...
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
@@ -127,9 +115,7 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
       user.walletBalance += verifiedAmount;
       await user.save();
       await Transaction.create({
-        userId: user._id,
-        type: 'deposit',
-        amount: verifiedAmount,
+        userId: user._id, type: 'deposit', amount: verifiedAmount,
         description: `Paystack deposit - Ref: ${reference}`
       });
       console.log(`Wallet credited: ${verifiedAmount} to user ${userId}`);
@@ -141,11 +127,13 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ========== 5. CORS ==========
+// ========== 5. CORS – add production domains ==========
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
-  'https://studyglade.onrender.com'
+  'https://studyglade.onrender.com',
+  'https://studyglade.com',
+  'https://www.studyglade.com'
 ];
 app.use(cors({
   origin: function (origin, callback) {
@@ -165,6 +153,18 @@ app.use(cookieParser());
 app.use((req, res, next) => {
   if (req.path === '/api/questions' && req.method === 'POST') {
     console.log('Incoming POST /api/questions with content-type:', req.headers['content-type']);
+  }
+  next();
+});
+
+// ========== 6b. REDIRECT FROM OLD RENDER URL TO NEW PRODUCTION DOMAIN ==========
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  // Check if the request is coming from the old onrender.com domain
+  if (host && host.endsWith('onrender.com')) {
+    // Redirect to the same path on www.studyglade.com (or studyglade.com)
+    // Change to 'https://studyglade.com' if you prefer naked domain.
+    return res.redirect(301, `https://www.studyglade.com${req.originalUrl}`);
   }
   next();
 });
@@ -190,13 +190,11 @@ app.use('/api/notifications', notificationRoutes);
 // Health check (alive probe)
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO & PUBLIC ROUTES (document, sitemap) ==========
+// ========== 10. SEO & PUBLIC ROUTES (document, sitemap) – using production domain ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
-    if (!document) {
-      return res.status(404).send('Document not found');
-    }
+    if (!document) return res.status(404).send('Document not found');
     const token = req.cookies.accessToken;
     let user = null;
     if (token) {
@@ -216,9 +214,10 @@ app.get('/document/:slug', async (req, res) => {
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
+    const baseUrl = 'https://www.studyglade.com'; // Use your main production domain
     let urls = documents.map(doc => `
       <url>
-        <loc>https://studyglade.onrender.com/document/${doc.slug}</loc>
+        <loc>${baseUrl}/document/${doc.slug}</loc>
         <lastmod>${doc.updatedAt.toISOString()}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
@@ -287,13 +286,11 @@ cron.schedule('0 0 * * *', () => {
 // ========== 14. GLOBAL ERROR HANDLER (returns JSON for API routes) ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
-  // If it's an API route, send JSON
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
     return res.status(err.statusCode || 500).json({
       error: err.message || 'Internal Server Error'
     });
   }
-  // For non-API routes, send HTML error or generic message
   res.status(500).send('Something went wrong!');
 });
 

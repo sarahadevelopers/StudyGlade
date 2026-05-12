@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
 
-// ---------- Email helper (Resend) ----------
+// ---------- Email helper (Resend) using production domain ----------
 let resend = null;
 try {
   if (process.env.RESEND_API_KEY) {
@@ -50,7 +50,7 @@ async function sendEmail(to, subject, text) {
   }
   try {
     const { data, error } = await resend.emails.send({
-      from: 'StudyGlade <onboarding@resend.dev>',
+      from: 'StudyGlade <info@studyglade.com>', // ✅ changed to production email
       to: [to],
       subject: subject,
       html: `<p>${text}</p>`,
@@ -155,7 +155,7 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
         appliedAt: new Date()
       };
 
-      // ✅ NEW: Save payment details for tutor
+      // Save payment details for tutor
       const { preferredMethod, paypalEmail, mpesaPhone, bankName, accountName, accountNumber } = req.body;
       userData.paymentDetails = {
         preferredMethod: preferredMethod || 'paypal',
@@ -196,7 +196,6 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
 });
 
 // ----------------- Login -----------------
-// ----------------- Login -----------------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -232,7 +231,6 @@ router.post('/login', async (req, res) => {
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
     
-    // ✅ FIXED: include avatar and gender in the response
     res.json({ user: { 
       id: user._id, 
       email, 
@@ -271,7 +269,6 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // ----------------- Forgot Password -----------------
-// ✅ FIXED: router.post (was router/post)
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -281,7 +278,8 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordToken = token;
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
-    const resetLink = `https://sarahadevelopers.github.io/StudyGlade/reset-password.html?token=${token}`;
+    // ✅ Updated production reset link – use your main domain (www.studyglade.com)
+    const resetLink = `https://www.studyglade.com/reset-password.html?token=${token}`;
     await sendEmail(user.email, 'Password Reset', `Click here to reset your password: ${resetLink}`);
     res.json({ message: 'Reset link sent to your email' });
   } catch (err) {
@@ -324,13 +322,12 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// ----------------- Avatar Upload (memory multer, uses Cloudinary) -----------------
+// ----------------- Avatar Upload -----------------
 const multerMemory = multer({ storage: multer.memoryStorage() });
 
 router.post('/avatar', auth, multerMemory.single('avatar'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         { folder: 'studyglade/avatars', transformation: [{ width: 150, height: 150, crop: 'fill' }] },
@@ -340,12 +337,10 @@ router.post('/avatar', auth, multerMemory.single('avatar'), async (req, res) => 
         }
       ).end(req.file.buffer);
     });
-
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     user.avatar = result.secure_url;
     await user.save();
-
     res.json({ avatarUrl: result.secure_url });
   } catch (err) {
     console.error('Avatar upload error:', err);
