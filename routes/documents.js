@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
