@@ -48,7 +48,8 @@ async function loadDocuments(reset = true) {
     if (currentFilters.maxPrice) params.append('maxPrice', currentFilters.maxPrice);
     if (currentFilters.sortBy) params.append('sort', currentFilters.sortBy);
 
-    const url = `/api/documents?${params.toString()}`;
+    // ✅ CHANGED: use the dedicated library endpoint
+    const url = `/api/documents/library?${params.toString()}`;
     const data = await apiFetch(url);
     
     const docs = data.documents || [];
@@ -65,7 +66,6 @@ async function loadDocuments(reset = true) {
       
       const previewUrl = doc.slug ? `/document/${doc.slug}` : `/api/documents/preview/${doc._id}`;
       
-      // Check if current user is the uploader and document is not approved
       const isPending = user && !doc.isApproved && doc.uploaderId === user.id;
       const pendingBadge = isPending ? '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:20px; font-size:0.7rem; margin-left:8px; white-space:nowrap;">⏳ Pending</span>' : '';
       
@@ -83,7 +83,6 @@ async function loadDocuments(reset = true) {
           <div class="document-downloads">📥 ${doc.downloads || 0} purchases</div>
         </div>
         <div style="margin-top: 0.75rem;">
-          <!-- Smart Preview Section -->
           <div class="smart-preview-group" style="margin-bottom: 0.75rem;">
             <input type="text" class="smart-search" data-doc-id="${doc._id}" placeholder="Ask a question about this document..." style="width: 100%; padding: 0.4rem 0.6rem; border-radius: 40px; border: 1px solid #ccc; font-size: 0.8rem;">
             <button class="btn-sm btn-smart-preview" data-doc-id="${doc._id}" style="margin-top: 0.3rem; width: 100%; background: #6c757d;">🔍 Smart Preview</button>
