@@ -12,14 +12,14 @@ const axios = require('axios');
 
 const app = express();
 
-// ---------- 1. ENSURE UPLOADS FOLDER EXISTS ----------
+// ========== 1. ENSURE UPLOADS FOLDER EXISTS ==========
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log('📁 Created uploads folder');
 }
 
-// ---------- 2. MULTER CONFIGURATION (Office‑friendly, extension-first) ----------
+// ========== 2. MULTER CONFIGURATION ==========
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -32,28 +32,19 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Log the file for debugging
   console.log(`📎 Uploading: ${file.originalname} (MIME: ${file.mimetype})`);
-  
-  // 1️⃣ First check by file extension (most reliable)
   const ext = path.extname(file.originalname).toLowerCase();
   const allowedExt = [
     '.jpg', '.jpeg', '.png', '.gif', '.webp',
-    '.pdf',
-    '.doc', '.docx',
-    '.xls', '.xlsx',
-    '.ppt', '.pptx',   // PowerPoint
-    '.zip', '.txt', '.csv',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+    '.ppt', '.pptx', '.zip', '.txt', '.csv',
     '.mp4', '.webm'
   ];
-  
   if (allowedExt.includes(ext)) {
     console.log(`✅ Allowed by extension: ${ext}`);
     cb(null, true);
     return;
   }
-  
-  // 2️⃣ Fallback: check MIME type (for edge cases)
   const allowedTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
     'application/pdf', 'application/x-pdf',
@@ -64,10 +55,8 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
-    'text/plain', 'text/csv',
-    'video/mp4', 'video/webm'
+    'text/plain', 'text/csv', 'video/mp4', 'video/webm'
   ];
-  
   if (allowedTypes.includes(file.mimetype)) {
     console.log(`✅ Allowed by MIME type: ${file.mimetype}`);
     cb(null, true);
@@ -80,12 +69,11 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 200 * 1024 * 1024 } // 200MB to handle large PPTs
+  limits: { fileSize: 200 * 1024 * 1024 }
 });
-
 module.exports.upload = upload;
 
-// ---------- 3. REQUIRE ROUTES & MODELS ----------
+// ========== 3. REQUIRE ROUTES & MODELS ==========
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const documentRoutes = require('./routes/documents');
@@ -100,8 +88,9 @@ const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
 
-// ---------- 4. PAYSTACK WEBHOOK (raw body) ----------
+// ========== 4. PAYSTACK WEBHOOK (raw body) ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  // ... unchanged ...
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
@@ -112,19 +101,16 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   if (event.event === 'charge.success') {
     const { reference, metadata } = event.data;
     const { userId, amount } = metadata;
-
     const existingTx = await Transaction.findOne({ description: `Paystack deposit - Ref: ${reference}` });
     if (existingTx) {
       console.log(`Duplicate webhook ignored for ref ${reference}`);
       return res.sendStatus(200);
     }
-
     const user = await User.findById(userId);
     if (!user) {
       console.error(`User ${userId} not found`);
       return res.status(404).send('User not found');
     }
-
     try {
       const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
         headers: { Authorization: `Bearer ${secret}` }
@@ -138,7 +124,6 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
         console.error(`Amount mismatch: expected ${amount}, got ${verifiedAmount}`);
         return res.status(400).send('Amount mismatch');
       }
-
       user.walletBalance += verifiedAmount;
       await user.save();
       await Transaction.create({
@@ -156,31 +141,27 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ---------- 5. CORS ----------
+// ========== 5. CORS ==========
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
   'https://studyglade.onrender.com'
 ];
-
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'CORS policy does not allow this origin.';
-      return callback(new Error(msg), false);
+      return callback(new Error('CORS policy does not allow this origin.'), false);
     }
     return callback(null, true);
   },
   credentials: true
 }));
 
-// ---------- 6. STANDARD MIDDLEWARE ----------
+// ========== 6. STANDARD MIDDLEWARE ==========
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// Debug middleware to log file upload attempts (for troubleshooting)
 app.use((req, res, next) => {
   if (req.path === '/api/questions' && req.method === 'POST') {
     console.log('Incoming POST /api/questions with content-type:', req.headers['content-type']);
@@ -188,23 +169,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// ---------- 7. EJS SETUP ----------
+// ========== 7. EJS SETUP ==========
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ---------- 8. DATABASE CONNECTION ----------
+// ========== 8. DATABASE CONNECTION ==========
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ---------- 9. PUBLIC SEO ROUTE FOR DOCUMENTS ----------
+// ========== 9. API ROUTES – MUST COME BEFORE STATIC & CATCH-ALL ==========
+app.use('/api/auth', authRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+// Health check (alive probe)
+app.get('/health', (req, res) => res.send('OK'));
+
+// ========== 10. SEO & PUBLIC ROUTES (document, sitemap) ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
     if (!document) {
       return res.status(404).send('Document not found');
     }
-
     const token = req.cookies.accessToken;
     let user = null;
     if (token) {
@@ -212,11 +204,8 @@ app.get('/document/:slug', async (req, res) => {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         user = await User.findById(decoded.id).select('-password');
-      } catch (err) {
-        console.error('Token verification error:', err.message);
-      }
+      } catch (err) {}
     }
-
     res.render('document', { document, user });
   } catch (err) {
     console.error('Error in /document/:slug:', err);
@@ -224,7 +213,6 @@ app.get('/document/:slug', async (req, res) => {
   }
 });
 
-// ---------- 10. SITEMAP.XML ----------
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
@@ -236,7 +224,6 @@ app.get('/sitemap.xml', async (req, res) => {
         <priority>0.7</priority>
       </url>
     `).join('');
-    
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -247,22 +234,10 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ---------- 11. API ROUTES ----------
-app.use('/api/auth', authRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/notifications', notificationRoutes);
-
-// Health check
-app.get('/health', (req, res) => res.send('OK'));
-
-// ---------- 12. STATIC FRONTEND (docs folder) ----------
+// ========== 11. STATIC FRONTEND (docs folder) ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 
-// Explicit routes for login/register (preserve clean URLs with query strings)
+// Explicit routes for login/register (preserve clean URLs)
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'register.html'));
 });
@@ -270,12 +245,12 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'login.html'));
 });
 
-// Catch-all for client-side routing (must be after static and /document)
+// ========== 12. CATCH-ALL FOR SPA (must be last) ==========
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'docs', 'index.html'));
 });
 
-// ---------- 13. CRON JOBS ----------
+// ========== 13. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -285,7 +260,6 @@ cron.schedule('0 * * * *', async () => {
       createdAt: { $lt: sixHoursAgo },
       budgetSuggestionSent: { $ne: true }
     });
-
     for (const question of oldQuestions) {
       const lowestBid = await Bid.findOne({ questionId: question._id }).sort({ amount: 1 });
       if (lowestBid && lowestBid.amount > question.budget) {
@@ -310,18 +284,19 @@ cron.schedule('0 0 * * *', () => {
   updateTutorLevels().catch(console.error);
 });
 
-// ---------- 14. GLOBAL ERROR HANDLER ----------
+// ========== 14. GLOBAL ERROR HANDLER (returns JSON for API routes) ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'FILE_TOO_LARGE') {
-      return res.status(400).json({ error: 'File too large. Max size is 200MB.' });
-    }
-    return res.status(400).json({ error: err.message });
+  // If it's an API route, send JSON
+  if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
+    return res.status(err.statusCode || 500).json({
+      error: err.message || 'Internal Server Error'
+    });
   }
-  res.status(500).json({ error: err.message });
+  // For non-API routes, send HTML error or generic message
+  res.status(500).send('Something went wrong!');
 });
 
-// ---------- 15. START SERVER ----------
+// ========== 15. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
