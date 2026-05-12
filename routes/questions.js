@@ -31,6 +31,12 @@ function getSignedUrl(publicUrl, resourceType = 'image', expiresInSeconds = 300)
   
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${publicId}?signature=${signature}&expires=${timestamp}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 }
+// Helper: determine Cloudinary resource type based on file MIME type
+function getResourceType(mimetype) {
+  if (mimetype.startsWith('image/')) return 'image';
+  return 'raw'; // PDF, DOC, PPT, ZIP, etc.
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -50,14 +56,18 @@ router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (re
     const budgetNum = parseFloat(budget);
     if (isNaN(budgetNum) || budgetNum <= 0) throw new Error('Invalid budget');
 
-    const uploadedFiles = [];
-    if (req.files && req.files.length) {
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, { folder: 'studyglade/questions' });
-        uploadedFiles.push(result.secure_url);
-        await fs.unlink(file.path);
-      }
-    }
+  const uploadedFiles = [];
+if (req.files && req.files.length) {
+  for (const file of req.files) {
+    const resourceType = getResourceType(file.mimetype);
+    const result = await cloudinary.uploader.upload(file.path, { 
+      folder: 'studyglade/questions',
+      resource_type: resourceType
+    });
+    uploadedFiles.push(result.secure_url);
+    await fs.unlink(file.path);
+  }
+}
 
     const question = await Question.create({
       studentId: req.userId,
