@@ -26,7 +26,7 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Helper: extract preview text from uploaded file (lazy‑loads heavy packages)
+// Helper: extract preview text (lazy‑loads PDF/DOCX parsers)
 async function extractPreviewText(filePath, originalName) {
   try {
     const ext = originalName.split('.').pop().toLowerCase();
@@ -49,64 +49,12 @@ async function extractPreviewText(filePath, originalName) {
   }
 }
 
-// ========== TEST ENDPOINT (verify route is alive) ==========
+// ========== TEST ENDPOINT (alive check) ==========
 router.get('/test', (req, res) => {
   res.json({ status: 'OK', message: 'Documents route is alive' });
 });
 
-// ---------- 1. Upload document (tutor or admin) ----------
-router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'), async (req, res) => {
-  try {
-    const { title, description, subject, subcategory, level, type, price } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-    const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/documents' });
-    const previewText = await extractPreviewText(req.file.path, req.file.originalname);
-    let previewImageUrl = '';
-    if (req.file.mimetype === 'application/pdf') {
-      const imgResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'studyglade/previews',
-        pages: true,
-        transformation: [{ page: 1, format: 'jpg' }]
-      });
-      previewImageUrl = imgResult.secure_url;
-    }
-    await fs.unlink(req.file.path);
-
-    const user = await User.findById(req.userId);
-    
-    // Generate slug from title (SEO-friendly URL)
-    let baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    let slug = baseSlug;
-    let counter = 1;
-    while (await Document.findOne({ slug })) {
-      slug = `${baseSlug}-${counter++}`;
-    }
-
-    const doc = await Document.create({
-      title,
-      description,
-      subject,
-      subcategory,
-      level,
-      type,
-      price: parseFloat(price),
-      fileUrl: result.secure_url,
-      uploaderId: req.userId,
-      uploaderName: user.fullName,
-      isApproved: user.role === 'admin' ? true : false,
-      previewText,
-      previewImageUrl,
-      slug
-    });
-    res.status(201).json(doc);
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// ---------- 2. Get documents (approved + user's own pending) with pagination ----------
+// ========== 1. GET approved + user's own documents ==========
 router.get('/', async (req, res) => {
   try {
     const { 
@@ -121,7 +69,7 @@ router.get('/', async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         userId = decoded.id;
       } catch (err) {
-        // invalid token – treat as guest
+        // treat as guest
       }
     }
 
@@ -171,12 +119,56 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('❌ Error in /api/documents:', err);
+    console.error('❌ Error in GET /documents:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
-// ---------- 3. Unlock document (purchase) – updates seller earnings ----------
+// ========== 2. UPLOAD document (tutor or admin) ==========
+router.post('/upload', auth, roleCheck('tutor', 'admin'), upload.single('file'), async (req, res) => {
+  try {
+    const { title, description, subject, subcategory, level, type, price } = req.body;
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/documents' });
+    const previewText = await extractPreviewText(req.file.path, req.file.originalname);
+    let previewImageUrl = '';
+    if (req.file.mimetype === 'application/pdf') {
+      const imgResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'studyglade/previews',
+        pages: true,
+        transformation: [{ page: 1, format: 'jpg' }]
+      });
+      previewImageUrl = imgResult.secure_url;
+    }
+    await fs.unlink(req.file.path);
+
+    const user = await User.findById(req.userId);
+    
+    let baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Document.findOne({ slug })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
+    const doc = await Document.create({
+      title, description, subject, subcategory, level, type,
+      price: parseFloat(price),
+      fileUrl: result.secure_url,
+      uploaderId: req.userId,
+      uploaderName: user.fullName,
+      isApproved: user.role === 'admin' ? true : false,
+      previewText, previewImageUrl, slug
+    });
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ========== 3. UNLOCK document (purchase) ==========
 router.post('/:id/unlock', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -214,7 +206,7 @@ router.post('/:id/unlock', auth, async (req, res) => {
   }
 });
 
-// ---------- 4. Public preview page (SEO friendly – fallback for old links) ----------
+// ========== 4. PUBLIC PREVIEW (SEO friendly HTML) ==========
 router.get('/preview/:id', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -235,13 +227,10 @@ router.get('/preview/:id', async (req, res) => {
     const html = `
       <!DOCTYPE html>
       <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>${escapeHtml(doc.title)} - StudyGlade</title>
-        <meta name="description" content="${escapeHtml(doc.description?.substring(0, 160) || 'Academic document on ' + doc.subject)}">
-        <link rel="stylesheet" href="/style.css">
-        <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
-      </head>
+      <head><meta charset="UTF-8"><title>${escapeHtml(doc.title)} - StudyGlade</title>
+      <meta name="description" content="${escapeHtml(doc.description?.substring(0, 160) || 'Academic document on ' + doc.subject)}">
+      <link rel="stylesheet" href="/style.css">
+      <script type="application/ld+json">${JSON.stringify(structuredData)}</script></head>
       <body>
         <div class="container" style="max-width:800px; margin:2rem auto;">
           <div class="card">
@@ -268,18 +257,14 @@ router.get('/preview/:id', async (req, res) => {
   }
 });
 
-// ---------- 5. Smart preview endpoint (lazy‑load sentencex) ----------
+// ========== 5. SMART PREVIEW (question answering) ==========
 router.post('/smart-preview/:id', async (req, res) => {
   try {
     const { query } = req.body;
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
-
     if (!doc.previewText || doc.previewText.length < 20) {
-      return res.json({
-        snippet: 'No readable preview available for this document.',
-        hasMatch: false
-      });
+      return res.json({ snippet: 'No readable preview available.', hasMatch: false });
     }
 
     // Lazy load sentencex
@@ -320,17 +305,14 @@ router.post('/smart-preview/:id', async (req, res) => {
       contextualSnippet = contextualSnippet.substring(0, 500) + '...';
     }
 
-    res.json({
-      snippet: contextualSnippet,
-      hasMatch: matchIndex !== -1
-    });
+    res.json({ snippet: contextualSnippet, hasMatch: matchIndex !== -1 });
   } catch (err) {
     console.error('Smart preview error:', err);
     res.status(500).json({ error: 'Failed to generate preview' });
   }
 });
 
-// ---------- 6. Admin: Update document previewText ----------
+// ========== 6. ADMIN: Update preview text ==========
 router.put('/:id/preview', auth, roleCheck('admin'), async (req, res) => {
   try {
     const { previewText } = req.body;
