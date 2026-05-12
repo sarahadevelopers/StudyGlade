@@ -980,3 +980,90 @@ body {
     margin-top: 0.25rem;
   }
 }
+/* ---------- HIDE SIDEBAR ON MOBILE, SHOW MOBILE NAV ---------- */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;          /* hide the old sidebar */
+  }
+  .mobile-nav {
+    display: flex;         /* show the new mobile nav */
+    justify-content: flex-start;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  /* Prevent body overflow */
+  body, .dashboard-wrapper, .main-content {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  /* Make stats row horizontally scrollable */
+  .stats-row {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    scroll-snap-type: x mandatory;
+  }
+  .stat-card {
+    flex: 0 0 220px;      /* fixed width for each card */
+    scroll-snap-align: start;
+  }
+  /* Fix notification dropdown position on mobile */
+  .notification-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90vw;
+    max-width: 320px;
+    right: auto;
+  }
+}
+
+/* ---------- Keep stats cards consistent on larger screens ---------- */
+@media (min-width: 769px) {
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ---------- Pagination for My Assignments ---------- */
+.assignments-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.5rem;
+}
+.assignments-pagination button {
+  background: var(--brand-blue);
+  color: white;
+  border: none;
+  padding: 0.3rem 0.8rem;
+  border-radius: 40px;
+  cursor: pointer;
+}
+.assignments-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.assignments-pagination span {
+  font-size: 0.8rem;
+  align-self: center;
+}
+
+/* ---------- Ensure notification dropdown is clickable ---------- */
+.notification-dropdown {
+  z-index: 2000;
+}
+.notification-item {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.notification-item:hover {
+  background: #f0f7ff;
+}

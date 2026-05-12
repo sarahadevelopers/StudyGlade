@@ -21,6 +21,11 @@ let currentTab = 'all';
 let currentAvailablePage = 1;
 let totalAvailablePages = 1;
 
+// ----- Pagination for My Assignments -----
+let assignmentsPage = 1;
+let assignmentsTotalPages = 1;
+const ASSIGNMENTS_PER_PAGE = 10;
+
 // ----- Helper to update user menu (avatar, name) -----
 function updateUserMenu(user) {
   const topName = document.getElementById('topName');
@@ -123,6 +128,7 @@ async function loadTutorDashboard() {
     document.getElementById('levelProgressStats').innerText = `${completed} / ${nextLevel} completed`;
 
     await loadAssignments();
+    renderAssignmentsPagination();
     await loadAvailableQuestions();
 
     const dateInput = document.getElementById('dateFilter');
@@ -152,7 +158,7 @@ async function loadAvailableQuestions(page = 1) {
         <div class="available-item">
           <div class="available-header">
             <div>
-              <div class="assignment-title"><i class="fas fa-file-alt" style="margin-right: 6px; color:var(--brand-blue);"></i> ${escapeHtml(q.title)}</div>
+              <div class="assignment-title"><i class="fas fa-file-alt" style="margin-right: 6px;"></i> ${escapeHtml(q.title)}</div>
               <div class="assignment-meta">${escapeHtml(q.subject || 'General')} • Budget: ${formatMoney(q.budget)} • Posted: ${new Date(q.createdAt).toLocaleDateString()}</div>
             </div>
             <span class="match-high">High Match</span>
@@ -169,6 +175,7 @@ async function loadAvailableQuestions(page = 1) {
     });
     container.innerHTML = html;
     totalAvailablePages = Math.ceil(data.total / PAGE_SIZE);
+    currentAvailablePage = page;
     const paginationDiv = document.getElementById('paginationControls');
     if (paginationDiv && totalAvailablePages > 1) {
       paginationDiv.innerHTML = `
@@ -184,10 +191,10 @@ async function loadAvailableQuestions(page = 1) {
 }
 
 window.changeAvailablePage = (delta) => {
-  currentAvailablePage += delta;
-  if (currentAvailablePage < 1) currentAvailablePage = 1;
-  if (currentAvailablePage > totalAvailablePages) currentAvailablePage = totalAvailablePages;
-  loadAvailableQuestions(currentAvailablePage);
+  let newPage = currentAvailablePage + delta;
+  if (newPage < 1) newPage = 1;
+  if (newPage > totalAvailablePages) newPage = totalAvailablePages;
+  loadAvailableQuestions(newPage);
 };
 
 // ----- Place Bid -----
@@ -242,11 +249,13 @@ async function acceptQuestion(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ----- Load Assignments -----
+// ----- Load Assignments (with pagination) -----
 async function loadAssignments() {
   try {
     const assignments = await apiFetch('/questions/my-assignments');
     allAssignments = assignments;
+    assignmentsTotalPages = Math.ceil(allAssignments.length / ASSIGNMENTS_PER_PAGE);
+    assignmentsPage = Math.min(assignmentsPage, assignmentsTotalPages) || 1;
     renderAssignmentsByTab(currentTab);
   } catch (err) {
     console.error(err);
@@ -260,31 +269,31 @@ function renderAssignmentsByTab(tab) {
   else if (tab === 'in-progress') filtered = allAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress');
   else if (tab === 'overdue') {
     const now = new Date();
-    // Only non‑completed, deadline passed
     filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
   } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
   
+  const start = (assignmentsPage - 1) * ASSIGNMENTS_PER_PAGE;
+  const paginated = filtered.slice(start, start + ASSIGNMENTS_PER_PAGE);
+  
   const container = document.getElementById('assignmentsList');
   if (!container) return;
-  if (filtered.length === 0) {
+  if (paginated.length === 0) {
     container.innerHTML = '<div class="assignment-item">No assignments found.</div>';
     return;
   }
   
   let html = '';
-  filtered.forEach(a => {
+  paginated.forEach(a => {
     const statusText = a.status === 'assigned' ? 'In Progress' : a.status;
     let statusClass = 'status-in-progress';
     if (a.status === 'completed') statusClass = 'status-completed';
     if (a.status === 'overdue') statusClass = 'status-overdue';
     
-    // Display deadline with full date+time
     let deadlineDisplay = 'No deadline';
     if (a.deadline) {
       const deadlineDate = new Date(a.deadline);
       deadlineDisplay = deadlineDate.toLocaleString();
     }
-    
     const showCancel = a.additionalFundsRequest && a.additionalFundsRequest.status === 'rejected';
     
     html += `
@@ -310,7 +319,6 @@ function renderAssignmentsByTab(tab) {
         </div>
       `;
     } else if (a.status === 'completed') {
-      // Show answer submission time if available
       let answerTimeHtml = '';
       if (a.answerUploadedAt) {
         const submittedDate = new Date(a.answerUploadedAt);
@@ -324,11 +332,38 @@ function renderAssignmentsByTab(tab) {
         ${answerTimeHtml}
       `;
     }
-    
     html += `</div>`;
   });
   container.innerHTML = html;
 }
+
+function renderAssignmentsPagination() {
+  if (assignmentsTotalPages <= 1) return;
+  let paginationDiv = document.getElementById('assignmentsPagination');
+  if (!paginationDiv) {
+    const container = document.getElementById('assignmentsList');
+    const wrapper = container?.parentNode;
+    if (!wrapper) return;
+    paginationDiv = document.createElement('div');
+    paginationDiv.id = 'assignmentsPagination';
+    paginationDiv.className = 'assignments-pagination';
+    wrapper.appendChild(paginationDiv);
+  }
+  paginationDiv.innerHTML = `
+    <button onclick="changeAssignmentsPage(-1)" ${assignmentsPage === 1 ? 'disabled' : ''}>Prev</button>
+    <span>${assignmentsPage} / ${assignmentsTotalPages}</span>
+    <button onclick="changeAssignmentsPage(1)" ${assignmentsPage === assignmentsTotalPages ? 'disabled' : ''}>Next</button>
+  `;
+}
+
+window.changeAssignmentsPage = function(delta) {
+  const newPage = assignmentsPage + delta;
+  if (newPage >= 1 && newPage <= assignmentsTotalPages) {
+    assignmentsPage = newPage;
+    renderAssignmentsByTab(currentTab);
+    renderAssignmentsPagination();
+  }
+};
 
 function initTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
@@ -337,11 +372,14 @@ function initTabs() {
       tabs.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentTab = btn.getAttribute('data-tab');
+      assignmentsPage = 1;   // reset pagination when changing tab
       renderAssignmentsByTab(currentTab);
+      renderAssignmentsPagination();
     });
   });
 }
 
+// ----- Assignment actions -----
 async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
   const file = fileInput.files[0];
@@ -462,6 +500,7 @@ async function cancelAssignment(questionId) {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// ----- Withdraw Funds -----
 async function withdrawFunds() {
   const amount = prompt('Amount to withdraw (min $10):');
   if (!amount || isNaN(amount) || parseFloat(amount) < 10) { showToast('Invalid amount', 'error'); return; }
@@ -477,6 +516,7 @@ async function withdrawFunds() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// ----- Avatar upload -----
 async function uploadAvatar() {
   const fileInput = document.getElementById('avatarFile');
   const file = fileInput.files[0];
@@ -694,11 +734,12 @@ async function updateUnreadCountAndSound() {
 updateUnreadCountAndSound();
 setInterval(updateUnreadCountAndSound, 30000);
 
-// Also refresh assignments & available questions every 30 seconds (optional)
-setInterval(() => {
+// Refresh assignments & available questions every 30 seconds (optional)
+setInterval(async () => {
   if (document.querySelector('.main-content')) {
-    loadAssignments();
-    loadAvailableQuestions(currentAvailablePage);
+    await loadAssignments();
+    renderAssignmentsPagination();
+    await loadAvailableQuestions(currentAvailablePage);
   }
 }, 30000);
 
@@ -725,3 +766,4 @@ window.uploadAvatar = uploadAvatar;
 window.changeAvailablePage = changeAvailablePage;
 window.previewQuestion = previewQuestion;
 window.closeQuestionPreview = closeQuestionPreview;
+window.changeAssignmentsPage = changeAssignmentsPage;
