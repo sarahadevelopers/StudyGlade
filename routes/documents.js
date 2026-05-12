@@ -57,10 +57,8 @@ router.get('/test', (req, res) => {
 // ========== 1. GET approved + user's own documents ==========
 router.get('/', async (req, res) => {
   try {
-    const { 
-      subject, level, type, search, minPrice, maxPrice, sort = 'newest',
-      page = 1, limit = 20 
-    } = req.query;
+    console.log('🔥 MAIN GET /api/documents CALLED');
+    const { subject, level, type, search, minPrice, maxPrice, sort = 'newest', page = 1, limit = 20 } = req.query;
 
     let userId = null;
     const token = req.cookies.accessToken;
@@ -68,9 +66,7 @@ router.get('/', async (req, res) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         userId = decoded.id;
-      } catch (err) {
-        // treat as guest
-      }
+      } catch (err) {}
     }
 
     let filter = {};
@@ -84,7 +80,7 @@ router.get('/', async (req, res) => {
     if (level) filter.level = level;
     if (type) filter.type = type;
     if (search) filter.title = { $regex: search, $options: 'i' };
-    if (minPrice !== undefined || maxPrice !== undefined) {
+    if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = parseFloat(minPrice);
       if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
@@ -95,7 +91,7 @@ router.get('/', async (req, res) => {
       case 'price_asc': sortOption = { price: 1 }; break;
       case 'price_desc': sortOption = { price: -1 }; break;
       case 'popular': sortOption = { downloads: -1 }; break;
-      default: sortOption = { createdAt: -1 };
+      default: break;
     }
 
     const pageNum = parseInt(page);
@@ -109,19 +105,14 @@ router.get('/', async (req, res) => {
       .limit(limitNum);
     const total = await Document.countDocuments(filter);
 
-    res.json({
-      documents: docs,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum)
-      }
-    });
+    res.json({ documents: docs, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
   } catch (err) {
-    console.error('❌ Error in GET /documents:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    console.error('❌ Error in /api/documents:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
+});
+router.get('/test2', (req, res) => {
+  res.json({ message: 'test2 works' });
 });
 
 // ========== 2. UPLOAD document (tutor or admin) ==========
