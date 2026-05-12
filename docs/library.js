@@ -179,7 +179,8 @@ async function unlockHandler(e) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Unlocking...';
   try {
-    const result = await apiFetch(`/api/documents/${docId}/unlock`, { method: 'POST' });
+   // ✅ Correct (only the path after /api)
+const result = await apiFetch(`/documents/${docId}/unlock`, { method: 'POST' });
     showToast('Document unlocked! Download will start shortly.', 'success');
     window.open(result.fileUrl, '_blank');
     const user = JSON.parse(localStorage.getItem('user'));
