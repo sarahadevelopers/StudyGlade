@@ -19,7 +19,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 Created uploads folder');
 }
 
-// ---------- 2. MULTER CONFIGURATION (Office‑friendly) ----------
+// ---------- 2. MULTER CONFIGURATION (Office‑friendly, extension-first) ----------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -32,24 +32,28 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Always allow by file extension first (most reliable)
+  // Log the file for debugging
+  console.log(`📎 Uploading: ${file.originalname} (MIME: ${file.mimetype})`);
+  
+  // 1️⃣ First check by file extension (most reliable)
   const ext = path.extname(file.originalname).toLowerCase();
   const allowedExt = [
     '.jpg', '.jpeg', '.png', '.gif', '.webp',
     '.pdf',
     '.doc', '.docx',
     '.xls', '.xlsx',
-    '.ppt', '.pptx',
+    '.ppt', '.pptx',   // PowerPoint
     '.zip', '.txt', '.csv',
     '.mp4', '.webm'
   ];
   
   if (allowedExt.includes(ext)) {
+    console.log(`✅ Allowed by extension: ${ext}`);
     cb(null, true);
     return;
   }
   
-  // Fallback: allow by MIME type
+  // 2️⃣ Fallback: check MIME type (for edge cases)
   const allowedTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
     'application/pdf', 'application/x-pdf',
@@ -65,9 +69,10 @@ const fileFilter = (req, file, cb) => {
   ];
   
   if (allowedTypes.includes(file.mimetype)) {
+    console.log(`✅ Allowed by MIME type: ${file.mimetype}`);
     cb(null, true);
   } else {
-    console.warn(`❌ Rejected file: ${file.originalname} (MIME: ${file.mimetype}, ext: ${ext})`);
+    console.warn(`❌ Rejected: ${file.originalname} (MIME: ${file.mimetype}, ext: ${ext})`);
     cb(new Error(`Unsupported file type: ${file.mimetype}`), false);
   }
 };
@@ -75,7 +80,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB to handle large PPTs
+  limits: { fileSize: 200 * 1024 * 1024 } // 200MB to handle large PPTs
 });
 
 module.exports.upload = upload;
@@ -310,7 +315,7 @@ app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (err instanceof multer.MulterError) {
     if (err.code === 'FILE_TOO_LARGE') {
-      return res.status(400).json({ error: 'File too large. Max size is 100MB.' });
+      return res.status(400).json({ error: 'File too large. Max size is 200MB.' });
     }
     return res.status(400).json({ error: err.message });
   }
