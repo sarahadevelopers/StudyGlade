@@ -9,7 +9,8 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
-const methodOverride = require('method-override');   // ✅ for blog admin forms
+const methodOverride = require('method-override');
+const rateLimit = require('express-rate-limit');   // ✅ added for global API rate limiting
 
 const app = express();
 
@@ -75,15 +76,15 @@ const subjectRoutes = require('./routes/subjects');
 const publicQuestionRoutes = require('./routes/publicQuestions');  
 const tutorRoutes = require('./routes/tutor'); 
 const questionsArchiveRoutes = require('./routes/questionsArchive');
-const adminBlogRoutes = require('./routes/adminBlog');   // ✅ blog admin
-const blogRoutes = require('./routes/blog');             // ✅ public blog
+const adminBlogRoutes = require('./routes/adminBlog');
+const blogRoutes = require('./routes/blog');
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
-const BlogPost = require('./models/BlogPost');           // ✅ for sitemap
+const BlogPost = require('./models/BlogPost');
 
 // ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -158,7 +159,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(methodOverride('_method'));   // ✅ support PUT/DELETE in HTML forms (for blog admin)
+app.use(methodOverride('_method'));
 
 app.use((req, res, next) => {
   if (req.path === '/api/questions' && req.method === 'POST') {
@@ -185,7 +186,19 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 9. API ROUTES (public) ==========
+// ========== 9. GLOBAL API RATE LIMITER (optional, 100 requests per 15 min) ==========
+const globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply to all API routes
+app.use('/api/', globalApiLimiter);
+
+// ========== 10. API ROUTES (public) ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -197,7 +210,7 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 11. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -221,11 +234,11 @@ app.get('/document/:slug', async (req, res) => {
 app.use('/subjects', subjectRoutes);
 app.use('/question', publicQuestionRoutes);
 
-// ✅ Blog routes
-app.use('/admin/blog', adminBlogRoutes);   // admin panel (protected by auth + roleCheck inside)
-app.use('/blog', blogRoutes);              // public blog
+// Blog routes
+app.use('/admin/blog', adminBlogRoutes);
+app.use('/blog', blogRoutes);
 
-// ========== 11. DYNAMIC SITEMAP (includes blog posts) ==========
+// ========== 12. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
@@ -295,7 +308,7 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // ✅ 7. Blog posts
+    // 7. Blog posts
     const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
     blogPosts.forEach(post => {
       urls += `
@@ -307,7 +320,6 @@ app.get('/sitemap.xml', async (req, res) => {
         </url>
       `;
     });
-    // Blog listing page
     urls += `<url><loc>${baseUrl}/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
     res.header('Content-Type', 'application/xml');
@@ -321,15 +333,15 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 12. STATIC FRONTEND ==========
+// ========== 13. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 13. CATCH-ALL ==========
+// ========== 14. CATCH-ALL ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 14. CRON JOBS ==========
+// ========== 15. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -363,7 +375,7 @@ cron.schedule('0 0 * * *', () => {
   updateTutorLevels().catch(console.error);
 });
 
-// ========== 15. GLOBAL ERROR HANDLER ==========
+// ========== 16. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -372,6 +384,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 16. START SERVER ==========
+// ========== 17. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

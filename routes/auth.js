@@ -7,8 +7,42 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');   // ✅ added
 
 const router = express.Router();
+
+// ---------- Rate limiters ----------
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per IP per window
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  message: { error: 'Too many registration attempts. Please try again after an hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { error: 'Too many password reset requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many password reset attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ---------- Cloudinary configuration ----------
 cloudinary.config({
@@ -50,7 +84,7 @@ async function sendEmail(to, subject, text) {
   }
   try {
     const { data, error } = await resend.emails.send({
-      from: 'StudyGlade <info@studyglade.com>', // ✅ changed to production email
+      from: 'StudyGlade <info@studyglade.com>',
       to: [to],
       subject: subject,
       html: `<p>${text}</p>`,
@@ -98,8 +132,8 @@ function getRefreshCookieOptions() {
   };
 }
 
-// ----------------- Register (supports tutor application + payment details) -----------------
-router.post('/register', upload.single('portfolio'), async (req, res) => {
+// ----------------- Register (with rate limit) -----------------
+router.post('/register', registerLimiter, upload.single('portfolio'), async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
 
@@ -195,8 +229,8 @@ router.post('/register', upload.single('portfolio'), async (req, res) => {
   }
 });
 
-// ----------------- Login -----------------
-router.post('/login', async (req, res) => {
+// ----------------- Login (with rate limit) -----------------
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -268,8 +302,8 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
-// ----------------- Forgot Password -----------------
-router.post('/forgot-password', async (req, res) => {
+// ----------------- Forgot Password (with rate limit) -----------------
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -278,7 +312,6 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordToken = token;
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
-    // ✅ Updated production reset link – use your main domain (www.studyglade.com)
     const resetLink = `https://studyglade.com/reset-password.html?token=${token}`;
     await sendEmail(user.email, 'Password Reset', `Click here to reset your password: ${resetLink}`);
     res.json({ message: 'Reset link sent to your email' });
@@ -288,8 +321,8 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// ----------------- Reset Password -----------------
-router.post('/reset-password', async (req, res) => {
+// ----------------- Reset Password (with rate limit) -----------------
+router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     const user = await User.findOne({
