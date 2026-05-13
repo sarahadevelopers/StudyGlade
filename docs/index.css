@@ -1450,3 +1450,43 @@ p, li, span, a {
   .feature-grid { grid-template-columns: 1fr; }
   .trust-items { gap: 1rem; flex-direction: column; align-items: center; }
 }
+
+.seo-bullets {
+  list-style: none;
+  padding-left: 0;
+}
+.seo-bullets li {
+  margin-bottom: 0.5rem;
+  padding-left: 1.2rem;
+  position: relative;
+}
+.seo-bullets li::before {
+  content: "✓";
+  color: var(--brand-blue);
+  position: absolute;
+  left: 0;
+}
+.static-testimonials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+.static-testimonial {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 1.2rem;
+  flex: 1;
+  min-width: 240px;
+  box-shadow: var(--shadow-sm);
+}
+.static-testimonial .stars {
+  color: var(--warning);
+  margin-bottom: 0.5rem;
+}
+.static-testimonial .author {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--slate);
+}
