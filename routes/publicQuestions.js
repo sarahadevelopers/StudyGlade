@@ -4,6 +4,11 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Redirect when no question ID is provided
+router.get('/', (req, res) => {
+  res.redirect('/document-library.html');
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -11,13 +16,12 @@ router.get('/:id', async (req, res) => {
       .populate('tutorId', 'fullName tutorProfile.rating');
     if (!question) return res.status(404).send('Question not found');
 
-    // Only show completed or publicly visible questions? We'll show all 'completed' ones.
-    // But you may also show 'assigned' ones? For SEO, best to show only completed.
+    // Only show completed questions for SEO
     if (question.status !== 'completed') {
       return res.status(404).send('Question not available');
     }
 
-    // Safe to render public page
+    // Render public question page
     res.render('public-question', {
       question,
       title: question.title,
