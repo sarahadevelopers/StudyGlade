@@ -261,5 +261,13 @@
     window.openAvatarModal = openAvatarModal;
     window.closeAvatarModal = closeAvatarModal;
   </script>
+  <script>
+  // ... your existing scripts (announcements, back to top, scroll hide) ...
+
+  // NEW: Start the idle timer with warning modal
+  if (typeof initIdleTimer === 'function') {
+    initIdleTimer();
+  }
+</script>
 </body>
 </html>

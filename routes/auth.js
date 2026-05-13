@@ -98,13 +98,14 @@ async function sendEmail(to, subject, text) {
 
 // ---------- Token generation ----------
 function generateTokens(userId, role) {
+  const issuedAt = Math.floor(Date.now() / 1000); // seconds
   const accessToken = jwt.sign(
     { id: userId, role },
     process.env.JWT_SECRET,
     { expiresIn: '15m' }
   );
   const refreshToken = jwt.sign(
-    { id: userId, role },
+    { id: userId, role, iat: issuedAt },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: '7d' }
   );
@@ -281,14 +282,21 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // ----------------- Refresh Token -----------------
+// ----------------- Refresh Token -----------------
 router.post('/refresh-token', async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) return res.status(401).json({ error: 'No refresh token' });
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    // Fetch user from database
     const user = await User.findById(decoded.id);
     if (!user || user.refreshToken !== refreshToken) {
       return res.status(403).json({ error: 'Invalid refresh token' });
+    }
+    // Check if token is older than 72 hours
+    const tokenAge = (Date.now() / 1000) - decoded.iat;
+    if (tokenAge > 72 * 3600) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
     }
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
     user.refreshToken = newRefreshToken;
@@ -298,10 +306,9 @@ router.post('/refresh-token', async (req, res) => {
     res.json({ message: 'Tokens refreshed' });
   } catch (err) {
     console.error('Refresh error:', err);
-    res.status(403).json({ error: 'Invalid refresh token' });
+    res.status(403).json({ error: 'Invalid or expired refresh token' });
   }
 });
-
 // ----------------- Forgot Password (with rate limit) -----------------
 router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {

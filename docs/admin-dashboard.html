@@ -491,5 +491,19 @@
   <script src="api.js"></script>
   <script src="auth.js"></script>
   <script src="admin.js"></script>
+  <script>
+  // Wait for admin.js to finish loading and user to be authenticated
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is logged in (localStorage has user)
+    const user = localStorage.getItem('user');
+    if (user) {
+      // Start the idle timer
+      if (typeof initIdleTimer === 'function') initIdleTimer();
+    } else {
+      // If not logged in, redirect to login
+      window.location.href = 'login.html';
+    }
+  });
+</script>
 </body>
 </html>
