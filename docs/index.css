@@ -1532,3 +1532,23 @@ p, li, span, a {
   border-radius: 40px;
   margin: 0.2rem;
 }
+
+.subjects-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 2rem 0;
+}
+.subject-card {
+  background: var(--pale-blue);
+  padding: 0.5rem 1.2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  color: var(--brand-blue);
+  font-weight: 500;
+  transition: 0.2s;
+}
+.subject-card:hover {
+  background: var(--brand-blue);
+  color: white;
+}

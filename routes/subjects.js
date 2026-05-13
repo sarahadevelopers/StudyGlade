@@ -5,54 +5,87 @@ const Question = require('../models/Question');
 
 const router = express.Router();
 
-// Helper: map URL-friendly subject name to display name
-const subjectMap = {
-  'math-homework-help': { display: 'Mathematics', dbTerm: 'Mathematics' },
-  'statistics-help': { display: 'Statistics', dbTerm: 'Statistics' },
-  'nursing-assignment-help': { display: 'Nursing', dbTerm: 'Nursing' },
-  'python-homework-help': { display: 'Python', dbTerm: 'Python' },
-  'calculus-help': { display: 'Calculus', dbTerm: 'Calculus' },
-  'essay-writing-help': { display: 'Essay Writing', dbTerm: 'Essay Writing' },
-  'chemistry-tutor': { display: 'Chemistry', dbTerm: 'Chemistry' },
-  'physics-help': { display: 'Physics', dbTerm: 'Physics' }
-};
+// Helper: convert subject name to URL-friendly slug
+function slugify(str) {
+  if (!str) return '';
+  return str.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
+// Helper: convert slug back to display name (capitalised)
+function unslugify(slug) {
+  return slug.split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// ---------- INDEX: list all available subjects ----------
+router.get('/', async (req, res) => {
+  try {
+    // Get distinct subjects from approved documents
+    const docSubjects = await Document.distinct('subject', { isApproved: true });
+    // Get distinct categories from completed questions (best for SEO)
+    const questionCategories = await Question.distinct('category', { status: 'completed' });
+    // Combine and remove duplicates
+    const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
+    allSubjects.sort();
+
+    res.render('subjects-index', {
+      subjects: allSubjects,
+      slugify
+    });
+  } catch (err) {
+    console.error('Error in subjects index:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+// ---------- INDIVIDUAL SUBJECT PAGE ----------
 router.get('/:slug', async (req, res) => {
   const slug = req.params.slug;
-  const subjectInfo = subjectMap[slug];
-  if (!subjectInfo) {
-    return res.status(404).send('Subject not found');
+  // Convert slug back to the actual subject name (as stored in database)
+  const subjectName = unslugify(slug);
+
+  try {
+    // Fetch tutors offering this subject
+    const tutors = await User.find({
+      role: 'tutor',
+      isApproved: true,
+      'tutorProfile.subjects': { $in: [subjectName] }
+    })
+      .limit(10)
+      .select('fullName avatar tutorProfile.rating');
+
+    // Fetch approved documents in this subject
+    const documents = await Document.find({
+      isApproved: true,
+      subject: subjectName
+    })
+      .limit(10)
+      .select('title slug price previewImageUrl');
+
+    // Fetch recent completed questions in this subject
+    const questions = await Question.find({
+      status: 'completed',
+      $or: [{ category: subjectName }, { subject: subjectName }]
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('title _id');
+
+    // If no content at all, still show the page (but maybe a friendly message)
+    res.render('subject', {
+      subject: subjectName,
+      slug,
+      tutors,
+      documents,
+      questions
+    });
+  } catch (err) {
+    console.error(`Error in subject page for ${subjectName}:`, err);
+    res.status(500).send('Server error');
   }
-
-  const subjectName = subjectInfo.display;
-  const dbSubject = subjectInfo.dbTerm;
-
-  // Fetch tutors who offer this subject
-  const tutors = await User.find({
-    role: 'tutor',
-    isApproved: true,
-    'tutorProfile.subjects': { $in: [dbSubject] }
-  }).limit(10).select('fullName avatar tutorProfile.rating');
-
-  // Fetch approved documents in this subject
-  const documents = await Document.find({
-    isApproved: true,
-    subject: dbSubject
-  }).limit(10).select('title slug price previewImageUrl');
-
-  // Fetch recent questions in this subject (from category or subject field)
-  const questions = await Question.find({
-    status: { $in: ['pending', 'assigned', 'completed'] },
-    $or: [{ category: dbSubject }, { subject: dbSubject }]
-  }).sort({ createdAt: -1 }).limit(10).select('title _id');
-
-  res.render('subject', {
-    subject: subjectName,
-    slug,
-    tutors,
-    documents,
-    questions
-  });
 });
 
 module.exports = router;
