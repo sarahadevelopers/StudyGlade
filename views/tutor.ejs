@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= subject %> Homework Help & Tutors | StudyGlade</title>
-  <meta name="description" content="Get <%= subject %> homework help, expert tutors, study resources, and answered questions. 24/7 support for college students.">
-  <link rel="canonical" href="https://studyglade.com/subjects/<%= slug %>">
+  <title><%= tutor.fullName %> – Expert <%= subjects.join(', ') %> Tutor | StudyGlade</title>
+  <meta name="description" content="<%= tutor.fullName %> is a verified tutor in <%= subjects.slice(0,3).join(', ') %>. Rating: <%= rating %> ⭐. <%= completedCount %> questions completed.">
+  <link rel="canonical" href="https://studyglade.com/tutor/<%= tutor._id %>">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <header>
+      <header>
     <nav class="navbar">
       <div class="container">
         <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
@@ -28,33 +29,33 @@
       </div>
     </nav>
   </header>
-
+  </header>
   <main>
     <div class="container">
-      <h1><%= subject %> Homework Help & Online Tutors</h1>
-      <p>Find expert tutors, study resources, and answers to <%= subject %> questions. Post your own question and get help within hours.</p>
-
-      <!-- Tutors Section -->
-      <section>
-        <h2>Top Tutors for <%= subject %></h2>
-        <div class="tutor-grid">
-          <% tutors.forEach(t => { %>
-            <div class="tutor-card">
-              <img src="<%= t.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg' %>" alt="<%= t.fullName %>" width="60" height="60" loading="lazy">
-              <h3><%= t.fullName %></h3>
-              <div class="rating"><%= t.tutorProfile?.rating?.toFixed(1) || 'New' %> ⭐</div>
-              <a href="/tutors/<%= t._id %>" class="btn-sm">View Profile</a>
-            </div>
+      <div class="tutor-profile">
+        <img src="<%= tutor.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg' %>" alt="<%= tutor.fullName %>" width="120" height="120" class="tutor-avatar">
+        <h1><%= tutor.fullName %></h1>
+        <div class="tutor-rating"><i class="fas fa-star"></i> <%= rating.toFixed(1) %> ( <%= completedCount %> questions answered)</div>
+        <div class="tutor-subjects">
+          <% subjects.forEach(s => { %>
+            <span class="subject-badge"><%= s %></span>
           <% }) %>
-          <% if (tutors.length === 0) { %>
-            <p>No tutors listed yet. Be the first to offer help!</p>
-          <% } %>
         </div>
+        <p><strong>Member since:</strong> <%= new Date(tutor.createdAt).toLocaleDateString() %></p>
+        <p><%= tutor.tutorProfile?.bio || 'Experienced tutor helping students achieve academic success.' %></p>
+      </div>
+
+      <section>
+        <h2>Recent Answers</h2>
+        <ul>
+          <% questions.forEach(q => { %>
+            <li><a href="/question/<%= q._id %>"><%= q.title %></a></li>
+          <% }) %>
+        </ul>
       </section>
 
-      <!-- Documents Section -->
       <section>
-        <h2>Popular <%= subject %> Documents</h2>
+        <h2>Uploaded Documents</h2>
         <div class="document-list">
           <% documents.forEach(d => { %>
             <div class="document-item">
@@ -62,33 +63,11 @@
               <span>$<%= d.price %></span>
             </div>
           <% }) %>
-          <% if (documents.length === 0) { %>
-            <p>No documents yet. Check back later.</p>
-          <% } %>
         </div>
       </section>
-
-      <!-- Questions Section -->
-      <section>
-        <h2>Recent <%= subject %> Questions</h2>
-        <ul class="question-list">
-          <% questions.forEach(q => { %>
-            <li><a href="/question/<%= q._id %>"><%= q.title %></a></li>
-          <% }) %>
-          <% if (questions.length === 0) { %>
-            <p>No questions yet. Ask one now!</p>
-          <% } %>
-        </ul>
-      </section>
-
-      <!-- Call to Action -->
-      <div class="cta-box">
-        <p>Need help with <%= subject %>? <a href="/post-question.html">Post your question now</a> and get instant bids from expert tutors.</p>
-      </div>
     </div>
   </main>
-
- <footer class="premium-footer">
+   <footer class="premium-footer">
   <div class="footer-container">
     <div class="footer-brand">
       <div class="footer-logo-wrapper"><a href="/" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a></div>
@@ -114,10 +93,5 @@
   </div>
   <div class="footer-bottom"><p>© <span id="year"></span> StudyGlade. All rights reserved.</p><button class="back-to-top" id="backToTopBtn"><i class="fas fa-arrow-up"></i> Top</button></div>
 </footer>
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-    const backToTopBtn = document.getElementById('backToTopBtn');
-    if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-  </script>
 </body>
 </html>

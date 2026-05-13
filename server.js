@@ -71,7 +71,9 @@ const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
 const notificationRoutes = require('./routes/notifications');
 const subjectRoutes = require('./routes/subjects');
-const publicQuestionRoutes = require('./routes/publicQuestions');   // ✅ NEW
+const publicQuestionRoutes = require('./routes/publicQuestions');  
+const tutorRoutes = require('./routes/tutor'); 
+const questionsArchiveRoutes = require('./routes/questionsArchive');
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
@@ -185,6 +187,8 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/tutor', tutorRoutes);
+app.use('/questions', questionsArchiveRoutes);
 
 // Health check (alive probe)
 app.get('/health', (req, res) => res.send('OK'));
@@ -250,18 +254,25 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // Completed questions for SEO
+    // ✅ Add the questions archive page
+    urls += `<url><loc>https://studyglade.com/questions</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
+
+    // Completed questions – ensure the model is imported and field name is correct
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
-    completedQuestions.forEach(q => {
-      urls += `
-        <url>
-          <loc>${baseUrl}/question/${q._id}</loc>
-          <lastmod>${q.updatedAt.toISOString()}</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.6</priority>
-        </url>
-      `;
-    });
+    if (completedQuestions && completedQuestions.length) {
+      completedQuestions.forEach(q => {
+        urls += `
+          <url>
+            <loc>${baseUrl}/question/${q._id}</loc>
+            <lastmod>${q.updatedAt.toISOString()}</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.6</priority>
+          </url>
+        `;
+      });
+    } else {
+      console.log('No completed questions found for sitemap');
+    }
 
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -269,7 +280,7 @@ app.get('/sitemap.xml', async (req, res) => {
   ${urls}
 </urlset>`);
   } catch (err) {
-    console.error('Sitemap error:', err);
+    console.error('Sitemap generation error:', err);
     res.status(500).send('Error generating sitemap');
   }
 });
