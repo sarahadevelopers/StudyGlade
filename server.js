@@ -19,7 +19,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 Created uploads folder');
 }
 
-// ========== 2. MULTER CONFIGURATION (unchanged) ==========
+// ========== 2. MULTER CONFIGURATION ==========
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => {
@@ -81,7 +81,7 @@ const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
 
-// ========== 4. PAYSTACK WEBHOOK (raw body) – unchanged ==========
+// ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
@@ -131,7 +131,7 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ========== 5. CORS – add production domains ==========
+// ========== 5. CORS ==========
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
@@ -161,7 +161,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== 6b. REDIRECT FROM OLD RENDER URL TO NEW PRODUCTION DOMAIN ==========
+// Redirect from old Render URL
 app.use((req, res, next) => {
   const host = req.headers.host;
   if (host && host.endsWith('onrender.com')) {
@@ -179,7 +179,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 9. API ROUTES – MUST COME BEFORE STATIC & CATCH-ALL ==========
+// ========== 9. API ROUTES (public) ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -189,11 +189,9 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
-
-// Health check (alive probe)
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO & PUBLIC ROUTES (document, sitemap, subjects, questions) ==========
+// ========== 10. SEO PUBLIC ROUTES ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -214,18 +212,16 @@ app.get('/document/:slug', async (req, res) => {
   }
 });
 
-// Subject pages (SEO)
 app.use('/subjects', subjectRoutes);
-
-// Public question pages (SEO)
 app.use('/question', publicQuestionRoutes);
 
+// ========== 11. DYNAMIC SITEMAP (includes all SEO pages) ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
     let urls = '';
 
-    // Approved documents
+    // 1. Approved documents
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
     documents.forEach(doc => {
       urls += `
@@ -238,13 +234,14 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // Subject pages (static list)
-    const subjects = [
-      'math-homework-help', 'statistics-help', 'nursing-assignment-help',
-      'python-homework-help', 'calculus-help', 'essay-writing-help',
-      'chemistry-tutor', 'physics-help'
-    ];
-    subjects.forEach(slug => {
+    // 2. Dynamic subjects (from both documents and questions)
+    const docSubjects = await Document.distinct('subject', { isApproved: true });
+    const questionCategories = await Question.distinct('category', { status: 'completed' });
+    const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
+    // Slugify helper
+    const slugify = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    allSubjects.forEach(sub => {
+      const slug = slugify(sub);
       urls += `
         <url>
           <loc>${baseUrl}/subjects/${slug}</loc>
@@ -253,11 +250,13 @@ app.get('/sitemap.xml', async (req, res) => {
         </url>
       `;
     });
+    // Subjects index page
+    urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
 
-    // ✅ Add the questions archive page
-    urls += `<url><loc>https://studyglade.com/questions</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
+    // 3. Questions archive page
+    urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // Completed questions – ensure the model is imported and field name is correct
+    // 4. Completed question pages
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
     if (completedQuestions && completedQuestions.length) {
       completedQuestions.forEach(q => {
@@ -270,9 +269,23 @@ app.get('/sitemap.xml', async (req, res) => {
           </url>
         `;
       });
-    } else {
-      console.log('No completed questions found for sitemap');
     }
+
+    // 5. Tutor list page
+    urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
+
+    // 6. Individual tutor profiles
+    const tutors = await User.find({ role: 'tutor', isApproved: true }).select('_id updatedAt');
+    tutors.forEach(t => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/tutor/${t._id}</loc>
+          <lastmod>${t.updatedAt.toISOString()}</lastmod>
+          <changefreq>monthly</changefreq>
+          <priority>0.6</priority>
+        </url>
+      `;
+    });
 
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -285,23 +298,15 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 11. STATIC FRONTEND (docs folder) ==========
+// ========== 12. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// Explicit routes for login/register (preserve clean URLs)
-app.get('/register', (req, res) => {
-  res.sendFile(path.join(__dirname, 'docs', 'register.html'));
-});
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'docs', 'login.html'));
-});
+// ========== 13. CATCH-ALL ==========
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 12. CATCH-ALL FOR SPA (must be last) ==========
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'docs', 'index.html'));
-});
-
-// ========== 13. CRON JOBS ==========
+// ========== 14. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -335,17 +340,15 @@ cron.schedule('0 0 * * *', () => {
   updateTutorLevels().catch(console.error);
 });
 
-// ========== 14. GLOBAL ERROR HANDLER (returns JSON for API routes) ==========
+// ========== 15. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
-    return res.status(err.statusCode || 500).json({
-      error: err.message || 'Internal Server Error'
-    });
+    return res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
   }
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 15. START SERVER ==========
+// ========== 16. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
