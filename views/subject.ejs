@@ -8,31 +8,51 @@
   <link rel="canonical" href="https://studyglade.com/subjects/<%= slug %>">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link rel="stylesheet" href="/docs/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <header>
-    <nav class="navbar"><!-- same as homepage navbar --></nav>
+    <nav class="navbar">
+      <div class="container">
+        <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/document-library.html">Library</a>
+          <a href="/subjects/math-homework-help">Subjects</a>
+          <a href="/pricing">Pricing</a>
+        </div>
+        <div class="nav-buttons">
+          <a href="/login.html" class="btn btn-outline-white">Login</a>
+          <a href="/register.html" class="btn btn-primary">Sign Up</a>
+        </div>
+      </div>
+    </nav>
   </header>
+
   <main>
     <div class="container">
       <h1><%= subject %> Homework Help & Online Tutors</h1>
       <p>Find expert tutors, study resources, and answers to <%= subject %> questions. Post your own question and get help within hours.</p>
 
+      <!-- Tutors Section -->
       <section>
         <h2>Top Tutors for <%= subject %></h2>
         <div class="tutor-grid">
           <% tutors.forEach(t => { %>
             <div class="tutor-card">
-              <img src="<%= t.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg' %>" alt="<%= t.fullName %>" width="60" height="60">
+              <img src="<%= t.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg' %>" alt="<%= t.fullName %>" width="60" height="60" loading="lazy">
               <h3><%= t.fullName %></h3>
               <div class="rating"><%= t.tutorProfile?.rating?.toFixed(1) || 'New' %> ⭐</div>
               <a href="/tutors/<%= t._id %>" class="btn-sm">View Profile</a>
             </div>
           <% }) %>
+          <% if (tutors.length === 0) { %>
+            <p>No tutors listed yet. Be the first to offer help!</p>
+          <% } %>
         </div>
       </section>
 
+      <!-- Documents Section -->
       <section>
         <h2>Popular <%= subject %> Documents</h2>
         <div class="document-list">
@@ -42,23 +62,54 @@
               <span>$<%= d.price %></span>
             </div>
           <% }) %>
+          <% if (documents.length === 0) { %>
+            <p>No documents yet. Check back later.</p>
+          <% } %>
         </div>
       </section>
 
+      <!-- Questions Section -->
       <section>
         <h2>Recent <%= subject %> Questions</h2>
-        <ul>
+        <ul class="question-list">
           <% questions.forEach(q => { %>
-            <li><a href="/questions/<%= q._id %>"><%= q.title %></a></li>
+            <li><a href="/question/<%= q._id %>"><%= q.title %></a></li>
           <% }) %>
+          <% if (questions.length === 0) { %>
+            <p>No questions yet. Ask one now!</p>
+          <% } %>
         </ul>
       </section>
 
+      <!-- Call to Action -->
       <div class="cta-box">
-        <p>Need help with <%= subject %>? <a href="/post-question">Post your question now</a> and get instant bids from expert tutors.</p>
+        <p>Need help with <%= subject %>? <a href="/post-question.html">Post your question now</a> and get instant bids from expert tutors.</p>
       </div>
     </div>
   </main>
-  <footer class="premium-footer"><!-- same as homepage footer --></footer>
+
+  <footer class="premium-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-wrapper"><a href="/" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a></div>
+        <p class="brand-description">Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+        <div class="newsletter-box"><h5>Stay Updated</h5><form class="newsletter-form"><input type="email" placeholder="Enter your email" required><button type="submit">Join</button></form><p class="newsletter-note">Join 10k+ students. No spam, ever.</p></div>
+        <div class="social-links"><a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a><a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a><a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a><a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a><a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a></div>
+      </div>
+      <div class="footer-links-grid">
+        <div class="link-column"><h4>Platform</h4><ul><li><a href="/post-question">Post a Question</a></li><li><a href="/document-library.html">Browse Documents</a></li><li><a href="/find-tutors">Find a Tutor</a></li><li><a href="/online-classroom">Online Classroom</a></li><li><a href="/study-library">Study Library</a></li><li><a href="/calendar">Calendar</a></li></ul></div>
+        <div class="link-column"><h4>Resources</h4><ul><li><a href="/study-materials">Study Materials</a></li><li><a href="/research-papers">Research Papers</a></li><li><a href="/practice-tests">Practice Tests</a></li><li><a href="/subject-guides">Subject Guides</a></li><li><a href="/academic-tools">Academic Tools</a></li><li><a href="/free-resources">Free Resources</a></li></ul></div>
+        <div class="link-column"><h4>Support</h4><ul><li><a href="/help">Help Centre</a></li><li><a href="/contact">Contact Us</a></li><li><a href="/live-chat">Live Chat</a></li><li><a href="/how-it-works">How It Works</a></li><li><a href="/tutor-support">Tutor Support</a></li><li><a href="/feedback">Feedback</a></li></ul></div>
+        <div class="link-column"><h4>Legal</h4><ul><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/cookies">Cookie Policy</a></li><li><a href="/honor-code">Honor Code</a></li></ul></div>
+        <div class="link-column"><h4>About Us</h4><ul><li><a href="/about">About StudyGlade</a></li><li><a href="/careers">Careers</a></li><li><a href="/press">Press & Media</a></li><li><a href="/blog">Blog</a></li><li><a href="/partnerships">Partnerships</a></li></ul></div>
+      </div>
+    </div>
+    <div class="footer-bottom"><p>© <span id="year"></span> StudyGlade. All rights reserved.</p><button class="back-to-top" id="backToTopBtn"><i class="fas fa-arrow-up"></i> Top</button></div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const backToTopBtn = document.getElementById('backToTopBtn');
+    if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  </script>
 </body>
 </html>
