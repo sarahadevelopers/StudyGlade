@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your bid was accepted – StudyGlade</title>
+  <style>
+    /* Base styles (same as other email templates) */
+    body, table, td, div, p, a {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .header {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .content {
+      padding: 1.8rem;
+      color: #1F2937;
+      line-height: 1.6;
+    }
+    .bid-details {
+      background: #F8FAFF;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .button {
+      display: inline-block;
+      background-color: #005BFF;
+      color: white !important;
+      text-decoration: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+    }
+    .footer {
+      background-color: #F8FAFF;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.7rem;
+      color: #6B7280;
+      border-top: 1px solid #E5E7EB;
+    }
+    @media only screen and (max-width: 480px) {
+      .content { padding: 1.2rem; }
+      .button { display: block; text-align: center; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:1rem; background:#EFF6FF; font-family: 'Inter', sans-serif;">
+  <div class="container">
+    <div class="header">
+      <h2>🎉 Your Bid Was Accepted!</h2>
+    </div>
+    <div class="content">
+      <p>Hi <strong><%= tutorName %></strong>,</p>
+      <p>Great news – your bid on the following question has been accepted by the student.</p>
+      <div class="bid-details">
+        <p><strong>Question:</strong> <%= questionTitle %></p>
+        <p><strong>Your bid amount:</strong> <span style="color:#005BFF; font-weight:700;">$<%= bidAmount %></span></p>
+      </div>
+      <p>You can now start working on the answer. Please upload your solution before the deadline.</p>
+      <p style="margin-top: 1.5rem;">
+        <a href="https://studyglade.com/question-details.html?id=<%= questionId %>" class="button">View Question & Upload Answer</a>
+      </p>
+      <p style="margin-top: 1rem; font-size: 0.85rem;">Remember to communicate with the student via comments if you need any clarification.</p>
+    </div>
+    <div class="footer">
+      <p>StudyGlade – Helping tutors succeed</p>
+      <p><a href="https://studyglade.com/tutor-dashboard.html">Your Dashboard</a> | <a href="https://studyglade.com/contact">Support</a></p>
+    </div>
+  </div>
+</body>
+</html>

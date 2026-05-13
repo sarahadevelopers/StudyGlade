@@ -10,31 +10,28 @@ const Transaction = require('../models/Transaction');
 const Bid = require('../models/Bid');
 const Notification = require('../models/Notification');
 const { upload } = require('../server');
+const { sendEmailWithTemplate } = require('../utils/email');
 
 const router = express.Router();
 const multerMemory = multer({ storage: multer.memoryStorage() });
 
-// ---------- CORRECT: generate signed URL for Cloudinary files (supports both image and raw) ----------
+// ---------- generate signed URL for Cloudinary files ----------
 function getSignedUrl(publicUrl, resourceType = 'image', expiresInSeconds = 300) {
   if (!publicUrl) return null;
-  
-  // Extract public_id (e.g., "studyglade/answers/ufmv8a9rb5xczkji2ca9.pdf")
   const match = publicUrl.match(/\/(?:raw\/)?upload\/(?:v\d+\/)?(.+)/);
   if (!match) return publicUrl;
   let publicId = match[1];
-  
   const timestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
   const signature = cloudinary.utils.api_sign_request(
     { public_id: publicId, timestamp, resource_type: resourceType },
     process.env.CLOUDINARY_API_SECRET
   );
-  
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${publicId}?signature=${signature}&expires=${timestamp}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 }
-// Helper: determine Cloudinary resource type based on file MIME type
+
 function getResourceType(mimetype) {
   if (mimetype.startsWith('image/')) return 'image';
-  return 'raw'; // PDF, DOC, PPT, ZIP, etc.
+  return 'raw';
 }
 
 cloudinary.config({
@@ -56,29 +53,23 @@ router.post('/', auth, roleCheck('student'), upload.array('files', 5), async (re
     const budgetNum = parseFloat(budget);
     if (isNaN(budgetNum) || budgetNum <= 0) throw new Error('Invalid budget');
 
-  const uploadedFiles = [];
-if (req.files && req.files.length) {
-  for (const file of req.files) {
-    const resourceType = getResourceType(file.mimetype);
-    const result = await cloudinary.uploader.upload(file.path, { 
-      folder: 'studyglade/questions',
-      resource_type: resourceType
-    });
-    uploadedFiles.push(result.secure_url);
-    await fs.unlink(file.path);
-  }
-}
+    const uploadedFiles = [];
+    if (req.files && req.files.length) {
+      for (const file of req.files) {
+        const resourceType = getResourceType(file.mimetype);
+        const result = await cloudinary.uploader.upload(file.path, { 
+          folder: 'studyglade/questions',
+          resource_type: resourceType
+        });
+        uploadedFiles.push(result.secure_url);
+        await fs.unlink(file.path);
+      }
+    }
 
     const question = await Question.create({
       studentId: req.userId,
-      title,
-      description,
-      category,
-      subcategory,
-      budget: budgetNum,
-      deadline,
-      school,
-      course,
+      title, description, category, subcategory,
+      budget: budgetNum, deadline, school, course,
       files: uploadedFiles
     });
 
@@ -93,11 +84,8 @@ if (req.files && req.files.length) {
     }
 
     await Transaction.create({
-      userId: req.userId,
-      type: 'post_question',
-      amount: -budgetNum,
-      description: `Posted question: ${title}`,
-      referenceId: question._id
+      userId: req.userId, type: 'post_question', amount: -budgetNum,
+      description: `Posted question: ${title}`, referenceId: question._id
     });
 
     res.status(201).json(question);
@@ -133,14 +121,14 @@ router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
     const questions = await Question.find({ studentId: req.userId })
       .populate('tutorId', 'fullName avatar gender tutorProfile.rating')
       .select('+additionalFundsRequest')
-      .sort({ createdAt: -1 }); // latest first
+      .sort({ createdAt: -1 });
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ------------------- 4. My assignments (tutor) – with signed URLs for answers (raw) -------------------
+// ------------------- 4. My assignments (tutor) -------------------
 router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const questions = await Question.find({ tutorId: req.userId })
@@ -159,7 +147,7 @@ router.get('/my-assignments', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 5. Get single question (allows tutor preview) -------------------
+// ------------------- 5. Get single question -------------------
 router.get('/:id', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -196,8 +184,7 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
 
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
-      userId: question.studentId,
-      type: 'question_posted',
+      userId: question.studentId, type: 'question_posted',
       title: 'Tutor Assigned',
       message: `${tutor.fullName} has accepted your question "${question.title}".`,
       link: `/question-details.html?id=${question._id}`
@@ -209,7 +196,7 @@ router.put('/:id/accept', auth, roleCheck('tutor'), async (req, res) => {
   }
 });
 
-// ------------------- 7. Tutor marks complete (with signed URL in response) -------------------
+// ------------------- 7. Tutor marks complete -------------------
 router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -233,20 +220,23 @@ router.put('/:id/complete', auth, roleCheck('tutor'), async (req, res) => {
     await tutor.save();
 
     await Transaction.create({
-      userId: req.userId,
-      type: 'tutor_payment',
-      amount: earnings,
-      description: `Completed question: ${question.title}`,
-      referenceId: question._id
+      userId: req.userId, type: 'tutor_payment', amount: earnings,
+      description: `Completed question: ${question.title}`, referenceId: question._id
     });
 
     await Notification.create({
-      userId: question.studentId,
-      type: 'answer_uploaded',
+      userId: question.studentId, type: 'answer_uploaded',
       title: 'Question Completed',
       message: `Your question "${question.title}" has been completed by ${tutor.fullName}.`,
       link: `/answer-details.html?id=${question._id}`
     });
+
+    // Send email to tutor about payment received
+    sendEmailWithTemplate(tutor.email, 'Payment Received – StudyGlade', 'tutor-payment.ejs', {
+      tutorName: tutor.fullName,
+      amount: earnings,
+      reason: `Completed question: ${question.title}`
+    }).catch(err => console.error('Failed to send payment email:', err));
 
     const obj = question.toObject();
     if (obj.answerFile) {
@@ -275,20 +265,28 @@ router.post('/:id/bid', auth, roleCheck('tutor'), async (req, res) => {
     }
 
     const bid = await Bid.create({
-      questionId: question._id,
-      tutorId: req.userId,
-      amount,
-      message
+      questionId: question._id, tutorId: req.userId, amount, message
     });
 
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
-      userId: question.studentId,
-      type: 'new_bid',
+      userId: question.studentId, type: 'new_bid',
       title: 'New Bid',
       message: `${tutor.fullName} placed a bid of $${amount} on your question "${question.title}".`,
       link: `/question-details.html?id=${question._id}`
     });
+
+    // Send email to student about new bid
+    const student = await User.findById(question.studentId);
+    sendEmailWithTemplate(student.email, 'New Bid on Your Question', 'bid-placed.ejs', {
+      studentName: student.fullName,
+      questionTitle: question.title,
+      tutorName: tutor.fullName,
+      tutorRating: tutor.tutorProfile?.rating?.toFixed(1) || 'New',
+      bidAmount: amount,
+      bidMessage: message || 'No message provided',
+      questionId: question._id
+    }).catch(err => console.error('Failed to send bid email:', err));
 
     res.status(201).json(bid);
   } catch (err) {
@@ -312,8 +310,7 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
 
     const student = await User.findOneAndUpdate(
       { _id: req.userId, walletBalance: { $gte: extraNeeded } },
-      { $inc: { walletBalance: -extraNeeded } },
-      { new: true }
+      { $inc: { walletBalance: -extraNeeded } }, { new: true }
     );
     if (!student) return res.status(400).json({ error: `Need $${extraNeeded} more` });
 
@@ -326,17 +323,13 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
     await question.save();
 
     await Transaction.create({
-      userId: req.userId,
-      type: 'post_question_extra',
-      amount: -extraNeeded,
-      description: `Extra budget for question: ${question.title}`,
-      referenceId: question._id
+      userId: req.userId, type: 'post_question_extra', amount: -extraNeeded,
+      description: `Extra budget for question: ${question.title}`, referenceId: question._id
     });
 
     const tutor = await User.findById(question.tutorId).select('fullName');
     await Notification.create({
-      userId: question.tutorId,
-      type: 'question_posted',
+      userId: question.tutorId, type: 'question_posted',
       title: 'Budget increased & you were assigned',
       message: `${student.fullName} increased the budget to $${question.budget} and assigned you to "${question.title}".`,
       link: `/question-details.html?id=${question._id}`
@@ -348,7 +341,7 @@ router.post('/:id/accept-suggestion', auth, roleCheck('student'), async (req, re
   }
 });
 
-// ------------------- 10. Upload answer (tutor) – memory storage, raw resource -------------------
+// ------------------- 10. Upload answer (tutor) -------------------
 router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single('answer'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -372,18 +365,25 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
     question.answerUploadedAt = new Date();
     await question.save();
 
-    // 🔍 Force a fresh read to confirm the filename was saved
     const saved = await Question.findById(question._id);
     console.log(`✅ Uploaded answer for question ${question._id}: file URL = ${saved.answerFile}, original name = ${saved.answerFileName}`);
 
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
-      userId: question.studentId,
-      type: 'answer_uploaded',
+      userId: question.studentId, type: 'answer_uploaded',
       title: 'Answer Uploaded',
       message: `${tutor.fullName} has uploaded an answer for "${question.title}".`,
       link: `/answer-details.html?id=${question._id}`
     });
+
+    // Send email to student that answer is ready
+    const student = await User.findById(question.studentId);
+    sendEmailWithTemplate(student.email, 'Answer Uploaded for Your Question', 'answer-uploaded.ejs', {
+      studentName: student.fullName,
+      questionTitle: question.title,
+      tutorName: tutor.fullName,
+      questionId: question._id
+    }).catch(err => console.error('Failed to send answer uploaded email:', err));
 
     res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
   } catch (err) {
@@ -392,7 +392,7 @@ router.post('/:id/upload-answer', auth, roleCheck('tutor'), multerMemory.single(
   }
 });
 
-// ------------------- 11. Get bids for a question (student/admin) -------------------
+// ------------------- 11. Get bids for a question -------------------
 router.get('/:id/bids', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -427,26 +427,19 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
       const extra = bidAmount - originalBudget;
       const student = await User.findOneAndUpdate(
         { _id: req.userId, walletBalance: { $gte: extra } },
-        { $inc: { walletBalance: -extra } },
-        { new: true }
+        { $inc: { walletBalance: -extra } }, { new: true }
       );
       if (!student) return res.status(400).json({ error: `Need $${extra} more` });
       await Transaction.create({
-        userId: req.userId,
-        type: 'post_question_extra',
-        amount: -extra,
-        description: `Extra budget for accepted bid on question: ${question.title}`,
-        referenceId: question._id
+        userId: req.userId, type: 'post_question_extra', amount: -extra,
+        description: `Extra budget for accepted bid on question: ${question.title}`, referenceId: question._id
       });
     } else if (bidAmount < originalBudget) {
       const refund = originalBudget - bidAmount;
       await User.updateOne({ _id: req.userId }, { $inc: { walletBalance: refund } });
       await Transaction.create({
-        userId: req.userId,
-        type: 'refund',
-        amount: refund,
-        description: `Refund for lower bid on question: ${question.title}`,
-        referenceId: question._id
+        userId: req.userId, type: 'refund', amount: refund,
+        description: `Refund for lower bid on question: ${question.title}`, referenceId: question._id
       });
     }
 
@@ -460,12 +453,19 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
 
     const tutor = await User.findById(bid.tutorId).select('fullName');
     await Notification.create({
-      userId: bid.tutorId,
-      type: 'question_posted',
+      userId: bid.tutorId, type: 'question_posted',
       title: 'Your bid was accepted!',
       message: `${tutor.fullName}, your bid of $${bidAmount} on "${question.title}" has been accepted.`,
       link: `/question-details.html?id=${question._id}`
     });
+
+    // Send email to tutor that their bid was accepted
+    sendEmailWithTemplate(tutor.email, 'Your Bid Was Accepted!', 'bid-accepted.ejs', {
+      tutorName: tutor.fullName,
+      questionTitle: question.title,
+      bidAmount: bidAmount,
+      questionId: question._id
+    }).catch(err => console.error('Failed to send bid accepted email:', err));
 
     res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
   } catch (err) {
@@ -473,7 +473,7 @@ router.post('/:id/accept-bid/:bidId', auth, roleCheck('student'), async (req, re
   }
 });
 
-// ------------------- 13. Student rates tutor (after completion) -------------------
+// ------------------- 13. Student rates tutor -------------------
 router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -489,9 +489,7 @@ router.post('/:id/rate', auth, roleCheck('student'), async (req, res) => {
 
     const tutor = await User.findById(question.tutorId);
     const allRatings = await Question.find({
-      tutorId: tutor._id,
-      status: 'completed',
-      'rating.score': { $exists: true }
+      tutorId: tutor._id, status: 'completed', 'rating.score': { $exists: true }
     });
     const avg = allRatings.reduce((sum, q) => sum + q.rating.score, 0) / allRatings.length;
     tutor.tutorProfile.rating = parseFloat(avg.toFixed(2));
@@ -516,35 +514,28 @@ router.post('/:id/request-additional-funds', auth, roleCheck('tutor'), async (re
     }
 
     let { amount, reason } = req.body;
-    // Convert amount to number and validate
     amount = parseFloat(amount);
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount. Must be a positive number.' });
     }
 
-    // Store the request
     question.additionalFundsRequest = {
-      amount: amount,          // ensure it's a number
-      reason: reason || '',
-      status: 'pending',
-      requestedAt: new Date()
+      amount, reason: reason || '', status: 'pending', requestedAt: new Date()
     };
     await question.save();
 
-    // 🔍 Verify the saved value (optional, for debugging)
     const saved = await Question.findById(question._id).select('+additionalFundsRequest');
     console.log(`✅ Funds request saved for question ${question._id}: amount = ${saved.additionalFundsRequest.amount}, reason = ${saved.additionalFundsRequest.reason}`);
 
     const tutor = await User.findById(req.userId).select('fullName');
     await Notification.create({
-      userId: question.studentId,
-      type: 'question_posted',   // could also be 'funds_request' if you add to enum
+      userId: question.studentId, type: 'question_posted',
       title: 'Additional Funds Request',
       message: `${tutor.fullName} requests an additional $${amount} for "${question.title}". Reason: ${reason}`,
       link: `/question-details.html?id=${question._id}`
     });
 
-    res.json({ message: 'Request sent to student', amount: amount });
+    res.json({ message: 'Request sent to student', amount });
   } catch (err) {
     console.error('Error in request-additional-funds:', err);
     res.status(500).json({ error: err.message });
@@ -564,23 +555,17 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
     if (accept) {
       const student = await User.findOneAndUpdate(
         { _id: req.userId, walletBalance: { $gte: request.amount } },
-        { $inc: { walletBalance: -request.amount } },
-        { new: true }
+        { $inc: { walletBalance: -request.amount } }, { new: true }
       );
       if (!student) return res.status(400).json({ error: `Insufficient balance for $${request.amount}` });
       question.budget += request.amount;
       await Transaction.create({
-        userId: req.userId,
-        type: 'post_question_extra',
-        amount: -request.amount,
-        description: `Additional funds for question: ${question.title}`,
-        referenceId: question._id
+        userId: req.userId, type: 'post_question_extra', amount: -request.amount,
+        description: `Additional funds for question: ${question.title}`, referenceId: question._id
       });
       request.status = 'approved';
-
       await Notification.create({
-        userId: question.tutorId,
-        type: 'funds_response',
+        userId: question.tutorId, type: 'funds_response',
         title: 'Funds Request Approved',
         message: `Your request for additional $${request.amount} on "${question.title}" was approved.`,
         link: `/question-details.html?id=${question._id}`
@@ -588,8 +573,7 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
     } else {
       request.status = 'rejected';
       await Notification.create({
-        userId: question.tutorId,
-        type: 'funds_response',
+        userId: question.tutorId, type: 'funds_response',
         title: 'Funds Request Rejected',
         message: `Your request for additional $${request.amount} on "${question.title}" was rejected.`,
         link: `/question-details.html?id=${question._id}`
@@ -603,7 +587,7 @@ router.post('/:id/respond-funds-request', auth, roleCheck('student'), async (req
   }
 });
 
-// ------------------- 16. Tutor cancels assignment (only after rejected funds request) -------------------
+// ------------------- 16. Tutor cancels assignment -------------------
 router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -630,11 +614,8 @@ router.post('/:id/cancel-assignment', auth, roleCheck('tutor'), async (req, res)
   }
 });
 
-// ------------------- 17. Proxy download (bypass Cloudinary signed URLs) -------------------
-// ------------------- 17. Proxy download (bypass Cloudinary signed URLs) -------------------
-// Import Readable from the 'stream' module at the top of your file
+// ------------------- 17. Proxy download -------------------
 const { Readable } = require('stream');
-
 router.get('/:id/download-answer', auth, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -642,7 +623,6 @@ router.get('/:id/download-answer', auth, async (req, res) => {
       return res.status(404).json({ error: 'Answer file not found' });
     }
 
-    // Permission check
     const user = await User.findById(req.userId);
     const isStudent = question.studentId.toString() === req.userId;
     const isTutor = question.tutorId && question.tutorId.toString() === req.userId;
@@ -650,14 +630,12 @@ router.get('/:id/download-answer', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Fetch the file from Cloudinary (public URL stored in DB)
     const cloudinaryResponse = await fetch(question.answerFile);
     if (!cloudinaryResponse.ok) {
       console.error(`Cloudinary fetch error: ${cloudinaryResponse.status} for ${question.answerFile}`);
       return res.status(500).json({ error: 'Failed to fetch file from storage' });
     }
 
-    // ✅ Set proper filename: use stored name, fallback to Cloudinary's last segment
     let fileName = question.answerFileName;
     if (!fileName || fileName === 'undefined' || fileName.trim() === '') {
       const urlParts = question.answerFile.split('/');
@@ -669,7 +647,6 @@ router.get('/:id/download-answer', auth, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', cloudinaryResponse.headers.get('content-type') || 'application/octet-stream');
 
-    const { Readable } = require('stream');
     Readable.fromWeb(cloudinaryResponse.body).pipe(res);
   } catch (err) {
     console.error('Download proxy error:', err);

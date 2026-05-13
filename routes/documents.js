@@ -1,3 +1,4 @@
+const { sendEmailWithTemplate } = require('../utils/email');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const cloudinary = require('cloudinary').v2;
@@ -179,6 +180,7 @@ const result = await cloudinary.uploader.upload(req.file.path, {
 });
 
 // ========== UNLOCK ==========
+// ========== UNLOCK ==========
 router.post('/:id/unlock', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -186,9 +188,11 @@ router.post('/:id/unlock', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     if (user.walletBalance < doc.price) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
+    // Deduct from buyer
     user.walletBalance -= doc.price;
     await user.save();
 
+    // Pay seller 65%
     const seller = await User.findById(doc.uploaderId);
     const sellerEarnings = doc.price * 0.65;
     seller.walletBalance += sellerEarnings;
@@ -200,6 +204,7 @@ router.post('/:id/unlock', auth, async (req, res) => {
     doc.downloads += 1;
     await doc.save();
 
+    // Record transactions
     await Transaction.create({
       userId: req.userId, type: 'unlock_document', amount: -doc.price,
       description: `Unlocked: ${doc.title}`, referenceId: doc._id
@@ -208,6 +213,28 @@ router.post('/:id/unlock', auth, async (req, res) => {
       userId: doc.uploaderId, type: 'tutor_payment', amount: sellerEarnings,
       description: `Document sale: ${doc.title}`, referenceId: doc._id
     });
+
+    // ✅ Send email to student (document unlocked)
+    const studentEmail = user.email;
+    const studentName = user.fullName;
+    const downloadUrl = doc.fileUrl; // Cloudinary URL
+
+    // Fire-and-forget email (don't await to avoid delaying response)
+    sendEmailWithTemplate(studentEmail, 'Document Unlocked – StudyGlade', 'document-unlocked.ejs', {
+      studentName,
+      documentTitle: doc.title,
+      documentPrice: doc.price,
+      downloadUrl
+    }).catch(err => console.error('Failed to send unlock email:', err));
+
+    // ✅ Send email to tutor (payment received)
+    const tutorEmail = seller.email;
+    const tutorName = seller.fullName;
+    sendEmailWithTemplate(tutorEmail, 'Payment Received – StudyGlade', 'tutor-payment.ejs', {
+      tutorName,
+      amount: sellerEarnings,
+      reason: `Document sale: ${doc.title}`
+    }).catch(err => console.error('Failed to send tutor payment email:', err));
 
     res.json({ message: 'Document unlocked', fileUrl: doc.fileUrl });
   } catch (err) {

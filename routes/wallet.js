@@ -5,6 +5,8 @@ const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
 const axios = require('axios');
 const crypto = require('crypto');
+const { sendEmailWithTemplate } = require('../utils/email'); // ✅ added
+
 const router = express.Router();
 
 // ---------- Get wallet balance & transactions (paginated) ----------
@@ -74,7 +76,7 @@ router.post('/paystack/initialize', auth, async (req, res) => {
   }
 });
 
-// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention ----------
+// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention + email ----------
 router.post('/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
@@ -121,11 +123,19 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       description: `Paystack deposit - Ref: ${reference}`
     });
     console.log(`Wallet credited: ${verifiedAmount} to user ${userId}`);
+
+    // ✅ Send deposit confirmation email
+    sendEmailWithTemplate(user.email, 'Deposit Successful – StudyGlade', 'deposit-confirmation.ejs', {
+      userName: user.fullName,
+      amount: verifiedAmount,
+      newBalance: user.walletBalance,
+      reference: reference
+    }).catch(err => console.error('Failed to send deposit email:', err));
   }
   res.sendStatus(200);
 });
 
-// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) ----------
+// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) + email ----------
 router.post('/withdraw', auth, async (req, res) => {
   try {
     const { amount, method, accountDetails } = req.body;
@@ -156,17 +166,34 @@ router.post('/withdraw', auth, async (req, res) => {
 
     console.log(`Withdrawal request #${withdrawal._id} for $${amount} by ${user.email}`);
 
+    // ✅ Send withdrawal request confirmation to user
+    sendEmailWithTemplate(user.email, 'Withdrawal Request Received – StudyGlade', 'withdrawal-request.ejs', {
+      userName: user.fullName,
+      amount: amount,
+      method: method,
+      withdrawalId: withdrawal._id
+    }).catch(err => console.error('Failed to send withdrawal request email:', err));
+
+    // ✅ Also send an alert email to admin (optional)
+    // You can fetch admin emails from a settings collection or hardcode
+    const adminEmails = ['admin@studyglade.com']; // change to your actual admin email
+    for (const adminEmail of adminEmails) {
+      sendEmailWithTemplate(adminEmail, 'Admin Alert: New Withdrawal Request', 'admin-alert.ejs', {
+        event: 'Withdrawal Request',
+        details: `User ${user.fullName} (${user.email}) requested $${amount} via ${method}.`,
+        adminUrl: 'https://studyglade.com/admin-dashboard.html#withdrawals'
+      }).catch(err => console.error('Failed to send admin alert email:', err));
+    }
+
     res.json({ message: 'Withdrawal request submitted. Admin will process within 3‑5 business days.', withdrawalId: withdrawal._id, balance: user.walletBalance });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ---------- Get total withdrawals amount (for dashboard stats) – FIXED: use $toString to handle both ObjectId and string ----------
 // ---------- Get total withdrawals amount – sum only APPROVED withdrawals ----------
 router.get('/withdrawals-total', auth, async (req, res) => {
   try {
-    // Convert req.userId to string for reliable matching
     const userIdStr = req.userId.toString();
     const result = await Withdrawal.aggregate([
       {

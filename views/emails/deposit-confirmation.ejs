@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deposit Confirmation</title>
+   <style>
+    /* same base styles as before – inline for better email client compatibility */
+    body, table, td, div, p, a { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%); padding: 1.5rem; text-align: center; }
+    .header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; color: #ffffff; }
+    .content { padding: 1.8rem; color: #1F2937; line-height: 1.6; }
+    .button { display: inline-block; background-color: #005BFF; color: white !important; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: 600; }
+    .footer { background-color: #F8FAFF; padding: 1rem; text-align: center; font-size: 0.7rem; color: #6B7280; border-top: 1px solid #E5E7EB; }
+    @media only screen and (max-width: 480px) { .content { padding: 1.2rem; } .button { display: block; text-align: center; } }
+  </style>
+</head>
+<body style="margin:0; padding:1rem; background:#EFF6FF;">
+  <div class="container">
+    <div class="header"><h2>💰 Deposit Successful</h2></div>
+    <div class="content">
+      <p>Hello <strong><%= userName %></strong>,</p>
+      <p>Your wallet has been credited with <strong>$<%= amount %></strong>.</p>
+      <p>Your new balance is <strong>$<%= newBalance %></strong>.</p>
+      <p>Transaction reference: <code><%= reference %></code></p>
+      <p><a href="https://studyglade.com/student-dashboard.html" class="button">Go to Dashboard</a></p>
+    </div>
+    <div class="footer"><p>StudyGlade – Secure payments</p></div>
+  </div>
+</body>
+</html>
