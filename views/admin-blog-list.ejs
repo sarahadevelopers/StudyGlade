@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog Management | Admin</title>
+  <link rel="stylesheet" href="/admin-dashboard.css">
+  <style>
+    .blog-container { margin: 2rem; }
+    .blog-item { border-bottom: 1px solid #ddd; padding: 1rem; }
+    .actions { margin-top: 0.5rem; }
+    .btn-sm { padding: 0.3rem 0.6rem; margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <h1>Blog Posts</h1>
+    <a href="/admin/blog/new" class="btn-primary">Create New Post</a>
+    <div class="blog-container">
+      <% posts.forEach(post => { %>
+        <div class="blog-item">
+          <h3><%= post.title %></h3>
+          <p>Status: <%= post.isPublished ? 'Published' : 'Draft' %> | Slug: <%= post.slug %></p>
+          <div class="actions">
+            <a href="/admin/blog/<%= post._id %>/edit" class="btn-sm btn-outline">Edit</a>
+            <form action="/admin/blog/<%= post._id %>?_method=DELETE" method="POST" style="display:inline;">
+              <button type="submit" class="btn-sm btn-outline" onclick="return confirm('Delete this post?')">Delete</button>
+            </form>
+            <a href="/blog/<%= post.slug %>" target="_blank" class="btn-sm btn-outline">View</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</body>
+</html>

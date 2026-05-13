@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>StudyGlade Blog – Study Tips, Homework Help & Tutoring Advice</title>
+  <meta name="description" content="Read expert articles on homework help, exam preparation, study techniques, and academic success. Written by tutors and educators.">
+  <link rel="canonical" href="https://studyglade.com/blog">
+  <meta property="og:title" content="StudyGlade Blog">
+  <meta property="og:description" content="Study tips, homework help guides, and tutoring advice to boost your grades.">
+  <meta property="og:image" content="https://studyglade.com/og-logo.png">
+  <meta property="og:url" content="https://studyglade.com/blog">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="/index.css">
+  <style>
+    /* Blog specific styles */
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .blog-card {
+      background: white;
+      border-radius: 24px;
+      padding: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      transition: transform 0.2s;
+    }
+    .blog-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .blog-title { font-size: 1.3rem; font-weight: 600; margin: 0.5rem 0; }
+    .blog-title a { text-decoration: none; color: var(--text-navy); }
+    .blog-title a:hover { color: var(--brand-blue); }
+    .blog-meta { font-size: 0.8rem; color: var(--slate); margin-bottom: 0.5rem; }
+    .blog-excerpt { font-size: 0.9rem; color: var(--text-navy); line-height: 1.5; }
+    .read-more { margin-top: 0.8rem; display: inline-block; font-weight: 500; }
+    .pagination { display: flex; justify-content: center; gap: 0.5rem; margin: 2rem 0; flex-wrap: wrap; }
+    .pagination a, .pagination span { padding: 0.4rem 0.8rem; border-radius: 40px; background: var(--pale-blue); color: var(--brand-blue); text-decoration: none; }
+    .pagination a.active { background: var(--brand-blue); color: white; pointer-events: none; }
+    .breadcrumb-nav { margin-bottom: 1rem; font-size: 0.8rem; }
+    .breadcrumb-nav ul { list-style: none; display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0; margin: 1rem 0; }
+    .breadcrumb-nav li { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .breadcrumb-nav li:not(:last-child)::after { content: "›"; color: var(--slate); }
+    .breadcrumb-nav a { text-decoration: none; color: var(--brand-blue); }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="container">
+        <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/document-library.html">Library</a>
+          <a href="/subjects">Subjects</a>
+          <a href="/blog" class="active">Blog</a>
+          <a href="/pricing">Pricing</a>
+        </div>
+        <div class="nav-buttons">
+          <a href="/login.html" class="btn btn-outline-white">Login</a>
+          <a href="/register.html" class="btn btn-primary">Sign Up</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><span>Blog</span></li>
+        </ul>
+      </nav>
+
+      <h1>StudyGlade Blog</h1>
+      <p>Expert tips, study guides, and homework help articles to boost your academic success.</p>
+
+      <% if (posts && posts.length) { %>
+        <div class="blog-grid">
+          <% posts.forEach(post => { %>
+            <div class="blog-card">
+              <div class="blog-meta">
+                <span><i class="far fa-calendar-alt"></i> <%= new Date(post.publishedAt).toLocaleDateString() %></span> 
+                | <i class="far fa-user"></i> <%= post.author || 'StudyGlade Team' %>
+              </div>
+              <h2 class="blog-title">
+                <a href="/blog/<%= post.slug %>"><%= post.title %></a>
+              </h2>
+              <div class="blog-excerpt">
+                <%= post.excerpt || post.content.substring(0, 140).replace(/<[^>]*>/g, '') %>…
+              </div>
+              <a href="/blog/<%= post.slug %>" class="read-more">Read more →</a>
+            </div>
+          <% }) %>
+        </div>
+
+        <!-- Pagination -->
+        <% if (totalPages > 1) { %>
+          <div class="pagination">
+            <% if (hasPrev) { %>
+              <a href="/blog?page=<%= prevPage %>" class="prev"><i class="fas fa-chevron-left"></i> Previous</a>
+            <% } else { %>
+              <span class="disabled"><i class="fas fa-chevron-left"></i> Previous</span>
+            <% } %>
+            
+            <% 
+              let startPage = Math.max(1, currentPage - 2);
+              let endPage = Math.min(totalPages, currentPage + 2);
+              if (endPage - startPage < 4) {
+                if (startPage === 1) endPage = Math.min(totalPages, 5);
+                if (endPage === totalPages) startPage = Math.max(1, totalPages - 4);
+              }
+              for (let i = startPage; i <= endPage; i++) { 
+            %>
+              <a href="/blog?page=<%= i %>" <%= i === currentPage ? 'class="active"' : '' %>><%= i %></a>
+            <% } %>
+            
+            <% if (hasNext) { %>
+              <a href="/blog?page=<%= nextPage %>">Next <i class="fas fa-chevron-right"></i></a>
+            <% } else { %>
+              <span class="disabled">Next <i class="fas fa-chevron-right"></i></span>
+            <% } %>
+          </div>
+        <% } %>
+      <% } else { %>
+        <p>No blog posts yet. Check back soon!</p>
+      <% } %>
+    </div>
+  </main>
+
+  <footer class="premium-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-wrapper"><a href="/" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a></div>
+        <p class="brand-description">Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+        <div class="newsletter-box"><h5>Stay Updated</h5><form class="newsletter-form"><input type="email" placeholder="Enter your email" required><button type="submit">Join</button></form><p class="newsletter-note">Join 10k+ students. No spam, ever.</p></div>
+        <div class="social-links"><a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a><a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a><a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a><a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a><a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a></div>
+      </div>
+      <div class="footer-links-grid">
+        <div class="link-column"><h4>Platform</h4><ul><li><a href="/post-question">Post a Question</a></li><li><a href="/document-library.html">Browse Documents</a></li><li><a href="/find-tutors">Find a Tutor</a></li><li><a href="/online-classroom">Online Classroom</a></li><li><a href="/study-library">Study Library</a></li><li><a href="/calendar">Calendar</a></li></ul></div>
+        <div class="link-column"><h4>Resources</h4><ul><li><a href="/study-materials">Study Materials</a></li><li><a href="/research-papers">Research Papers</a></li><li><a href="/practice-tests">Practice Tests</a></li><li><a href="/subject-guides">Subject Guides</a></li><li><a href="/academic-tools">Academic Tools</a></li><li><a href="/free-resources">Free Resources</a></li><li><a href="/questions"><strong>All Solved Questions</strong></a></li><li><a href="/subjects"><strong>All Subjects</strong></a></li><li><a href="/tutor/"><strong>All Tutors</strong></a></li><li><a href="/blog"><strong>Blog</strong></a></li></ul></div>
+        <div class="link-column"><h4>Support</h4><ul><li><a href="/help">Help Centre</a></li><li><a href="/contact">Contact Us</a></li><li><a href="/live-chat">Live Chat</a></li><li><a href="/how-it-works">How It Works</a></li><li><a href="/tutor-support">Tutor Support</a></li><li><a href="/feedback">Feedback</a></li></ul></div>
+        <div class="link-column"><h4>Legal</h4><ul><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/cookies">Cookie Policy</a></li><li><a href="/honor-code">Honor Code</a></li></ul></div>
+        <div class="link-column"><h4>About Us</h4><ul><li><a href="/about">About StudyGlade</a></li><li><a href="/careers">Careers</a></li><li><a href="/press">Press & Media</a></li><li><a href="/blog">Blog</a></li><li><a href="/partnerships">Partnerships</a></li></ul></div>
+      </div>
+    </div>
+    <div class="footer-bottom"><p>© <span id="year"></span> StudyGlade. All rights reserved.</p><button class="back-to-top" id="backToTopBtn"><i class="fas fa-arrow-up"></i> Top</button></div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const backToTopBtn = document.getElementById('backToTopBtn');
+    if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  </script>
+</body>
+</html>

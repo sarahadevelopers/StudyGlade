@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= edit ? 'Edit' : 'New' %> Blog Post | Admin</title>
+  <link rel="stylesheet" href="/admin-dashboard.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+  <style>
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.3rem; font-weight: 600; }
+    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+    .form-actions { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <h1><%= edit ? 'Edit Post' : 'New Post' %></h1>
+    <form method="POST" action="/admin/blog<%= edit ? '/' + post._id + '?_method=PUT' : '' %>" id="blogForm">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" name="title" value="<%= post ? post.title : '' %>" required>
+      </div>
+      <div class="form-group">
+        <label>Slug (auto‑generated if empty)</label>
+        <input type="text" name="slug" value="<%= post ? post.slug : '' %>" placeholder="leave empty to auto-generate">
+      </div>
+      <div class="form-group">
+        <label>Content (Markdown) *</label>
+        <textarea name="content" id="markdown-editor" rows="15"><%= post ? post.content : '' %></textarea>
+      </div>
+      <div class="form-group">
+        <label>Excerpt (short description, optional)</label>
+        <textarea name="excerpt" rows="3"><%= post ? post.excerpt : '' %></textarea>
+      </div>
+      <div class="form-group">
+        <label>Author</label>
+        <input type="text" name="author" value="<%= post ? post.author : 'StudyGlade Team' %>">
+      </div>
+      <div class="form-group">
+        <label>Featured Image URL</label>
+        <input type="text" name="featuredImage" value="<%= post ? post.featuredImage : '' %>">
+      </div>
+      <div class="form-group">
+        <label>Published</label>
+        <input type="checkbox" name="isPublished" <%= post && post.isPublished ? 'checked' : '' %>>
+      </div>
+      <div class="form-group">
+        <label>Publish Date (optional)</label>
+        <input type="datetime-local" name="publishedAt" value="<%= post && post.publishedAt ? new Date(post.publishedAt).toISOString().slice(0,16) : '' %>">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Save</button>
+        <a href="/admin/blog" class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+  <script>
+    const easyMDE = new EasyMDE({ element: document.getElementById('markdown-editor') });
+  </script>
+</body>
+</html>

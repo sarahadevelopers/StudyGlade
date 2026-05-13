@@ -9,6 +9,7 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
+const methodOverride = require('method-override');   // ✅ for blog admin forms
 
 const app = express();
 
@@ -74,12 +75,15 @@ const subjectRoutes = require('./routes/subjects');
 const publicQuestionRoutes = require('./routes/publicQuestions');  
 const tutorRoutes = require('./routes/tutor'); 
 const questionsArchiveRoutes = require('./routes/questionsArchive');
+const adminBlogRoutes = require('./routes/adminBlog');   // ✅ blog admin
+const blogRoutes = require('./routes/blog');             // ✅ public blog
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
+const BlogPost = require('./models/BlogPost');           // ✅ for sitemap
 
 // ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -154,6 +158,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(methodOverride('_method'));   // ✅ support PUT/DELETE in HTML forms (for blog admin)
+
 app.use((req, res, next) => {
   if (req.path === '/api/questions' && req.method === 'POST') {
     console.log('Incoming POST /api/questions with content-type:', req.headers['content-type']);
@@ -191,7 +197,7 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO PUBLIC ROUTES ==========
+// ========== 10. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -215,7 +221,11 @@ app.get('/document/:slug', async (req, res) => {
 app.use('/subjects', subjectRoutes);
 app.use('/question', publicQuestionRoutes);
 
-// ========== 11. DYNAMIC SITEMAP (includes all SEO pages) ==========
+// ✅ Blog routes
+app.use('/admin/blog', adminBlogRoutes);   // admin panel (protected by auth + roleCheck inside)
+app.use('/blog', blogRoutes);              // public blog
+
+// ========== 11. DYNAMIC SITEMAP (includes blog posts) ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
@@ -234,11 +244,10 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // 2. Dynamic subjects (from both documents and questions)
+    // 2. Dynamic subjects
     const docSubjects = await Document.distinct('subject', { isApproved: true });
     const questionCategories = await Question.distinct('category', { status: 'completed' });
     const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
-    // Slugify helper
     const slugify = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     allSubjects.forEach(sub => {
       const slug = slugify(sub);
@@ -250,13 +259,12 @@ app.get('/sitemap.xml', async (req, res) => {
         </url>
       `;
     });
-    // Subjects index page
     urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
 
-    // 3. Questions archive page
+    // 3. Questions archive
     urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // 4. Completed question pages
+    // 4. Completed questions
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
     if (completedQuestions && completedQuestions.length) {
       completedQuestions.forEach(q => {
@@ -271,7 +279,7 @@ app.get('/sitemap.xml', async (req, res) => {
       });
     }
 
-    // 5. Tutor list page
+    // 5. Tutor list
     urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
     // 6. Individual tutor profiles
@@ -286,6 +294,21 @@ app.get('/sitemap.xml', async (req, res) => {
         </url>
       `;
     });
+
+    // ✅ 7. Blog posts
+    const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
+    blogPosts.forEach(post => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/blog/${post.slug}</loc>
+          <lastmod>${post.updatedAt.toISOString()}</lastmod>
+          <changefreq>weekly</changefreq>
+          <priority>0.6</priority>
+        </url>
+      `;
+    });
+    // Blog listing page
+    urls += `<url><loc>${baseUrl}/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
