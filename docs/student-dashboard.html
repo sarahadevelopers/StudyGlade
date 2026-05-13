@@ -24,16 +24,20 @@
       <!--  <a href="#" class="nav-link">Messages</a>-->
     </div>
     <div class="nav-right">
+      <!-- 🔔 SOUND TOGGLE (NEW) -->
+      <div class="notification-sound-toggle" id="notificationSoundToggle">
+        <i class="fas fa-volume-up"></i>
+      </div>
+      <!-- NOTIFICATION BELL -->
       <div class="notification-bell">
         <i class="fas fa-bell"></i>
         <span class="badge">3</span>
       </div>
-      <!-- USER MENU (single, with dropdown) -->
+      <!-- USER MENU -->
       <div class="user-menu" onclick="toggleUserMenu(event)">
         <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Avatar" class="user-avatar">
         <span class="user-name">Loading...</span>
         <i class="fas fa-chevron-down"></i>
-        <!-- The dropdown menu – initially hidden via CSS, toggled by .active class -->
         <div class="user-dropdown">
           <a href="#" onclick="openAvatarModal(); return false;">Change Avatar</a>
           <a href="#" onclick="logoutUser(); return false;">Logout</a>
