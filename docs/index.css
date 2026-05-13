@@ -1081,3 +1081,163 @@ p, li, span, a {
   .social-icons { justify-content: center; }
   .footer-logo { justify-content: center; }
 }
+
+/* ========== NEW SEO SECTIONS ========== */
+
+/* SEO Content Section */
+.seo-content {
+  background: var(--white);
+  border-radius: 32px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: var(--shadow-sm);
+}
+.seo-content h2 {
+  font-size: 1.8rem;
+  text-align: left;
+  margin-bottom: 1rem;
+}
+.seo-content p {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  color: var(--text-navy);
+}
+
+/* FAQ Section */
+.faq-section {
+  background: var(--white);
+  border-radius: 32px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: var(--shadow-sm);
+}
+.faq-section h2 {
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.faq-item {
+  border-bottom: 1px solid var(--border-grey);
+  padding-bottom: 1rem;
+}
+.faq-item h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--brand-blue);
+  cursor: pointer;
+}
+.faq-item p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
+/* Popular Searches / Subjects */
+.popular-searches {
+  background: var(--white);
+  border-radius: 32px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+.popular-searches h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+.subject-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+.subject-links a {
+  background: var(--pale-blue);
+  padding: 0.5rem 1.2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  color: var(--brand-blue);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.subject-links a:hover {
+  background: var(--brand-blue);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Recently Solved Questions */
+.recent-questions {
+  background: var(--white);
+  border-radius: 32px;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+.recent-questions h2 {
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.question-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.question-card {
+  background: var(--ice-blue);
+  padding: 1rem;
+  border-radius: 24px;
+  transition: transform 0.2s;
+}
+.question-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.question-card a {
+  text-decoration: none;
+  font-weight: 500;
+  color: var(--text-navy);
+}
+.question-card a:hover {
+  color: var(--brand-blue);
+}
+.question-category {
+  font-size: 0.7rem;
+  color: var(--slate);
+  margin-top: 0.3rem;
+}
+
+/* Geographic Signals Badge */
+.geo-badge {
+  background: var(--grad-primary);
+  color: white;
+  display: inline-block;
+  padding: 0.2rem 1rem;
+  border-radius: 40px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .seo-content h2, .faq-section h2, .popular-searches h2, .recent-questions h2 {
+    font-size: 1.4rem;
+  }
+  .subject-links {
+    gap: 0.5rem;
+  }
+  .subject-links a {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.8rem;
+  }
+  .question-list {
+    grid-template-columns: 1fr;
+  }
+}
