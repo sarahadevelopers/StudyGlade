@@ -70,6 +70,7 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
 const notificationRoutes = require('./routes/notifications');
+const subjectRoutes = require('./routes/subjects');   // ✅ NEW
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
@@ -160,10 +161,7 @@ app.use((req, res, next) => {
 // ========== 6b. REDIRECT FROM OLD RENDER URL TO NEW PRODUCTION DOMAIN ==========
 app.use((req, res, next) => {
   const host = req.headers.host;
-  // Check if the request is coming from the old onrender.com domain
   if (host && host.endsWith('onrender.com')) {
-    // Redirect to the same path on www.studyglade.com (or studyglade.com)
-    // Change to 'https://studyglade.com' if you prefer naked domain.
     return res.redirect(301, `https://studyglade.com${req.originalUrl}`);
   }
   next();
@@ -190,7 +188,7 @@ app.use('/api/notifications', notificationRoutes);
 // Health check (alive probe)
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO & PUBLIC ROUTES (document, sitemap) – using production domain ==========
+// ========== 10. SEO & PUBLIC ROUTES (document, sitemap, subjects) ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -211,10 +209,13 @@ app.get('/document/:slug', async (req, res) => {
   }
 });
 
+// Subject pages (SEO)
+app.use('/subjects', subjectRoutes);
+
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
-    const baseUrl = 'https://studyglade.com'; // Use your main production domain
+    const baseUrl = 'https://studyglade.com';
     let urls = documents.map(doc => `
       <url>
         <loc>${baseUrl}/document/${doc.slug}</loc>
@@ -223,6 +224,23 @@ app.get('/sitemap.xml', async (req, res) => {
         <priority>0.7</priority>
       </url>
     `).join('');
+
+    // Add subject pages to sitemap
+    const subjects = [
+      'math-homework-help', 'statistics-help', 'nursing-assignment-help',
+      'python-homework-help', 'calculus-help', 'essay-writing-help',
+      'chemistry-tutor', 'physics-help'
+    ];
+    subjects.forEach(slug => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/subjects/${slug}</loc>
+          <changefreq>weekly</changefreq>
+          <priority>0.8</priority>
+        </url>
+      `;
+    });
+
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

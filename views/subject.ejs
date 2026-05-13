@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= subject %> Homework Help & Tutors | StudyGlade</title>
+  <meta name="description" content="Get <%= subject %> homework help, expert tutors, study resources, and answered questions. 24/7 support for college students.">
+  <link rel="canonical" href="https://studyglade.com/subjects/<%= slug %>">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="/docs/index.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar"><!-- same as homepage navbar --></nav>
+  </header>
+  <main>
+    <div class="container">
+      <h1><%= subject %> Homework Help & Online Tutors</h1>
+      <p>Find expert tutors, study resources, and answers to <%= subject %> questions. Post your own question and get help within hours.</p>
+
+      <section>
+        <h2>Top Tutors for <%= subject %></h2>
+        <div class="tutor-grid">
+          <% tutors.forEach(t => { %>
+            <div class="tutor-card">
+              <img src="<%= t.avatar || 'https://randomuser.me/api/portraits/lego/1.jpg' %>" alt="<%= t.fullName %>" width="60" height="60">
+              <h3><%= t.fullName %></h3>
+              <div class="rating"><%= t.tutorProfile?.rating?.toFixed(1) || 'New' %> ⭐</div>
+              <a href="/tutors/<%= t._id %>" class="btn-sm">View Profile</a>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <section>
+        <h2>Popular <%= subject %> Documents</h2>
+        <div class="document-list">
+          <% documents.forEach(d => { %>
+            <div class="document-item">
+              <a href="/document/<%= d.slug %>"><%= d.title %></a>
+              <span>$<%= d.price %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <section>
+        <h2>Recent <%= subject %> Questions</h2>
+        <ul>
+          <% questions.forEach(q => { %>
+            <li><a href="/questions/<%= q._id %>"><%= q.title %></a></li>
+          <% }) %>
+        </ul>
+      </section>
+
+      <div class="cta-box">
+        <p>Need help with <%= subject %>? <a href="/post-question">Post your question now</a> and get instant bids from expert tutors.</p>
+      </div>
+    </div>
+  </main>
+  <footer class="premium-footer"><!-- same as homepage footer --></footer>
+</body>
+</html>

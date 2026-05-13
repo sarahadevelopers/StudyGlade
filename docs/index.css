@@ -1490,3 +1490,25 @@ p, li, span, a {
   font-size: 0.8rem;
   color: var(--slate);
 }
+
+.tutor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.tutor-card {
+  background: white;
+  border-radius: 24px;
+  padding: 1rem;
+  text-align: center;
+}
+.document-list {
+  margin: 1rem 0;
+}
+.document-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
