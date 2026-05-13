@@ -1,0 +1,27 @@
+<% if (breadcrumbs && breadcrumbs.length) { %>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      <% breadcrumbs.forEach((crumb, i) => { %>
+        {
+          "@type": "ListItem",
+          "position": <%= i+1 %>,
+          "name": "<%= crumb.name %>",
+          "item": "<%= crumb.url %>"
+        }<%= i < breadcrumbs.length-1 ? ',' : '' %>
+      <% }) %>
+    ]
+  }
+  </script>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <% breadcrumbs.forEach((crumb, i) => { %>
+      <% if (i === breadcrumbs.length-1) { %>
+        <span><%= crumb.name %></span>
+      <% } else { %>
+        <a href="<%= crumb.url %>"><%= crumb.name %></a> <i class="fas fa-chevron-right"></i>
+      <% } %>
+    <% }) %>
+  </nav>
+<% } %>

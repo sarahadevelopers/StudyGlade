@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= document.title %> | StudyGlade</title>
   <meta name="description" content="<%= document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject %>">
-  <meta property="og:title" content="<%= document.title %>">
+  <meta name="keywords" content="<%= document.subject %>, <%= document.type %>, study notes, homework help, tutoring">
+  <link rel="canonical" href="https://studyglade.com/document/<%= document.slug %>">
+  <meta property="og:title" content="<%= document.title %> | StudyGlade">
   <meta property="og:description" content="<%= document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject %>">
-  <meta property="og:image" content="<%= document.previewImageUrl %>">
+  <meta property="og:image" content="<%= document.previewImageUrl || 'https://studyglade.com/og-logo.png' %>">
+  <meta property="og:url" content="https://studyglade.com/document/<%= document.slug %>">
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="https://studyglade.onrender.com/document/<%= document.slug %>">
-
-  <!-- ✅ STRUCTURED DATA (JSON‑LD) – improves rich snippets in search results -->
+  <meta name="twitter:image" content="<%= document.previewImageUrl || 'https://studyglade.com/og-logo.png' %>">
+  
+  <!-- Structured Data: CreativeWork (already) + BreadcrumbList + WebPage -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -21,15 +24,29 @@
     "description": "<%= (document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject).replace(/"/g, '\\"') %>",
     "educationalLevel": "<%= document.level %>",
     "learningResourceType": "<%= document.type %>",
-    "creator": {
-      "@type": "Person",
-      "name": "<%= document.uploaderName.replace(/"/g, '\\"') %>"
-    },
-    "offers": {
-      "@type": "Offer",
-      "price": "<%= document.price.toFixed(2) %>",
-      "priceCurrency": "USD"
-    }
+    "creator": { "@type": "Person", "name": "<%= document.uploaderName.replace(/"/g, '\\"') %>" },
+    "offers": { "@type": "Offer", "price": "<%= document.price.toFixed(2) %>", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://studyglade.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Document Library", "item": "https://studyglade.com/document-library.html" },
+      { "@type": "ListItem", "position": 3, "name": "<%= document.title.replace(/"/g, '\\"') %>", "item": "https://studyglade.com/document/<%= document.slug %>" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "<%= document.title.replace(/"/g, '\\"') %>",
+    "description": "<%= (document.description ? document.description.slice(0, 160) : 'Academic document on ' + document.subject).replace(/"/g, '\\"') %>",
+    "url": "https://studyglade.com/document/<%= document.slug %>",
+    "isPartOf": { "@type": "WebSite", "name": "StudyGlade", "url": "https://studyglade.com/" }
   }
   </script>
 
@@ -110,6 +127,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       margin: 1.5rem 0;
       border: 1px solid #e9edf2;
+      display: block;
     }
     .preview-section {
       margin-top: 1.5rem;
@@ -281,7 +299,7 @@
       height: 1px;
       background: linear-gradient(to right, #e2e8f0, transparent);
     }
-    footer {
+    .site-footer {
       text-align: center;
       margin-top: 3rem;
       font-size: 0.75rem;
@@ -299,10 +317,52 @@
       margin-right: 0.3rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    /* Breadcrumb styles */
+    .breadcrumb {
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+      color: #5b6e8c;
+    }
+    .breadcrumb a {
+      text-decoration: none;
+      color: #3b82f6;
+    }
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    .related-docs {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eef2f6;
+    }
+    .related-docs h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .related-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .related-list a {
+      background: #f1f5f9;
+      padding: 0.2rem 0.8rem;
+      border-radius: 40px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      color: #1e40af;
+    }
   </style>
 </head>
 <body>
 <div class="container">
+  <!-- Breadcrumb (UI) -->
+  <div class="breadcrumb">
+    <a href="/">Home</a> › 
+    <a href="/document-library.html">Document Library</a> › 
+    <span><%= document.title %></span>
+  </div>
+
   <div class="document-grid">
     <!-- LEFT COLUMN: Preview content -->
     <div class="card">
@@ -316,7 +376,7 @@
         <p class="description"><%= document.description || 'No description provided.' %></p>
 
         <% if (document.previewImageUrl) { %>
-          <img class="preview-img" src="<%= document.previewImageUrl %>" alt="Document preview image">
+          <img class="preview-img" src="<%= document.previewImageUrl %>" alt="Document preview image" loading="lazy">
         <% } %>
 
         <div class="preview-section">
@@ -357,6 +417,18 @@
           <button id="smartPreviewBtn" class="btn-small" style="background:#eef2ff; border-color:#cbd5e1;">Get answer from document</button>
           <div id="smartPreviewResult" class="smart-result"></div>
         </div>
+
+        <!-- Related documents (same subject) – optional but good for SEO -->
+        <% if (relatedDocuments && relatedDocuments.length) { %>
+          <div class="related-docs">
+            <h3>Related Documents</h3>
+            <div class="related-list">
+              <% relatedDocuments.forEach(doc => { %>
+                <a href="/document/<%= doc.slug %>"><%= doc.title %></a>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
       </div>
     </div>
 
@@ -391,9 +463,9 @@
       </div>
     </div>
   </div>
-  <footer>
+  <div class="site-footer">
     © StudyGlade — Academic knowledge shared securely
-  </footer>
+  </div>
 </div>
 
 <script>
@@ -403,7 +475,7 @@
     return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
   }
 
-  // Smart Preview logic (unchanged)
+  // Smart Preview logic (same as before)
   document.addEventListener('DOMContentLoaded', function() {
     const smartBtn = document.getElementById('smartPreviewBtn');
     const smartQuery = document.getElementById('smartQuery');

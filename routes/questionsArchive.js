@@ -22,13 +22,14 @@ router.get('/', async (req, res) => {
       questions,
       currentPage: page,
       totalPages,
+      totalQuestions: total,          // ✅ added for the template
       hasNext: page < totalPages,
       hasPrev: page > 1,
       prevPage: page - 1,
       nextPage: page + 1
     });
   } catch (err) {
-    console.error(err);
+    console.error('Questions archive error:', err);
     res.status(500).send('Server error');
   }
 });

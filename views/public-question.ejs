@@ -2,79 +2,137 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= question.title %> | StudyGlade</title>
-  <meta name="description" content="<%= question.description ? question.description.substring(0, 160) : '' %>">
+  <meta name="description" content="<%= question.description ? question.description.substring(0, 155) + '…' : 'Get help with this homework question. Expert tutors available 24/7.' %>">
+  <meta name="keywords" content="<%= subject %>, homework help, tutoring, <%= question.title.split(' ').slice(0,5).join(', ') %>">
   <link rel="canonical" href="https://studyglade.com/question/<%= question._id %>">
+  <meta property="og:title" content="<%= question.title %> | StudyGlade">
+  <meta property="og:description" content="<%= question.description ? question.description.substring(0, 155) : 'Homework help question' %>">
+  <meta property="og:image" content="https://studyglade.com/og-logo.png">
+  <meta property="og:url" content="https://studyglade.com/question/<%= question._id %>">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="/index.css">
+  
+  <!-- QAPage Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "QAPage",
+    "mainEntity": {
+      "@type": "Question",
+      "name": "<%= question.title.replace(/"/g, '\\"') %>",
+      "text": "<%= question.description ? question.description.replace(/"/g, '\\"').substring(0, 500) : '' %>",
+      "upvoteCount": 0,
+      "answerCount": 1,
+      "dateCreated": "<%= question.createdAt.toISOString() %>",
+      "author": { "@type": "Person", "name": "Student" },
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This question has been answered. Log in to view the full answer.",
+        "url": "https://studyglade.com/login",
+        "dateCreated": "<%= question.updatedAt.toISOString() %>",
+        "author": { "@type": "Person", "name": "<%= tutorName || 'Tutor' %>" }
+      }
+    }
+  }
+  </script>
+  
+  <!-- BreadcrumbList Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://studyglade.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Questions", "item": "https://studyglade.com/questions" },
+      { "@type": "ListItem", "position": 3, "name": "<%= question.title.substring(0, 60).replace(/"/g, '\\"') %>", "item": "https://studyglade.com/question/<%= question._id %>" }
+    ]
+  }
+  </script>
 </head>
 <body>
-  <!-- Simple navbar (copy from homepage for consistency) -->
-  <header>
-    <nav class="navbar">
-      <div class="container">
-        <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
-        <div class="nav-links">
-          <a href="/">Home</a>
-          <a href="/document-library.html">Library</a>
-          <a href="/subjects/math-homework-help">Subjects</a>
-          <a href="/pricing">Pricing</a>
-        </div>
-        <div class="nav-buttons">
-          <a href="/login.html" class="btn btn-outline-white">Login</a>
-          <a href="/register.html" class="btn btn-primary">Sign Up</a>
-        </div>
-      </div>
-    </nav>
-  </header>
 
-  <main>
+<header>
+  <nav class="navbar">
     <div class="container">
-      <h1><%= question.title %></h1>
-      <div class="question-meta">
-        <span><i class="fas fa-tag"></i> <%= subject %></span>
-        <span><i class="fas fa-dollar-sign"></i> $<%= budget %></span>
-        <span><i class="fas fa-calendar"></i> Asked <%= new Date(createdAt).toLocaleDateString() %></span>
+      <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/document-library.html">Library</a>
+        <a href="/subjects">Subjects</a>
+        <a href="/pricing">Pricing</a>
       </div>
-      <p><strong>Description:</strong> <%= question.description %></p>
-
-      <% if (status === 'completed' && tutorName) { %>
-        <div class="tutor-info">
-          <h3>Answered by <%= tutorName %></h3>
-          <div class="rating"><%= tutorRating?.toFixed(1) || 'New' %> ⭐</div>
-        </div>
-        <div class="answer-section">
-          <p>This question has been answered. <a href="/login?returnTo=/question/<%= question._id %>">Log in</a> to view or download the answer.</p>
-        </div>
-      <% } else { %>
-        <p>This question is still open. <a href="/login?returnTo=/question/<%= question._id %>">Log in</a> to place a bid or get help.</p>
-      <% } %>
+      <div class="nav-buttons">
+        <a href="/login.html" class="btn btn-outline-white">Login</a>
+        <a href="/register.html" class="btn btn-primary">Sign Up</a>
+      </div>
     </div>
-  </main>
+  </nav>
+</header>
+
+<main>
+  <div class="container">
+    <!-- Breadcrumb UI -->
+    <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/questions">All Questions</a></li>
+        <li><span><%= question.title.length > 40 ? question.title.substring(0,40)+'…' : question.title %></span></li>
+      </ul>
+    </nav>
+
+    <h1><%= question.title %></h1>
+    <div class="question-meta">
+      <span><i class="fas fa-tag"></i> <a href="/subjects/<%= slugify(subject) %>"><%= subject %></a></span>
+      <span><i class="fas fa-dollar-sign"></i> $<%= budget %></span>
+      <span><i class="fas fa-calendar"></i> Asked <%= new Date(createdAt).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) %></span>
+    </div>
+    
+    <div class="question-description">
+      <p><%= question.description %></p>
+    </div>
+
+    <% if (status === 'completed' && tutorName) { %>
+      <div class="tutor-info">
+        <h3>Answered by <a href="/tutor/<%= question.tutorId?._id %>"><%= tutorName %></a></h3>
+        <div class="rating"><i class="fas fa-star"></i> <%= tutorRating?.toFixed(1) || 'New' %> ⭐</div>
+      </div>
+      <div class="answer-section">
+        <p>✅ This question has been answered. <a href="/login?returnTo=/question/<%= question._id %>" class="btn-primary-sm">Log in to view the full answer</a></p>
+      </div>
+    <% } else { %>
+      <div class="answer-section open">
+        <p>❓ Need help with this question? <a href="/login?returnTo=/question/<%= question._id %>" class="btn-primary-sm">Log in to place a bid or get help</a></p>
+      </div>
+    <% } %>
+    
+    <!-- Related internal links (optional) -->
+    <div class="related-links">
+      <h3>Related Subjects</h3>
+      <div class="subject-links">
+        <a href="/subjects/<%= slugify(subject) %>"><%= subject %></a>
+        <a href="/subjects">All Subjects</a>
+        <a href="/find-tutors.html">Find Tutors</a>
+      </div>
+    </div>
+  </div>
+</main>
 
 <footer class="premium-footer">
   <div class="footer-container">
     <div class="footer-brand">
       <div class="footer-logo-wrapper"><a href="/" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a></div>
-      <p class="brand-description">Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
-      <div class="newsletter-box"><h5>Stay Updated</h5><form class="newsletter-form"><input type="email" placeholder="Enter your email" required><button type="submit">Join</button></form><p class="newsletter-note">Join 10k+ students. No spam, ever.</p></div>
-      <div class="social-links"><a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a><a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a><a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a><a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a><a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a></div>
+      <p class="brand-description">Empowering students worldwide with expert academic help.</p>
+      <div class="newsletter-box"><h5>Stay Updated</h5><form class="newsletter-form"><input type="email" placeholder="Your email" required><button type="submit">Join</button></form><p class="newsletter-note">Join 10k+ students. No spam.</p></div>
+      <div class="social-links"><a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a><a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a><a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a></div>
     </div>
     <div class="footer-links-grid">
       <div class="link-column"><h4>Platform</h4><ul><li><a href="/post-question">Post a Question</a></li><li><a href="/document-library.html">Browse Documents</a></li><li><a href="/find-tutors">Find a Tutor</a></li><li><a href="/online-classroom">Online Classroom</a></li><li><a href="/study-library">Study Library</a></li><li><a href="/calendar">Calendar</a></li></ul></div>
-      <div class="link-column"><h4>Resources</h4><ul>
-        <li><a href="/study-materials">Study Materials</a></li>
-        <li><a href="/research-papers">Research Papers</a></li>
-        <li><a href="/practice-tests">Practice Tests</a></li>
-        <li><a href="/subject-guides">Subject Guides</a></li>
-        <li><a href="/academic-tools">Academic Tools</a></li>
-        <li><a href="/free-resources">Free Resources</a></li>
-        <li><a href="/questions"><strong>All Solved Questions</strong></a></li>
-        <li><a href="/subjects"><strong>All Subjects</strong></a></li>       <!-- ✅ NEW -->
-        <li><a href="/tutor/"><strong>All Tutors</strong></a></li>           <!-- ✅ NEW -->
-      </ul></div>
+      <div class="link-column"><h4>Resources</h4><ul><li><a href="/study-materials">Study Materials</a></li><li><a href="/research-papers">Research Papers</a></li><li><a href="/practice-tests">Practice Tests</a></li><li><a href="/subject-guides">Subject Guides</a></li><li><a href="/academic-tools">Academic Tools</a></li><li><a href="/free-resources">Free Resources</a></li><li><a href="/questions"><strong>All Solved Questions</strong></a></li><li><a href="/subjects"><strong>All Subjects</strong></a></li><li><a href="/tutor/"><strong>All Tutors</strong></a></li></ul></div>
       <div class="link-column"><h4>Support</h4><ul><li><a href="/help">Help Centre</a></li><li><a href="/contact">Contact Us</a></li><li><a href="/live-chat">Live Chat</a></li><li><a href="/how-it-works">How It Works</a></li><li><a href="/tutor-support">Tutor Support</a></li><li><a href="/feedback">Feedback</a></li></ul></div>
       <div class="link-column"><h4>Legal</h4><ul><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/cookies">Cookie Policy</a></li><li><a href="/honor-code">Honor Code</a></li></ul></div>
       <div class="link-column"><h4>About Us</h4><ul><li><a href="/about">About StudyGlade</a></li><li><a href="/careers">Careers</a></li><li><a href="/press">Press & Media</a></li><li><a href="/blog">Blog</a></li><li><a href="/partnerships">Partnerships</a></li></ul></div>
@@ -82,10 +140,18 @@
   </div>
   <div class="footer-bottom"><p>© <span id="year"></span> StudyGlade. All rights reserved.</p><button class="back-to-top" id="backToTopBtn"><i class="fas fa-arrow-up"></i> Top</button></div>
 </footer>
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-    const backToTopBtn = document.getElementById('backToTopBtn');
-    if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-  </script>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  const backToTopBtn = document.getElementById('backToTopBtn');
+  if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  
+  // Helper slugify for subject links (must match the route logic)
+  function slugify(str) {
+    if (!str) return '';
+    return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+  // Make slugify available for inline links (already used)
+</script>
 </body>
 </html>

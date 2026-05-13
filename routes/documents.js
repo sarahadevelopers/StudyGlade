@@ -261,7 +261,7 @@ router.get('/preview/:id', async (req, res) => {
         <meta property="og:description" content="${escapeHtml(doc.description?.substring(0, 160) || 'Academic document on ' + doc.subject)}">
         <meta property="og:image" content="${escapeHtml(doc.previewImageUrl)}">
         <meta name="twitter:card" content="summary_large_image">
-        <link rel="canonical" href="https://studyglade.onrender.com/document/${doc.slug}">
+        <link rel="canonical" href="https://studyglade.com/document/${doc.slug}">
         <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
         <style>
           * { margin:0; padding:0; box-sizing:border-box; }
