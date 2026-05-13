@@ -70,7 +70,8 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const commentRoutes = require('./routes/comments');
 const notificationRoutes = require('./routes/notifications');
-const subjectRoutes = require('./routes/subjects');   // ✅ NEW
+const subjectRoutes = require('./routes/subjects');
+const publicQuestionRoutes = require('./routes/publicQuestions');   // ✅ NEW
 
 const Bid = require('./models/Bid');
 const Question = require('./models/Question');
@@ -188,7 +189,7 @@ app.use('/api/notifications', notificationRoutes);
 // Health check (alive probe)
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 10. SEO & PUBLIC ROUTES (document, sitemap, subjects) ==========
+// ========== 10. SEO & PUBLIC ROUTES (document, sitemap, subjects, questions) ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -212,20 +213,28 @@ app.get('/document/:slug', async (req, res) => {
 // Subject pages (SEO)
 app.use('/subjects', subjectRoutes);
 
+// Public question pages (SEO)
+app.use('/question', publicQuestionRoutes);
+
 app.get('/sitemap.xml', async (req, res) => {
   try {
-    const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
     const baseUrl = 'https://studyglade.com';
-    let urls = documents.map(doc => `
-      <url>
-        <loc>${baseUrl}/document/${doc.slug}</loc>
-        <lastmod>${doc.updatedAt.toISOString()}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.7</priority>
-      </url>
-    `).join('');
+    let urls = '';
 
-    // Add subject pages to sitemap
+    // Approved documents
+    const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
+    documents.forEach(doc => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/document/${doc.slug}</loc>
+          <lastmod>${doc.updatedAt.toISOString()}</lastmod>
+          <changefreq>monthly</changefreq>
+          <priority>0.7</priority>
+        </url>
+      `;
+    });
+
+    // Subject pages (static list)
     const subjects = [
       'math-homework-help', 'statistics-help', 'nursing-assignment-help',
       'python-homework-help', 'calculus-help', 'essay-writing-help',
@@ -241,12 +250,26 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
+    // Completed questions for SEO
+    const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
+    completedQuestions.forEach(q => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/question/${q._id}</loc>
+          <lastmod>${q.updatedAt.toISOString()}</lastmod>
+          <changefreq>monthly</changefreq>
+          <priority>0.6</priority>
+        </url>
+      `;
+    });
+
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   ${urls}
 </urlset>`);
   } catch (err) {
+    console.error('Sitemap error:', err);
     res.status(500).send('Error generating sitemap');
   }
 });
