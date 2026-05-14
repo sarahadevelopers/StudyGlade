@@ -74,11 +74,11 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
-  // Fetch fresh user data from server
+  // Fetch fresh user data from server (cache‑busting)
   let user;
   try {
-    user = await apiFetch('/auth/me');
-    console.log('🔍 /auth/me response:', user); // 👈 debug log
+    user = await apiFetch('/auth/me?_=' + Date.now());
+    console.log('🔍 /auth/me response:', user);
     if (user && user.id) {
       localStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -95,11 +95,7 @@ async function loadStudentDashboard() {
   }
 
   updateUserMenu(user);
-
-  // Initialize Socket.io (for other real‑time events)
-  if (typeof window.initSocket === 'function') {
-    window.initSocket();
-  }
+  if (typeof window.initSocket === 'function') window.initSocket();
 
   const walletEl = document.getElementById('walletBalance');
   if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
@@ -128,6 +124,12 @@ async function loadStudentDashboard() {
   await checkForFundsRequests(questions);
 }
 
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    console.log('Page restored from bfcache – reloading dashboard');
+    loadStudentDashboard();
+  }
+});
 // Refresh wallet balance when page becomes visible (tab switch)
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden) {
