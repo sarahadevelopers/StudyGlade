@@ -74,15 +74,28 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Load Student Dashboard ----------
  async function loadStudentDashboard() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user || !user.id) {
-    window.location.href = 'login.html';
-    return;
+  // Fetch fresh user data from server FIRST
+  let user;
+  try {
+    user = await apiFetch('/auth/me');
+    if (user && user.id) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      throw new Error('Invalid user response');
+    }
+  } catch (err) {
+    console.error('Failed to fetch user:', err);
+    // Fallback to localStorage if network error
+    user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      window.location.href = 'login.html';
+      return;
+    }
   }
 
   updateUserMenu(user);
 
-  // ✅ Initialize Socket.io connection for real‑time updates
+  // Initialize Socket.io connection for real‑time updates
   if (typeof window.initSocket === 'function') {
     window.initSocket();
   }
@@ -90,7 +103,7 @@ if (window.studentDashboardLoaded) {
   const walletEl = document.getElementById('walletBalance');
   if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
 
-  const questions = await apiFetch('/questions/my-questions');    
+  const questions = await apiFetch('/questions/my-questions');
   const active = questions.filter(q => q.status !== 'completed');
   const completed = questions.filter(q => q.status === 'completed');
   allCompletedQuestions = completed;
