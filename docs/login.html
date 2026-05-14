@@ -133,7 +133,6 @@
   </div>
 </div>
 <script src="api.js"></script>
-<script src="api.js"></script>
 <script>
   const form = document.getElementById('loginForm');
   const loginBtn = document.getElementById('loginBtn');
@@ -144,24 +143,30 @@
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     try {
-      const res = await apiFetch('/auth/login', {
+      const data = await apiFetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      if (res.user) {
-        localStorage.setItem('user', JSON.stringify(res.user));
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        // ✅ Store access token for socket authentication
+        if (data.accessToken) {
+          localStorage.setItem('accessToken', data.accessToken);
+        }
+        // ✅ Initialize socket connection
+        if (window.initSocket) window.initSocket();
+
         const urlParams = new URLSearchParams(window.location.search);
         const returnTo = urlParams.get('returnTo');
         if (returnTo) {
           window.location.href = returnTo;
         } else {
-          // ✅ Handle all roles
-          if (res.user.role === 'student') {
+          if (data.user.role === 'student') {
             window.location.href = 'student-dashboard.html';
-          } else if (res.user.role === 'tutor') {
+          } else if (data.user.role === 'tutor') {
             window.location.href = 'tutor-dashboard.html';
-          } else if (res.user.role === 'admin') {
+          } else if (data.user.role === 'admin') {
             window.location.href = 'admin-dashboard.html';
           } else {
             window.location.href = 'index.html';
