@@ -74,13 +74,6 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
-  // If we came from a wallet-changing action, remove the parameter and reload once
-  if (window.location.search.includes('walletUpdated=true')) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-    window.location.reload();
-    return;
-  }
-
   // Fetch fresh user data from server (cache‑busting)
   let user;
   try {
@@ -130,7 +123,6 @@ async function loadStudentDashboard() {
   await checkForSuggestions(questions);
   await checkForFundsRequests(questions);
 }
-
 window.addEventListener('pageshow', function(event) {
   if (event.persisted) {
     console.log('Page restored from bfcache – reloading dashboard');
