@@ -59,7 +59,7 @@ router.post('/',
     sanitizeText('description').isLength({ min: 20 }).withMessage('Description must be at least 20 characters'),
     sanitizeText('category').notEmpty().withMessage('Category required'),
     sanitizeText('subcategory').optional(),
-    body('budget').isFloat({ min: 3 }).withMessage('Budget must be at least $5'),
+    body('budget').isFloat({ min: 3 }).withMessage('Budget must be at least $3'),
     body('deadline').isISO8601().withMessage('Invalid deadline'),
     sanitizeText('school').optional(),
     sanitizeText('course').optional()
@@ -104,6 +104,13 @@ router.post('/',
       await Transaction.create({
         userId: req.userId, type: 'post_question', amount: -budgetNum,
         description: `Posted question: ${title}`, referenceId: question._id
+      });
+
+      // Emit real‑time wallet update
+      const io = getIO(req);
+      emitToUser(io, req.userId, 'wallet_update', {
+        newBalance: user.walletBalance,
+        transaction: { amount: -budgetNum, type: 'post_question' }
       });
 
       res.status(201).json(question);
