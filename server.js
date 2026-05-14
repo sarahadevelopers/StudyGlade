@@ -203,11 +203,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // CSRF protection for state-changing API routes
-app.use('/api/', (req, res, next) => {
-  if (req.path === '/wallet/paystack-webhook') return next();
+// Apply CSRF protection ONLY to authentication routes
+app.use('/api/auth', (req, res, next) => {
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
 });
+
+// All other API routes (comments, questions, etc.) have no CSRF check
 app.use(methodOverride('_method'));
 
 app.use((req, res, next) => {
