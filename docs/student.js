@@ -73,41 +73,63 @@ if (window.studentDashboardLoaded) {
   let completedDisplayCount = 10;
 
   // ---------- Load Student Dashboard ----------
-  async function loadStudentDashboard() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.id) {
-      window.location.href = 'login.html';
-      return;
-    }
-
-    updateUserMenu(user);
-
-    const walletEl = document.getElementById('walletBalance');
-    if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
-
-    const questions = await apiFetch('/questions/my-questions');    
-    const active = questions.filter(q => q.status !== 'completed');
-    const completed = questions.filter(q => q.status === 'completed');
-    allCompletedQuestions = completed;
-
-    document.getElementById('activeCount').innerText = active.length;
-    document.getElementById('completedCount').innerText = completed.length;
-    document.getElementById('activeBadge').innerText = active.length;
-
-    const totalQuestions = active.length + completed.length;
-    const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
-    document.getElementById('successRate').innerText = `${successRate}%`;
-
-    renderActiveQuestions(active);
-    renderCompletedQuestions();
-    const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
-    if (loadMoreBtn) {
-      loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
-    }
-
-    await checkForSuggestions(questions);
-    await checkForFundsRequests(questions);
+ async function loadStudentDashboard() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!user || !user.id) {
+    window.location.href = 'login.html';
+    return;
   }
+
+  updateUserMenu(user);
+
+  // ✅ Initialize Socket.io connection for real‑time updates
+  if (typeof window.initSocket === 'function') {
+    window.initSocket();
+  }
+
+  const walletEl = document.getElementById('walletBalance');
+  if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
+
+  const questions = await apiFetch('/questions/my-questions');    
+  const active = questions.filter(q => q.status !== 'completed');
+  const completed = questions.filter(q => q.status === 'completed');
+  allCompletedQuestions = completed;
+
+  document.getElementById('activeCount').innerText = active.length;
+  document.getElementById('completedCount').innerText = completed.length;
+  document.getElementById('activeBadge').innerText = active.length;
+
+  const totalQuestions = active.length + completed.length;
+  const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
+  document.getElementById('successRate').innerText = `${successRate}%`;
+
+  renderActiveQuestions(active);
+  renderCompletedQuestions();
+  const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
+  }
+
+  await checkForSuggestions(questions);
+  await checkForFundsRequests(questions);
+}
+
+// Refresh wallet balance when page becomes visible (tab switch)
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    apiFetch('/auth/me').then(user => {
+      if (user && user.walletBalance !== undefined) {
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        if (storedUser) {
+          storedUser.walletBalance = user.walletBalance;
+          localStorage.setItem('user', JSON.stringify(storedUser));
+          const walletSpan = document.getElementById('walletBalance');
+          if (walletSpan) walletSpan.innerText = `$${user.walletBalance.toFixed(2)}`;
+        }
+      }
+    }).catch(err => console.warn('Failed to refresh wallet:', err));
+  }
+});
 
   // ---------- Render Active Questions ----------
   function renderActiveQuestions(active) {

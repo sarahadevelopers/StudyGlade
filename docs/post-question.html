@@ -7,174 +7,165 @@
   <style>
     /* ========== POST QUESTION PAGE – MOBILE RESPONSIVE ========== */
 
-/* Base container adjustment */
-.post-question-container {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-}
+    /* Base container adjustment */
+    .post-question-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
 
-/* Back link – touch friendly */
-.back-link {
-  display: inline-block;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  padding: 0.5rem 0;
-  text-decoration: none;
-  color: var(--primary);
-}
+    /* Back link – touch friendly */
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      padding: 0.5rem 0;
+      text-decoration: none;
+      color: var(--primary);
+    }
 
-/* Form card */
-.form-card {
-  background: var(--white);
-  border-radius: 28px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
-}
+    /* Form card */
+    .form-card {
+      background: var(--white);
+      border-radius: 28px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+    }
 
-/* Form groups – vertical spacing */
-.form-group {
-  margin-bottom: 1.25rem;
-}
+    /* Form groups – vertical spacing */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
 
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  font-size: 0.9rem;
-  color: #1F2937;
-}
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+      color: #1F2937;
+    }
 
-input, select, textarea {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 40px;
-  font-family: inherit;
-  font-size: 1rem;
-  background: var(--white);
-  transition: border 0.2s, box-shadow 0.2s;
-}
+    input, select, textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 40px;
+      font-family: inherit;
+      font-size: 1rem;
+      background: var(--white);
+      transition: border 0.2s, box-shadow 0.2s;
+    }
 
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
 
-textarea {
-  border-radius: 20px;
-  resize: vertical;
-}
+    textarea {
+      border-radius: 20px;
+      resize: vertical;
+    }
 
-/* Deadline datetime-local – ensure consistent height */
-input[type="datetime-local"] {
-  padding: 0.65rem 1rem;
-}
+    /* Deadline datetime-local – ensure consistent height */
+    input[type="datetime-local"] {
+      padding: 0.65rem 1rem;
+    }
 
-/* File input – custom styles for better touch */
-input[type="file"] {
-  padding: 0.75rem 0;
-  border: none;
-  background: transparent;
-}
+    /* File input – custom styles for better touch */
+    input[type="file"] {
+      padding: 0.75rem 0;
+      border: none;
+      background: transparent;
+    }
 
-/* Small helper text */
-small {
-  display: block;
-  margin-top: 0.4rem;
-  font-size: 0.7rem;
-  color: #6B7280;
-}
+    /* Small helper text */
+    small {
+      display: block;
+      margin-top: 0.4rem;
+      font-size: 0.7rem;
+      color: #6B7280;
+    }
 
-/* Submit button */
-.submit-btn {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 9999px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+    /* Submit button */
+    .submit-btn {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
 
-.submit-btn:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-}
+    .submit-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
 
-.submit-btn:active {
-  transform: translateY(0);
-}
+    .submit-btn:active {
+      transform: translateY(0);
+    }
 
-/* Responsive: tablets */
-@media (max-width: 768px) {
-  .post-question-container {
-    padding: 0 1rem;
-    margin: 1rem auto;
-  }
+    /* Responsive: tablets */
+    @media (max-width: 768px) {
+      .post-question-container {
+        padding: 0 1rem;
+        margin: 1rem auto;
+      }
+      .form-card {
+        padding: 1.2rem;
+        border-radius: 24px;
+      }
+      input, select, textarea {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+      }
+      .submit-btn {
+        padding: 0.75rem;
+      }
+    }
 
-  .form-card {
-    padding: 1.2rem;
-    border-radius: 24px;
-  }
-
-  input, select, textarea {
-    padding: 0.7rem 0.9rem;
-    font-size: 0.95rem;
-  }
-
-  .submit-btn {
-    padding: 0.75rem;
-  }
-}
-
-/* Responsive: mobile phones (under 480px) */
-@media (max-width: 480px) {
-  .post-question-container {
-    margin: 0.5rem auto;
-  }
-
-  .form-card {
-    padding: 1rem;
-  }
-
-  label {
-    font-size: 0.85rem;
-  }
-
-  input, select, textarea {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 30px;
-  }
-
-  .submit-btn {
-    padding: 0.7rem;
-    font-size: 0.9rem;
-  }
-
-  small {
-    font-size: 0.65rem;
-  }
-
-  /* Make select dropdown native on mobile for better UX */
-  select {
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg fill='%236B7280' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1.5rem;
-  }
-}
+    /* Responsive: mobile phones (under 480px) */
+    @media (max-width: 480px) {
+      .post-question-container {
+        margin: 0.5rem auto;
+      }
+      .form-card {
+        padding: 1rem;
+      }
+      label {
+        font-size: 0.85rem;
+      }
+      input, select, textarea {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+        border-radius: 30px;
+      }
+      .submit-btn {
+        padding: 0.7rem;
+        font-size: 0.9rem;
+      }
+      small {
+        font-size: 0.65rem;
+      }
+      /* Make select dropdown native on mobile for better UX */
+      select {
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml;utf8,<svg fill='%236B7280' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.5rem;
+      }
+    }
   </style>
 </head>
 <body>
- <div class="post-question-container">
+<div class="post-question-container">
   <a href="student-dashboard.html" class="back-link">← Back to Dashboard</a>
   <div class="form-card">
     <h2>Post a New Question</h2>
@@ -318,6 +309,15 @@ small {
       });
       const data = await res.json();
       if (res.ok) {
+        // ✅ Refresh user data to update wallet balance in localStorage
+        try {
+          const updatedUser = await apiFetch('/auth/me');
+          if (updatedUser) {
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
+        } catch (refreshErr) {
+          console.warn('Failed to refresh user data:', refreshErr);
+        }
         showToast('Question posted successfully!', 'success');
         window.location.href = 'student-dashboard.html';
       } else {
