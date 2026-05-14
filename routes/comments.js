@@ -6,7 +6,7 @@ const Comment = require('../models/Comment');
 const Question = require('../models/Question');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
-const ContentFilterLog = require('../models/ContentFilterLog'); // 👈 import log model
+const ContentFilterLog = require('../models/ContentFilterLog');
 const { upload } = require('../server');
 const { containsContactInfo, getMatchingPattern, redactContactInfo } = require('../utils/contentFilter');
 
@@ -47,9 +47,8 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    // ---- BLOCK CONTACT INFO & LOG ATTEMPT ----
+    // ---- BLOCK CONTACT INFO & LOG ATTEMPT (only for text, not for file name) ----
     if (text && containsContactInfo(text)) {
-      // Log the violation
       await ContentFilterLog.create({
         userId: req.userId,
         userEmail: user.email,
@@ -76,27 +75,12 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     let fileUrl = null;
     if (req.file) {
-      // Check file name for prohibited content
-      if (containsContactInfo(req.file.originalname)) {
-        await ContentFilterLog.create({
-          userId: req.userId,
-          userEmail: user.email,
-          userRole: user.role,
-          action: 'comment',
-          blockedText: `Filename: ${req.file.originalname}`,
-          detectedPattern: getMatchingPattern(req.file.originalname)
-        }).catch(err => console.error('Failed to log file name violation:', err));
-
-        return res.status(400).json({ error: 'File name contains prohibited contact information.' });
-      }
-
+      // ✅ No restriction on file name – upload normally
       const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/comments' });
       fileUrl = result.secure_url;
       await fs.unlink(req.file.path);
     }
 
-    // Create comment (text is already clean; if you want redaction instead of blocking, uncomment next line)
-    // const sanitizedText = text ? redactContactInfo(text) : '';
     const comment = await Comment.create({
       questionId,
       userId: req.userId,
