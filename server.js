@@ -240,8 +240,15 @@ app.get('/document/:slug', async (req, res) => {
 });
 
 app.get('/api/csrf-token', (req, res) => {
-  const token = generateToken(req, res);
-  res.json({ csrfToken: token });
+  try {
+    console.log('CSRF token requested');
+    const token = generateToken(req, res);
+    console.log('Token generated successfully');
+    res.json({ csrfToken: token });
+  } catch (err) {
+    console.error('❌ CSRF token generation failed:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.use('/subjects', subjectRoutes);
