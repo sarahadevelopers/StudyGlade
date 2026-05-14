@@ -101,7 +101,7 @@ async function sendEmail(to, subject, text) {
 // ---------- Token & cookie helpers (unchanged) ----------
 function generateTokens(userId, role) {
   const issuedAt = Math.floor(Date.now() / 1000);
-  const accessToken = jwt.sign({ id: userId, role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const accessToken = jwt.sign({ id: userId, role }, process.env.JWT_SECRET, { expiresIn: '72h' });
   const refreshToken = jwt.sign({ id: userId, role, iat: issuedAt }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
   return { accessToken, refreshToken };
 }
