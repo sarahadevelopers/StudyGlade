@@ -207,10 +207,11 @@ app.use(cookieParser());
 // CSRF protection for state-changing API routes
 // Apply CSRF protection ONLY to authentication routes
 app.use('/api/auth', (req, res, next) => {
-  // Skip CSRF for these endpoints
+  // Skip CSRF for these public or special endpoints
   if (req.path === '/refresh-token') return next();
   if (req.path === '/reset-password') return next();
-  if (req.path === '/avatar') return next();   // 👈 add this line
+  if (req.path === '/register') return next();   // 👈 add
+  if (req.path === '/login') return next();      // 👈 add
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
 });
