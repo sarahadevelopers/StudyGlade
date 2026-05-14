@@ -129,9 +129,7 @@ window.acceptBid = async (bidId, bidAmount, event) => {
   try {
     const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
     showToast(`Bid accepted! New budget $${result.newBudget}`, 'success');
-    // Set flag to force dashboard refresh
-    sessionStorage.setItem('needsDashboardReload', 'true');
-    window.location.href = 'student-dashboard.html';
+    window.location.href = 'student-dashboard.html?walletUpdated=true';
   } catch (err) {
     showToast(err.message, 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = 'Accept this bid'; }
@@ -199,11 +197,9 @@ async function respondToFundsRequest(accept) {
       body: JSON.stringify({ accept })
     });
     showToast(accept ? 'Additional funds added' : 'Request rejected', 'success');
-    sessionStorage.setItem('needsDashboardReload', 'true');
-    window.location.href = 'student-dashboard.html';
+    window.location.href = 'student-dashboard.html?walletUpdated=true';
   } catch (err) { showToast(err.message, 'error'); }
 }
-
 // ---------- Comments ----------
 async function loadComments() {
   try {

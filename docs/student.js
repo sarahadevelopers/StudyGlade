@@ -74,14 +74,14 @@ if (window.studentDashboardLoaded) {
 
   // ---------- Load Student Dashboard ----------
 async function loadStudentDashboard() {
+  // If we came from a wallet-changing action, remove the parameter and reload once
+  if (window.location.search.includes('walletUpdated=true')) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    window.location.reload();
+    return;
+  }
+
   // Fetch fresh user data from server (cache‑busting)
-   // Force full reload if coming from a wallet-changing action
- if (sessionStorage.getItem('needsDashboardReload') === 'true' || sessionStorage.getItem('needsRefresh') === 'true') {
-  sessionStorage.removeItem('needsDashboardReload');
-  sessionStorage.removeItem('needsRefresh');
-  window.location.reload();
-  return;
-}
   let user;
   try {
     user = await apiFetch('/auth/me?_=' + Date.now());
