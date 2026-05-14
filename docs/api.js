@@ -81,7 +81,13 @@ window.API_BASE = '/api';
     }
     const data = await res.json();
     if (!res.ok) {
-      const errorMsg = data.error || 'Request failed';
+      // 👇 IMPROVED: show validation errors if present
+      let errorMsg = 'Request failed';
+      if (data.error) {
+        errorMsg = data.error;
+      } else if (data.errors && data.errors.length > 0) {
+        errorMsg = data.errors[0].msg; // show the first validation error
+      }
       window.showToast(errorMsg, 'error');
       throw new Error(errorMsg);
     }

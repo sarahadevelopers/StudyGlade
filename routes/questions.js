@@ -59,7 +59,7 @@ router.post('/',
     sanitizeText('description').isLength({ min: 20 }).withMessage('Description must be at least 20 characters'),
     sanitizeText('category').notEmpty().withMessage('Category required'),
     sanitizeText('subcategory').optional(),
-    body('budget').isFloat({ min: 5 }).withMessage('Budget must be at least $5'),
+    body('budget').isFloat({ min: 3 }).withMessage('Budget must be at least $5'),
     body('deadline').isISO8601().withMessage('Invalid deadline'),
     sanitizeText('school').optional(),
     sanitizeText('course').optional()
