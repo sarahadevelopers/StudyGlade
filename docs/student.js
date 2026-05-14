@@ -78,6 +78,7 @@ async function loadStudentDashboard() {
   let user;
   try {
     user = await apiFetch('/auth/me');
+    console.log('🔍 /auth/me response:', user); // 👈 debug log
     if (user && user.id) {
       localStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -87,6 +88,7 @@ async function loadStudentDashboard() {
     console.warn('Failed to fetch user, using localStorage fallback:', err);
     user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.id) {
+      localStorage.clear();
       window.location.href = 'login.html';
       return;
     }
