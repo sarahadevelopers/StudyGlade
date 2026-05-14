@@ -207,11 +207,13 @@ app.use(cookieParser());
 // CSRF protection for state-changing API routes
 // Apply CSRF protection ONLY to authentication routes
 app.use('/api/auth', (req, res, next) => {
-  // Skip CSRF for refresh-token endpoint (called automatically without user interaction)
+  // Skip CSRF for these endpoints
   if (req.path === '/refresh-token') return next();
+  if (req.path === '/reset-password') return next();
+  if (req.path === '/avatar') return next();   // 👈 add this line
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
-});  
+});
 
 // All other API routes (comments, questions, etc.) have no CSRF check
 app.use(methodOverride('_method'));
