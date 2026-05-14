@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const methodOverride = require('method-override');
 const rateLimit = require('express-rate-limit');   // ✅ added for global API rate limiting
+const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
 
 const app = express();
 
@@ -159,6 +160,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+// CSRF protection for state-changing API routes
+app.use('/api/', (req, res, next) => {
+  // Skip Paystack webhook (already verified by signature)
+  if (req.path === '/wallet/paystack-webhook') return next();
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  return doubleCsrfProtection(req, res, next);
+});
 app.use(methodOverride('_method'));
 
 app.use((req, res, next) => {
@@ -229,6 +237,11 @@ app.get('/document/:slug', async (req, res) => {
     console.error('Error in /document/:slug:', err);
     res.status(500).send('Server error');
   }
+});
+
+app.get('/api/csrf-token', (req, res) => {
+  const token = generateToken(req, res);
+  res.json({ csrfToken: token });
 });
 
 app.use('/subjects', subjectRoutes);

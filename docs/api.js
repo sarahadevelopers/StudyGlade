@@ -1,6 +1,36 @@
 // Use relative path: works on localhost and production (same origin)
 window.API_BASE = '/api';
 
+// ---------- CSRF Token Handling ----------
+let csrfToken = null;
+let csrfPromise = null; // avoid multiple concurrent fetches
+
+async function getCsrfToken() {
+  if (csrfToken) return csrfToken;
+  if (csrfPromise) return csrfPromise;
+  
+  csrfPromise = (async () => {
+    try {
+      const res = await fetch('/api/csrf-token', {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error(`CSRF token fetch failed: ${res.status}`);
+      const data = await res.json();
+      csrfToken = data.csrfToken;
+      return csrfToken;
+    } catch (err) {
+      console.error('Failed to fetch CSRF token:', err);
+      // Retry on next request
+      csrfPromise = null;
+      return null;
+    } finally {
+      csrfPromise = null;
+    }
+  })();
+  return csrfPromise;
+}
+
+// ---------- Toast & Spinner Helpers ----------
 function showToast(message, type = 'info') {
   let toast = document.querySelector('.toast');
   if (!toast) {
@@ -28,14 +58,25 @@ function hideSpinner(element) {
   delete element.dataset.originalText;
 }
 
+// ---------- Core API Fetch with CSRF ----------
 async function apiFetch(endpoint, options = {}) {
+  const method = options.method || 'GET';
+  let headers = { 'Content-Type': 'application/json', ...options.headers };
+  
+  // Add CSRF token for state-changing requests
+  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    const token = await getCsrfToken();
+    if (token) headers['X-CSRF-Token'] = token;
+    // If token is missing (e.g., network error), request may fail – backend will reject.
+  }
+  
   const res = await fetch(`${window.API_BASE}${endpoint}`, {
     ...options,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers }
+    headers
   });
 
-  // Handle 401 first
+  // Handle 401 (unauthorized) -> session expired
   if (res.status === 401) {
     localStorage.clear();
     showToast('Session expired. Please log in again.', 'error');
@@ -43,6 +84,35 @@ async function apiFetch(endpoint, options = {}) {
     throw new Error('Session expired');
   }
 
+  // Handle 403 (forbidden) – could be CSRF token missing/invalid
+  if (res.status === 403) {
+    // Possibly CSRF token expired or invalid; clear token and retry once?
+    csrfToken = null;
+    const token = await getCsrfToken();
+    if (token) {
+      // Retry the same request with fresh token
+      headers['X-CSRF-Token'] = token;
+      const retryRes = await fetch(`${window.API_BASE}${endpoint}`, {
+        ...options,
+        credentials: 'include',
+        headers
+      });
+      if (retryRes.ok) {
+        // Continue with the retried response
+        return await handleResponse(retryRes);
+      }
+    }
+    // If still failing, throw error
+    const errorData = await retryRes?.json().catch(() => ({}));
+    showToast(errorData.error || 'Request forbidden (CSRF validation failed)', 'error');
+    throw new Error('CSRF validation failed');
+  }
+
+  return handleResponse(res);
+}
+
+// Helper to parse JSON response and handle non‑OK statuses
+async function handleResponse(res) {
   // Check content type BEFORE parsing
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
@@ -62,14 +132,13 @@ async function apiFetch(endpoint, options = {}) {
   return data;
 }
 
-// ========== IDLE TIMEOUT (24 hours) WITH WARNING MODAL ==========
+// ---------- Idle Timeout (24h) with Warning Modal ----------
 let idleTimer = null;
 let warningTimer = null;
 let warningModal = null;
 const IDLE_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 const WARNING_BEFORE = 60 * 1000; // 1 minute before logout
 
-// Create modal dynamically (once)
 function createWarningModal() {
   if (document.getElementById('idleWarningModal')) return;
 
@@ -98,7 +167,6 @@ function createWarningModal() {
   document.body.appendChild(modalDiv);
   warningModal = document.getElementById('idleWarningModal');
 
-  // Add event listener to the button
   const stayBtn = document.getElementById('stayLoggedInBtn');
   if (stayBtn) {
     stayBtn.addEventListener('click', () => {
@@ -112,7 +180,6 @@ function showWarningModal() {
   if (!warningModal) createWarningModal();
   if (!warningModal) return;
   
-  // Update countdown every second
   let secondsLeft = 60;
   const countdownSpan = document.getElementById('countdownSeconds');
   
@@ -122,7 +189,6 @@ function showWarningModal() {
     if (countdownSpan) countdownSpan.textContent = secondsLeft;
     if (secondsLeft <= 0) {
       clearInterval(window.countdownInterval);
-      // If they didn't click "Stay logged in", logout now
       if (warningModal.style.display === 'flex') {
         hideWarningModal();
         localStorage.clear();
@@ -144,16 +210,11 @@ function hideWarningModal() {
 }
 
 function resetIdleTimer() {
-  // Clear existing timers
   if (idleTimer) clearTimeout(idleTimer);
   if (warningTimer) clearTimeout(warningTimer);
-  
-  // Hide warning if visible
   hideWarningModal();
   
-  // Set new timers
   idleTimer = setTimeout(() => {
-    // Final logout after 24h with no activity
     localStorage.clear();
     showToast('Session expired due to inactivity. Please log in again.', 'info');
     window.location.href = 'login.html';
