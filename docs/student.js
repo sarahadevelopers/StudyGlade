@@ -299,7 +299,7 @@ document.addEventListener('visibilitychange', function() {
   async function checkForFundsRequests(questions) {
     for (const q of questions) {
       const req = q.additionalFundsRequest;
-      if (req && req.status === 'pending') {
+      if (req && req.status === 'pending' && req.requestedAt) {
         if (document.getElementById(`funds-banner-${q._id}`)) continue;
         const banner = document.createElement('div');
         banner.id = `funds-banner-${q._id}`;

@@ -33,12 +33,12 @@ const questionSchema = new mongoose.Schema({
   },
   // Tutor requests additional funds
   additionalFundsRequest: {
-    amount: { type: Number },
-    reason: { type: String },
-    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    requestedAt: Date,
-    studentResponseAt: Date
-  },
+  amount: { type: Number },
+  reason: { type: String },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'] }, // no default
+  requestedAt: Date,
+  studentResponseAt: Date
+},
   // Tutor cancellation reason (no penalty)
   cancellationReason: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
