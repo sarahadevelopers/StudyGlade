@@ -199,7 +199,7 @@ async function respondToFundsRequest(accept) {
       body: JSON.stringify({ accept })
     });
     showToast(accept ? 'Additional funds added' : 'Request rejected', 'success');
-    sessionStorage.setItem('needsRefresh', 'true');
+    sessionStorage.setItem('needsDashboardReload', 'true');
     window.location.href = 'student-dashboard.html';
   } catch (err) { showToast(err.message, 'error'); }
 }
