@@ -118,6 +118,7 @@ async function loadBids() {
   } catch (err) { console.error(err); }
 }
 
+// ---------- Accept a bid (student) – redirects to dashboard with refresh flag ----------
 window.acceptBid = async (bidId, bidAmount, event) => {
   const btn = event.target;
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Accepting...'; }
@@ -128,7 +129,9 @@ window.acceptBid = async (bidId, bidAmount, event) => {
   try {
     const result = await apiFetch(`/questions/${questionId}/accept-bid/${bidId}`, { method: 'POST' });
     showToast(`Bid accepted! New budget $${result.newBudget}`, 'success');
-    location.reload();
+    // Set flag to force dashboard refresh
+    sessionStorage.setItem('needsDashboardReload', 'true');
+    window.location.href = 'student-dashboard.html';
   } catch (err) {
     showToast(err.message, 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = 'Accept this bid'; }
@@ -188,6 +191,7 @@ async function cancelAssignment() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// ---------- Student responds to funds request – redirects to dashboard with refresh flag ----------
 async function respondToFundsRequest(accept) {
   try {
     await apiFetch(`/questions/${questionId}/respond-funds-request`, {
@@ -195,7 +199,8 @@ async function respondToFundsRequest(accept) {
       body: JSON.stringify({ accept })
     });
     showToast(accept ? 'Additional funds added' : 'Request rejected', 'success');
-    location.reload();
+    sessionStorage.setItem('needsRefresh', 'true');
+    window.location.href = 'student-dashboard.html';
   } catch (err) { showToast(err.message, 'error'); }
 }
 
