@@ -14,6 +14,7 @@ const rateLimit = require('express-rate-limit');   // ✅ added for global API r
 const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
 
 const app = express();
+app.set('trust proxy', 1); // trust first proxy (Render)
 
 // ========== 1. ENSURE UPLOADS FOLDER EXISTS ==========
 const uploadDir = path.join(__dirname, 'uploads');

@@ -400,6 +400,7 @@ router.post('/logout', async (req, res) => {
   }
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
+  res.clearCookie('X-CSRF-Token');   // ← add this
   res.json({ message: 'Logged out' });
 });
 

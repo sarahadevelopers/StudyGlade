@@ -25,13 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ----- LOGOUT HANDLER (common for all pages) -----
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      // Call logout endpoint to clear cookies
-      await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
-      localStorage.clear();
-      window.location.href = 'login.html';
-    });
-  }
+ const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    // Reset CSRF token in frontend memory
+    if (window.resetCsrfToken) window.resetCsrfToken();
+    // Call logout endpoint to clear cookies (including CSRF cookie on backend)
+    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    localStorage.clear();
+    window.location.href = 'login.html';
+  });
+}
 });

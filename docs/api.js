@@ -210,6 +210,7 @@ window.API_BASE = '/api';
     });
     resetIdleTimer();
   };
+  
 
   window.stopIdleTimer = function() {
     if (idleTimer) clearTimeout(idleTimer);
@@ -220,4 +221,9 @@ window.API_BASE = '/api';
       window.removeEventListener(event, resetIdleTimer);
     });
   };
+
+  window.resetCsrfToken = function() {
+  csrfToken = null;
+  csrfPromise = null;
+};
 })();
