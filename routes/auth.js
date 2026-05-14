@@ -348,7 +348,10 @@ router.post('/forgot-password',
       user.resetPasswordExpires = Date.now() + 3600000;
       await user.save();
       const resetLink = `https://studyglade.com/reset-password.html?token=${token}`;
-      await sendEmail(user.email, 'Password Reset', `Click here to reset your password: ${resetLink}`);
+      await sendEmailWithTemplate(user.email, 'Password Reset – StudyGlade', 'password-reset.ejs', {
+  userName: user.fullName,
+  resetLink: resetLink
+});
       res.json({ message: 'Reset link sent to your email' });
     } catch (err) {
       console.error('Forgot password error:', err);
