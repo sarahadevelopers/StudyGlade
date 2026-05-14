@@ -73,8 +73,8 @@ if (window.studentDashboardLoaded) {
   let completedDisplayCount = 10;
 
   // ---------- Load Student Dashboard ----------
- async function loadStudentDashboard() {
-  // Fetch fresh user data from server FIRST
+async function loadStudentDashboard() {
+  // Fetch fresh user data from server
   let user;
   try {
     user = await apiFetch('/auth/me');
@@ -84,8 +84,7 @@ if (window.studentDashboardLoaded) {
       throw new Error('Invalid user response');
     }
   } catch (err) {
-    console.error('Failed to fetch user:', err);
-    // Fallback to localStorage if network error
+    console.warn('Failed to fetch user, using localStorage fallback:', err);
     user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.id) {
       window.location.href = 'login.html';
@@ -95,7 +94,7 @@ if (window.studentDashboardLoaded) {
 
   updateUserMenu(user);
 
-  // Initialize Socket.io connection for real‑time updates
+  // Initialize Socket.io (for other real‑time events)
   if (typeof window.initSocket === 'function') {
     window.initSocket();
   }
