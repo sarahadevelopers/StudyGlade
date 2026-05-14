@@ -159,6 +159,7 @@ router.get('/my-questions', auth, roleCheck('student'), async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(questions);
   } catch (err) {
+    console.error('❌ Error in /my-questions:', err);
     res.status(500).json({ error: err.message });
   }
 });

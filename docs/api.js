@@ -62,7 +62,21 @@ window.API_BASE = '/api';
       });
     };
 
-    let res = await makeRequest();
+    // Retry logic for network failures (e.g., ERR_CONNECTION_CLOSED)
+    let res;
+    try {
+      res = await makeRequest();
+    } catch (err) {
+      // Network error (connection closed, DNS failure, etc.)
+      console.warn(`Network error for ${endpoint}, retrying once...`, err);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        res = await makeRequest();
+      } catch (retryErr) {
+        // Still failing – rethrow
+        throw retryErr;
+      }
+    }
 
     // If 401 and not already refreshing, try to refresh token once
     if (res.status === 401 && !isRefreshing) {

@@ -26,6 +26,11 @@ const notificationSchema = new mongoose.Schema({
 
 // 👇 POST-SAVE HOOK – emits real‑time event via Socket.io
 notificationSchema.post('save', async function(doc) {
+  // Guard: if no userId, skip socket emit (but still save the notification)
+  if (!doc.userId) {
+    console.warn('⚠️ Notification saved without userId – skipping real-time emit. Type:', doc.type, 'Title:', doc.title);
+    return;
+  }
   try {
     if (global.io) {
       global.io.to(`user_${doc.userId}`).emit('notification_new', {
