@@ -969,6 +969,79 @@ async function downloadFinancialPDF() {
   if (to) url += `to=${to}`;
   window.open(url, '_blank');
 }
+// ---------- Content Violations (for admin dashboard) ----------
+let violationsPage = 1;
+
+async function loadViolations(page = 1) {
+  try {
+    const data = await apiFetch(`/admin/content-violations?page=${page}&limit=20`);
+    const tbody = document.getElementById('violationsList');
+    if (!tbody) return;
+    if (data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7">No violations recorded.</td></tr>';
+    } else {
+      tbody.innerHTML = data.logs.map(v => `
+        <tr>
+          <td>${escapeHtml(v.userId?.fullName || 'Deleted')}</td>
+          <td>${escapeHtml(v.userId?.email || '—')}</td>
+          <td>${v.userRole}</td>
+          <td>${v.action}</td>
+          <td>${v.detectedPattern || '—'}</td>
+          <td>${escapeHtml((v.blockedText || '').substring(0, 60))}${(v.blockedText?.length > 60 ? '…' : '')}</td>
+          <td>${new Date(v.timestamp).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+    renderViolationsPagination(data.pagination);
+  } catch (err) {
+    console.error('Failed to load violations:', err);
+    document.getElementById('violationsList').innerHTML = '<tr><td colspan="7">Error loading data.</td></tr>';
+  }
+}
+
+async function loadViolationsSummary() {
+  try {
+    const summary = await apiFetch('/admin/content-violations/summary');
+    const container = document.getElementById('violationsSummary');
+    if (!container) return;
+    container.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card"><h4>Last 24h</h4><div class="value">${summary.last24h}</div></div>
+        <div class="stat-card"><h4>Last 7d</h4><div class="value">${summary.last7d}</div></div>
+      </div>
+      <h4>Top Offenders</h4>
+      <table class="data-table" style="margin-bottom:1rem;"><thead><tr><th>Name</th><th>Email</th><th>Attempts</th></tr></thead>
+      <tbody>${summary.byUser.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.count}</td></tr>`).join('')}</tbody>
+      </table>
+      <h4>Detected Patterns</h4>
+      <table class="data-table"><thead><tr><th>Pattern</th><th>Count</th></tr></thead>
+      <tbody>${summary.byPattern.map(p => `<tr><td>${p._id || 'unknown'}</td><td>${p.count}</td></tr>`).join('')}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error('Summary error:', err);
+    container.innerHTML = '<p>Error loading summary.</p>';
+  }
+}
+
+function renderViolationsPagination(pagination) {
+  const container = document.getElementById('violationsPagination');
+  if (!container) return;
+  let html = '<div style="display: flex; gap: 0.5rem; justify-content: center;">';
+  if (pagination.page > 1) html += `<button class="btn-sm btn-secondary" onclick="loadViolations(${pagination.page - 1})">Previous</button>`;
+  html += `<span>Page ${pagination.page} of ${pagination.pages}</span>`;
+  if (pagination.page < pagination.pages) html += `<button class="btn-sm btn-secondary" onclick="loadViolations(${pagination.page + 1})">Next</button>`;
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function exportViolationsCSV() {
+  exportTableToCSV('violationsTable', 'content_violations.csv');
+}
+
+window.loadViolations = loadViolations;
+window.loadViolationsSummary = loadViolationsSummary;
+window.exportViolationsCSV = exportViolationsCSV;
 
 // ----- Expose remaining global functions for inline buttons -----
 window.loadFinancialReport = loadFinancialReport;
@@ -1024,7 +1097,12 @@ function initSidebar() {
       sections.forEach(s => s.classList.remove('active-section'));
       document.getElementById(sectionId).classList.add('active-section');
 
-      if (sectionId === 'financial') loadFinancialReport();
+      if (sectionId === 'financial') {
+        loadFinancialReport();
+      } else if (sectionId === 'content-violations') {
+        loadViolationsSummary();
+        loadViolations();
+      }
     });
   });
 }

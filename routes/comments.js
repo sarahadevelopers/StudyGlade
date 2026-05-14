@@ -5,8 +5,10 @@ const auth = require('../middleware/auth');
 const Comment = require('../models/Comment');
 const Question = require('../models/Question');
 const User = require('../models/User');
-const Notification = require('../models/Notification');   // 👈 import Notification model
+const Notification = require('../models/Notification');
+const ContentFilterLog = require('../models/ContentFilterLog'); // 👈 import log model
 const { upload } = require('../server');
+const { containsContactInfo, getMatchingPattern, redactContactInfo } = require('../utils/contentFilter');
 
 const router = express.Router();
 
@@ -41,10 +43,30 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Comment cannot be empty – provide text or file' });
     }
 
+    // --- Fetch user early for logging ---
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    // ---- BLOCK CONTACT INFO & LOG ATTEMPT ----
+    if (text && containsContactInfo(text)) {
+      // Log the violation
+      await ContentFilterLog.create({
+        userId: req.userId,
+        userEmail: user.email,
+        userRole: user.role,
+        action: 'comment',
+        blockedText: text.substring(0, 200),
+        detectedPattern: getMatchingPattern(text)
+      }).catch(err => console.error('Failed to log content filter attempt:', err));
+
+      return res.status(400).json({ 
+        error: 'Messages cannot contain email addresses, phone numbers, URLs, or third‑party contact information (e.g., WhatsApp, Telegram, social media).' 
+      });
+    }
+
     const question = await Question.findById(questionId);
     if (!question) return res.status(404).json({ error: 'Question not found' });
 
-    const user = await User.findById(req.userId);
     const isOwner = question.studentId.toString() === req.userId;
     const isAssignedTutor = question.tutorId && question.tutorId.toString() === req.userId;
     const isAdmin = user.role === 'admin';
@@ -54,11 +76,27 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     let fileUrl = null;
     if (req.file) {
+      // Check file name for prohibited content
+      if (containsContactInfo(req.file.originalname)) {
+        await ContentFilterLog.create({
+          userId: req.userId,
+          userEmail: user.email,
+          userRole: user.role,
+          action: 'comment',
+          blockedText: `Filename: ${req.file.originalname}`,
+          detectedPattern: getMatchingPattern(req.file.originalname)
+        }).catch(err => console.error('Failed to log file name violation:', err));
+
+        return res.status(400).json({ error: 'File name contains prohibited contact information.' });
+      }
+
       const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/comments' });
       fileUrl = result.secure_url;
       await fs.unlink(req.file.path);
     }
 
+    // Create comment (text is already clean; if you want redaction instead of blocking, uncomment next line)
+    // const sanitizedText = text ? redactContactInfo(text) : '';
     const comment = await Comment.create({
       questionId,
       userId: req.userId,
@@ -74,26 +112,21 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     const commentPreview = text ? text.substring(0, 100) : (req.file ? '📎 Attached a file' : 'New comment');
     const link = `/question-details.html?id=${question._id}`;
 
-    // Determine who should be notified
     const recipients = [];
 
     if (isAdmin) {
-      // Admin commented: notify both student and tutor (if any)
       recipients.push({ userId: question.studentId, role: 'student' });
       if (question.tutorId) {
         recipients.push({ userId: question.tutorId, role: 'tutor' });
       }
     } else if (isOwner) {
-      // Student commented: notify the assigned tutor (if any)
       if (question.tutorId) {
         recipients.push({ userId: question.tutorId, role: 'tutor' });
       }
     } else if (isAssignedTutor) {
-      // Tutor commented: notify the student
       recipients.push({ userId: question.studentId, role: 'student' });
     }
 
-    // Create notifications (avoid notifying the commenter themselves)
     for (const recipient of recipients) {
       if (recipient.userId && recipient.userId.toString() !== req.userId) {
         await Notification.create({

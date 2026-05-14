@@ -12,6 +12,7 @@ const axios = require('axios');
 const methodOverride = require('method-override');
 const rateLimit = require('express-rate-limit');   // ✅ added for global API rate limiting
 const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
+const { sendEmailWithTemplate } = require('./utils/email');   // 👈 import email helper
 
 const app = express();
 app.set('trust proxy', 1); // trust first proxy (Render)
@@ -87,6 +88,7 @@ const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
 const BlogPost = require('./models/BlogPost');
+const ContentFilterLog = require('./models/ContentFilterLog');   // 👈 new import
 
 // ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -195,7 +197,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 9. GLOBAL API RATE LIMITER (optional, 100 requests per 15 min) ==========
+// ========== 9. GLOBAL API RATE LIMITER ==========
 const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -203,11 +205,9 @@ const globalApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-// Apply to all API routes
 app.use('/api/', globalApiLimiter);
 
-// ========== 10. API ROUTES (public) ==========
+// ========== 10. API ROUTES ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -265,7 +265,6 @@ app.get('/sitemap.xml', async (req, res) => {
     const baseUrl = 'https://studyglade.com';
     let urls = '';
 
-    // 1. Approved documents
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
     documents.forEach(doc => {
       urls += `
@@ -278,7 +277,6 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // 2. Dynamic subjects
     const docSubjects = await Document.distinct('subject', { isApproved: true });
     const questionCategories = await Question.distinct('category', { status: 'completed' });
     const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
@@ -294,11 +292,8 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
     urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
-
-    // 3. Questions archive
     urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // 4. Completed questions
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
     if (completedQuestions && completedQuestions.length) {
       completedQuestions.forEach(q => {
@@ -313,10 +308,8 @@ app.get('/sitemap.xml', async (req, res) => {
       });
     }
 
-    // 5. Tutor list
     urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // 6. Individual tutor profiles
     const tutors = await User.find({ role: 'tutor', isApproved: true }).select('_id updatedAt');
     tutors.forEach(t => {
       urls += `
@@ -329,7 +322,6 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // 7. Blog posts
     const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
     blogPosts.forEach(post => {
       urls += `
@@ -394,6 +386,61 @@ const updateTutorLevels = require('./utils/updateTutorLevels');
 cron.schedule('0 0 * * *', () => {
   console.log('Running tutor level update...');
   updateTutorLevels().catch(console.error);
+});
+
+// ---------- Daily email report of content violations (8 AM) ----------
+cron.schedule('0 8 * * *', async () => {
+  console.log('Running content violation daily report...');
+  try {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const violations = await ContentFilterLog.find({ timestamp: { $gte: yesterday } })
+      .populate('userId', 'fullName email role')
+      .sort({ timestamp: -1 })
+      .limit(20);
+
+    if (violations.length === 0) {
+      console.log('No content violations in the last 24 hours.');
+      return;
+    }
+
+    const admins = await User.find({ role: 'admin' }).select('email fullName');
+    if (admins.length === 0) return;
+
+    // Build HTML report table
+    const rows = violations.map(v => `
+      <tr>
+        <td>${v.userId?.fullName || 'Deleted'}</td>
+        <td>${v.userId?.email || 'N/A'}</td>
+        <td>${v.userRole}</td>
+        <td>${v.action}</td>
+        <td>${v.detectedPattern}</td>
+        <td>${(v.blockedText || '').substring(0, 60)}</td>
+        <td>${new Date(v.timestamp).toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    const reportHtml = `
+      <h2>Content Violation Report (last 24h)</h2>
+      <p>Total violations: ${violations.length}</p>
+      <table border="1" cellpadding="5" style="border-collapse: collapse; width:100%;">
+        <thead>
+          <tr><th>User</th><th>Email</th><th>Role</th><th>Action</th><th>Pattern</th><th>Blocked Text</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p><a href="https://studyglade.com/admin-dashboard.html?section=content-violations">View full log in admin dashboard</a></p>
+    `;
+
+    for (const admin of admins) {
+      await sendEmailWithTemplate(admin.email, 'Content Violation Alert – StudyGlade', 'admin-alert.ejs', {
+        adminName: admin.fullName,
+        violationsCount: violations.length,
+        reportHtml: reportHtml
+      }).catch(err => console.error(`Failed to send violation email to ${admin.email}:`, err));
+    }
+  } catch (err) {
+    console.error('Content violation cron error:', err);
+  }
 });
 
 // ========== 16. GLOBAL ERROR HANDLER ==========

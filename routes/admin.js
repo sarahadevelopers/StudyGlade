@@ -11,7 +11,8 @@ const Breach = require('../models/Breach');
 const Announcement = require('../models/Announcement');
 const Comment = require('../models/Comment');
 const PDFDocument = require('pdfkit');
-const pingGoogleSitemap = require('../utils/notifyGoogle'); // ✅ added
+const pingGoogleSitemap = require('../utils/notifyGoogle'); 
+const ContentFilterLog = require('../models/ContentFilterLog');// ✅ added
 const router = express.Router();
 
 // ========== PUBLIC ROUTE (no authentication required) – MUST BE FIRST ==========
@@ -812,6 +813,57 @@ async function fetchFinancialReportData(userId, from, to, page = 1, limit = 20) 
     }
   };
 }
+// GET /api/admin/content-violations – retrieve logs of blocked attempts
+router.get('/content-violations', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const logs = await ContentFilterLog.find()
+      .populate('userId', 'fullName email role')
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ContentFilterLog.countDocuments();
+
+    res.json({
+      logs,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Optional: GET summary statistics
+router.get('/content-violations/summary', async (req, res) => {
+  try {
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const summary = {
+      last24h: await ContentFilterLog.countDocuments({ timestamp: { $gte: last24h } }),
+      last7d: await ContentFilterLog.countDocuments({ timestamp: { $gte: last7d } }),
+      byUser: await ContentFilterLog.aggregate([
+        { $group: { _id: '$userId', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+        { $unwind: '$user' },
+        { $project: { name: '$user.fullName', email: '$user.email', count: 1 } }
+      ]),
+      byPattern: await ContentFilterLog.aggregate([
+        { $group: { _id: '$detectedPattern', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ])
+    };
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // JSON endpoint with pagination
 router.get('/financial-report', async (req, res) => {
