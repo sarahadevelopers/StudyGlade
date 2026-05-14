@@ -308,19 +308,18 @@
         body: formData
       });
       const data = await res.json();
-      if (res.ok) {
-        // ✅ Refresh user data to update wallet balance in localStorage
-        try {
-          const updatedUser = await apiFetch('/auth/me');
-          if (updatedUser) {
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-          }
-        } catch (refreshErr) {
-          console.warn('Failed to refresh user data:', refreshErr);
-        }
-        showToast('Question posted successfully!', 'success');
-        window.location.href = 'student-dashboard.html';
-      } else {
+     if (res.ok) {
+  // Manually deduct budget from cached user balance
+  const budget = parseFloat(document.getElementById('budget').value);
+  const storedUser = JSON.parse(localStorage.getItem('user'));
+  if (storedUser && storedUser.walletBalance !== undefined) {
+    storedUser.walletBalance -= budget;
+    localStorage.setItem('user', JSON.stringify(storedUser));
+  }
+  showToast('Question posted successfully!', 'success');
+  window.location.href = 'student-dashboard.html';
+}
+else {
         showToast(data.error || 'Failed to post question', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
