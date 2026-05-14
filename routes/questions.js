@@ -561,9 +561,11 @@ router.post('/:id/accept-bid/:bidId',
       const bidAmount = bid.amount;
 
       let balanceChange = 0;
+      let student = null;
+
       if (bidAmount > originalBudget) {
         const extra = bidAmount - originalBudget;
-        const student = await User.findOneAndUpdate(
+        student = await User.findOneAndUpdate(
           { _id: req.userId, walletBalance: { $gte: extra } },
           { $inc: { walletBalance: -extra } }, { new: true }
         );
@@ -573,6 +575,7 @@ router.post('/:id/accept-bid/:bidId',
           description: `Extra budget for accepted bid on question: ${question.title}`, referenceId: question._id
         });
         balanceChange = -extra;
+        console.log(`💰 Student ${student.email} paid extra $${extra} for bid. New balance: ${student.walletBalance}`);
       } else if (bidAmount < originalBudget) {
         const refund = originalBudget - bidAmount;
         await User.updateOne({ _id: req.userId }, { $inc: { walletBalance: refund } });
@@ -581,6 +584,12 @@ router.post('/:id/accept-bid/:bidId',
           description: `Refund for lower bid on question: ${question.title}`, referenceId: question._id
         });
         balanceChange = refund;
+        // Re-fetch student to get updated balance
+        student = await User.findById(req.userId);
+        console.log(`💰 Student ${student.email} received refund $${refund}. New balance: ${student.walletBalance}`);
+      } else {
+        // No balance change, but we still need student object for possible socket emit (though balanceChange=0 → no emit)
+        student = await User.findById(req.userId);
       }
 
       question.budget = bidAmount;
@@ -607,7 +616,7 @@ router.post('/:id/accept-bid/:bidId',
         questionId: question._id
       }).catch(err => console.error('Failed to send bid accepted email:', err));
 
-      // ✅ Socket: notify tutor that their bid was accepted
+      // Socket: notify tutor that their bid was accepted
       const io = getIO(req);
       emitToUser(io, bid.tutorId, 'bid_accepted', {
         questionId: question._id,
@@ -616,16 +625,19 @@ router.post('/:id/accept-bid/:bidId',
       });
 
       // Socket: also notify student wallet update if balance changed
-      if (balanceChange !== 0) {
-        const student = await User.findById(req.userId);
+      if (balanceChange !== 0 && student) {
+        console.log(`📤 Emitting wallet_update to student ${student._id} (${student.email}) – new balance: ${student.walletBalance}`);
         emitToUser(io, req.userId, 'wallet_update', {
           newBalance: student.walletBalance,
           transaction: { amount: balanceChange, type: balanceChange < 0 ? 'extra_funds' : 'refund' }
         });
+      } else {
+        console.log(`ℹ️ No balance change for student (bid amount equals original budget), no wallet_update emitted.`);
       }
 
       res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
     } catch (err) {
+      console.error('Error in accept-bid:', err);
       res.status(500).json({ error: err.message });
     }
   }
@@ -751,9 +763,10 @@ router.post('/:id/respond-funds-request',
 
       const { accept } = req.body;
       let newBalance = null;
+      let student = null;
 
       if (accept) {
-        const student = await User.findOneAndUpdate(
+        student = await User.findOneAndUpdate(
           { _id: req.userId, walletBalance: { $gte: request.amount } },
           { $inc: { walletBalance: -request.amount } }, { new: true }
         );
@@ -771,6 +784,7 @@ router.post('/:id/respond-funds-request',
           link: `/question-details.html?id=${question._id}`
         });
         newBalance = student.walletBalance;
+        console.log(`💰 Student ${student.email} approved additional funds $${request.amount}. New balance: ${student.walletBalance}`);
       } else {
         request.status = 'rejected';
         await Notification.create({
@@ -779,11 +793,12 @@ router.post('/:id/respond-funds-request',
           message: `Your request for additional $${request.amount} on "${question.title}" was rejected.`,
           link: `/question-details.html?id=${question._id}`
         });
+        console.log(`❌ Student rejected additional funds request of $${request.amount} for question ${question._id}`);
       }
       request.studentResponseAt = new Date();
       await question.save();
 
-      // ✅ Socket: notify tutor about response
+      // Socket: notify tutor about response
       const io = getIO(req);
       emitToUser(io, question.tutorId, 'funds_response', {
         questionId: question._id,
@@ -792,15 +807,19 @@ router.post('/:id/respond-funds-request',
       });
 
       // If funds were deducted, update student wallet in real time
-      if (accept && newBalance !== null) {
+      if (accept && newBalance !== null && student) {
+        console.log(`📤 Emitting wallet_update to student ${student._id} (${student.email}) – new balance: ${student.walletBalance}`);
         emitToUser(io, req.userId, 'wallet_update', {
           newBalance,
           transaction: { amount: -request.amount, type: 'extra_funds' }
         });
+      } else if (!accept) {
+        console.log(`ℹ️ No wallet_update because request was rejected.`);
       }
 
       res.json({ message: accept ? 'Additional funds added' : 'Request rejected' });
     } catch (err) {
+      console.error('Error in respond-funds-request:', err);
       res.status(500).json({ error: err.message });
     }
   }

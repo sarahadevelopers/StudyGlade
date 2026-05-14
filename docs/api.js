@@ -333,17 +333,20 @@ function initSocket() {
     console.log('🔌 Socket disconnected:', reason);
   });
   
-  socket.on('wallet_update', (data) => {
-    console.log('💰 Wallet update received:', data);
-    const walletSpan = document.querySelector('#walletBalance');
-    if (walletSpan) {
-      walletSpan.innerText = window.formatMoney(data.newBalance);
-      console.log('Wallet balance updated to:', data.newBalance);
-    } else {
-      console.warn('Wallet span element not found');
-    }
-    window.showToast(`Wallet updated: $${Math.abs(data.transaction.amount).toFixed(2)}`, 'info');
-  });
+ socket.on('wallet_update', (data) => {
+  console.log('💰 Wallet update:', data);
+  const walletSpan = document.querySelector('#walletBalance');
+  if (walletSpan) walletSpan.innerText = window.formatMoney(data.newBalance);
+  
+  // Also update localStorage user object
+  const storedUser = JSON.parse(localStorage.getItem('user'));
+  if (storedUser) {
+    storedUser.walletBalance = data.newBalance;
+    localStorage.setItem('user', JSON.stringify(storedUser));
+  }
+  
+  window.showToast(`Wallet updated: $${Math.abs(data.transaction.amount).toFixed(2)}`, 'info');
+});
   
   socket.on('notification_new', (data) => {
     console.log('🔔 New notification:', data);
