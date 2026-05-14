@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tutor Application Approved</title>
+  <style>
+    body, table, td, div, p, a { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%); padding: 1.5rem; text-align: center; }
+    .header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; color: #ffffff; }
+    .content { padding: 1.8rem; color: #1F2937; line-height: 1.6; }
+    .button { display: inline-block; background-color: #005BFF; color: white !important; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: 600; }
+    .footer { background-color: #F8FAFF; padding: 1rem; text-align: center; font-size: 0.7rem; color: #6B7280; border-top: 1px solid #E5E7EB; }
+    @media only screen and (max-width: 480px) { .content { padding: 1.2rem; } .button { display: block; text-align: center; } }
+  </style>
+</head>
+<body style="margin:0; padding:1rem; background:#EFF6FF;">
+  <div class="container">
+    <div class="header">
+      <h2>Congratulations! 🎉</h2>
+    </div>
+    <div class="content">
+      <p>Dear <%= tutorName %>,</p>
+      <p>Great news! Your application to become a tutor on StudyGlade has been <strong>approved</strong>.</p>
+      <p>You can now:</p>
+      <ul>
+        <li>Log in to your tutor dashboard</li>
+        <li>Browse available questions and place bids</li>
+        <li>Upload study documents for sale</li>
+        <li>Earn money by helping students</li>
+      </ul>
+      <p style="text-align:center; margin-top:1.5rem;">
+        <a href="https://studyglade.com/tutor-dashboard.html" class="button">Go to Tutor Dashboard</a>
+      </p>
+      <p>We wish you success in your tutoring journey!</p>
+      <p>Best regards,<br>The StudyGlade Team</p>
+    </div>
+    <div class="footer">
+      <p>StudyGlade — Empowering students worldwide</p>
+    </div>
+  </div>
+</body>
+</html>

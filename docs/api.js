@@ -116,6 +116,11 @@ window.API_BASE = '/api';
     delete element.dataset.originalText;
   };
 
+  // Helper for formatting money (used by socket wallet update)
+  window.formatMoney = function(amount) {
+    return `$${parseFloat(amount).toFixed(2)}`;
+  };
+
   // ========== Idle Timeout with Warning Modal (private) ==========
   let idleTimer = null;
   let warningTimer = null;
@@ -210,7 +215,6 @@ window.API_BASE = '/api';
     });
     resetIdleTimer();
   };
-  
 
   window.stopIdleTimer = function() {
     if (idleTimer) clearTimeout(idleTimer);
@@ -223,7 +227,81 @@ window.API_BASE = '/api';
   };
 
   window.resetCsrfToken = function() {
-  csrfToken = null;
-  csrfPromise = null;
-};
+    csrfToken = null;
+    csrfPromise = null;
+  };
+
+  // ========== SOCKET.IO REAL‑TIME CONNECTION ==========
+  let socket = null;
+
+  function initSocket() {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.warn('No access token found – socket not connected');
+      return;
+    }
+    if (socket && socket.connected) return;
+
+    socket = io({
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Socket connected');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected');
+    });
+
+    // ---- Real‑time events ----
+    socket.on('wallet_update', (data) => {
+      console.log('💰 Wallet update:', data);
+      const walletSpan = document.querySelector('#walletBalance');
+      if (walletSpan) walletSpan.innerText = window.formatMoney(data.newBalance);
+      window.showToast(`Wallet updated: $${Math.abs(data.transaction.amount).toFixed(2)}`, 'info');
+    });
+
+    socket.on('notification_new', (data) => {
+      console.log('🔔 New notification:', data);
+      const badge = document.querySelector('.notification-badge');
+      if (badge) {
+        let count = parseInt(badge.innerText) || 0;
+        badge.innerText = count + 1;
+      }
+      window.showToast(data.message, 'info');
+      // Play sound if enabled (optional)
+      if (window.playNotificationSound) window.playNotificationSound();
+    });
+
+    socket.on('question_assigned', (data) => {
+      window.showToast(`Tutor assigned to "${data.questionTitle}"`, 'success');
+    });
+
+    socket.on('bid_placed', (data) => {
+      window.showToast(`New bid of $${data.bidAmount} on "${data.questionTitle}" by ${data.tutorName}`, 'info');
+    });
+
+    socket.on('answer_uploaded', (data) => {
+      window.showToast(`Answer uploaded for "${data.questionTitle}"`, 'success');
+    });
+
+    socket.on('question_completed', (data) => {
+      window.showToast(`Question "${data.questionTitle}" completed by ${data.tutorName}`, 'success');
+    });
+
+    socket.on('document_unlocked', (data) => {
+      window.showToast(`Document "${data.documentTitle}" unlocked!`, 'success');
+    });
+
+    socket.on('funds_requested', (data) => {
+      window.showToast(`Additional funds requested for "${data.questionTitle}": $${data.amount}`, 'warning');
+    });
+  }
+
+  window.initSocket = initSocket;
+  window.disconnectSocket = function() {
+    if (socket) socket.disconnect();
+  };
 })();

@@ -10,12 +10,15 @@ const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
 const methodOverride = require('method-override');
-const rateLimit = require('express-rate-limit');   // ✅ added for global API rate limiting
+const rateLimit = require('express-rate-limit');
+const http = require('http');
+const socketIo = require('socket.io');
+
 const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
-const { sendEmailWithTemplate } = require('./utils/email');   // 👈 import email helper
+const { sendEmailWithTemplate } = require('./utils/email');
 
 const app = express();
-app.set('trust proxy', 1); // trust first proxy (Render)
+app.set('trust proxy', 1);
 
 // ========== 1. ENSURE UPLOADS FOLDER EXISTS ==========
 const uploadDir = path.join(__dirname, 'uploads');
@@ -88,7 +91,7 @@ const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const Document = require('./models/Document');
 const BlogPost = require('./models/BlogPost');
-const ContentFilterLog = require('./models/ContentFilterLog');   // 👈 new import
+const ContentFilterLog = require('./models/ContentFilterLog');
 
 // ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -159,13 +162,48 @@ app.use(cors({
   credentials: true
 }));
 
-// ========== 6. STANDARD MIDDLEWARE ==========
+// ========== 6. SOCKET.IO SETUP ==========
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+global.io = io;   // 👈 make io globally accessible for Notification model
+app.set('io', io);
+
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error('Authentication error'));
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return next(new Error('User not found'));
+    socket.userId = user._id;
+    socket.userRole = user.role;
+    next();
+  } catch (err) {
+    next(new Error('Authentication error'));
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log(`User ${socket.userId} connected`);
+  socket.join(`user_${socket.userId}`);
+  socket.on('disconnect', () => {
+    console.log(`User ${socket.userId} disconnected`);
+  });
+});
+
+// ========== 7. STANDARD MIDDLEWARE ==========
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 // CSRF protection for state-changing API routes
 app.use('/api/', (req, res, next) => {
-  // Skip Paystack webhook (already verified by signature)
   if (req.path === '/wallet/paystack-webhook') return next();
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
@@ -188,16 +226,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== 7. EJS SETUP ==========
+// ========== 8. EJS SETUP ==========
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ========== 8. DATABASE CONNECTION ==========
+// ========== 9. DATABASE CONNECTION ==========
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 9. GLOBAL API RATE LIMITER ==========
+// ========== 10. GLOBAL API RATE LIMITER ==========
 const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -207,7 +245,7 @@ const globalApiLimiter = rateLimit({
 });
 app.use('/api/', globalApiLimiter);
 
-// ========== 10. API ROUTES ==========
+// ========== 11. API ROUTES ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -219,7 +257,7 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 11. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 12. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -255,11 +293,10 @@ app.get('/api/csrf-token', (req, res) => {
 app.use('/subjects', subjectRoutes);
 app.use('/question', publicQuestionRoutes);
 
-// Blog routes
 app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
-// ========== 12. DYNAMIC SITEMAP ==========
+// ========== 13. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
@@ -346,15 +383,15 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 13. STATIC FRONTEND ==========
+// ========== 14. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 14. CATCH-ALL ==========
+// ========== 15. CATCH-ALL ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 15. CRON JOBS ==========
+// ========== 16. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -388,7 +425,7 @@ cron.schedule('0 0 * * *', () => {
   updateTutorLevels().catch(console.error);
 });
 
-// ---------- Daily email report of content violations (8 AM) ----------
+// Daily email report of content violations (8 AM)
 cron.schedule('0 8 * * *', async () => {
   console.log('Running content violation daily report...');
   try {
@@ -406,7 +443,6 @@ cron.schedule('0 8 * * *', async () => {
     const admins = await User.find({ role: 'admin' }).select('email fullName');
     if (admins.length === 0) return;
 
-    // Build HTML report table
     const rows = violations.map(v => `
       <tr>
         <td>${v.userId?.fullName || 'Deleted'}</td>
@@ -443,7 +479,7 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-// ========== 16. GLOBAL ERROR HANDLER ==========
+// ========== 17. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -452,6 +488,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 17. START SERVER ==========
+// ========== 18. START SERVER ==========
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

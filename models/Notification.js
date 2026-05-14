@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
       'new_bid',
       'answer_uploaded',
       'funds_response',
-      'comment_added'   // 👈 added for chat notifications
+      'comment_added'
     ],
     required: true
   },
@@ -22,6 +22,28 @@ const notificationSchema = new mongoose.Schema({
   link: String,
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
+});
+
+// 👇 POST-SAVE HOOK – emits real‑time event via Socket.io
+notificationSchema.post('save', async function(doc) {
+  try {
+    if (global.io) {
+      global.io.to(`user_${doc.userId}`).emit('notification_new', {
+        id: doc._id,
+        type: doc.type,
+        title: doc.title,
+        message: doc.message,
+        link: doc.link,
+        createdAt: doc.createdAt,
+        read: doc.read
+      });
+      console.log(`🔔 Real-time notification sent to user ${doc.userId}`);
+    } else {
+      console.warn('⚠️ Socket.io not available – notification saved but not emitted');
+    }
+  } catch (err) {
+    console.error('❌ Failed to emit notification via socket:', err);
+  }
 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

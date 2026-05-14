@@ -7,12 +7,14 @@ const Document = require('../models/Document');
 const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
 const Bid = require('../models/Bid');
+const Notification = require('../models/Notification');
 const Breach = require('../models/Breach');
 const Announcement = require('../models/Announcement');
 const Comment = require('../models/Comment');
 const PDFDocument = require('pdfkit');
 const pingGoogleSitemap = require('../utils/notifyGoogle'); 
-const ContentFilterLog = require('../models/ContentFilterLog');// ✅ added
+const ContentFilterLog = require('../models/ContentFilterLog');
+const { sendEmailWithTemplate } = require('../utils/email');// ✅ added
 const router = express.Router();
 
 // ========== PUBLIC ROUTE (no authentication required) – MUST BE FIRST ==========
@@ -152,19 +154,49 @@ router.put('/users/:id/approve-tutor', async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user || user.role !== 'tutor') return res.status(404).json({ error: 'Tutor not found' });
     if (!user.tutorApplication) return res.status(400).json({ error: 'No application found for this tutor' });
+
     user.tutorApplication.status = approved ? 'approved' : 'rejected';
     user.tutorApplication.adminFeedback = feedback || '';
     user.tutorApplication.reviewedAt = new Date();
     user.tutorApplication.reviewedBy = req.userId;
     user.isApproved = approved;
-    if (approved) user.tutorProfile.level = 'Entry-Level';
+
+    if (approved) {
+      user.tutorProfile.level = 'Entry-Level';
+    }
+
     await user.save();
+
+    // ✅ In‑app notification (only for approval)
+    if (approved) {
+      await Notification.create({
+        userId: user._id,
+        type: 'tutor_application',
+        title: 'Tutor Application Approved! 🎉',
+        message: `Congratulations ${user.fullName}! Your tutor application has been approved. You can now log in, bid on questions, upload documents, and earn money.`,
+        link: '/tutor-dashboard.html',
+        read: false
+      });
+    }
+
+    // ✅ Send email based on decision
+    if (approved) {
+      await sendEmailWithTemplate(user.email, 'Tutor Application Approved – StudyGlade', 'tutor-application-approved.ejs', {
+        tutorName: user.fullName
+      });
+    } else {
+      await sendEmailWithTemplate(user.email, 'Tutor Application Update – StudyGlade', 'tutor-application-rejected.ejs', {
+        tutorName: user.fullName,
+        reason: feedback || 'Your application did not meet our current requirements.'
+      });
+    }
+
     res.json({ message: approved ? 'Tutor approved' : 'Tutor rejected' });
   } catch (err) {
+    console.error('Approve tutor error:', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 router.put('/users/:id/suspend', async (req, res) => {
   try {
     const { isSuspended, reason, expiryDays } = req.body;
@@ -332,10 +364,22 @@ router.put('/withdrawals/:id/approve', async (req, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('userId');
     if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
     if (withdrawal.status !== 'pending') return res.status(400).json({ error: 'Already processed' });
+
     withdrawal.status = 'approved';
     withdrawal.processedBy = req.userId;
     withdrawal.processedAt = new Date();
     await withdrawal.save();
+
+    // ✅ Send notification to user
+    await Notification.create({
+      userId: withdrawal.userId._id,
+      type: 'withdrawal',
+      title: 'Withdrawal Approved ✅',
+      message: `Your withdrawal of $${withdrawal.amount} has been approved and processed.`,
+      link: '/student-dashboard.html',
+      read: false
+    });
+
     console.log(`Withdrawal #${withdrawal._id} approved for ${withdrawal.userId.email} - $${withdrawal.amount}`);
     res.json({ message: 'Withdrawal approved' });
   } catch (err) {
@@ -348,21 +392,46 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('userId');
     if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
     if (withdrawal.status !== 'pending') return res.status(400).json({ error: 'Already processed' });
+
     const user = await User.findById(withdrawal.userId._id);
     if (user) {
+      // Refund the amount to user's wallet
       user.walletBalance += withdrawal.amount;
       await user.save();
+
+      // Record the refund transaction
       await Transaction.create({
         userId: user._id,
         type: 'refund',
         amount: withdrawal.amount,
         description: `Rejected withdrawal #${withdrawal._id} – refunded`
       });
+
+      // Emit real‑time wallet update via Socket.io
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${user._id}`).emit('wallet_update', {
+          newBalance: user.walletBalance,
+          transaction: { amount: withdrawal.amount, type: 'refund' }
+        });
+      }
+
+      // Send a notification to the user
+      await Notification.create({
+        userId: user._id,
+        type: 'withdrawal',
+        title: 'Withdrawal Request Rejected',
+        message: `Your withdrawal request of $${withdrawal.amount} was rejected. Funds have been returned to your wallet.`,
+        link: '/student-dashboard.html',
+        read: false
+      });
     }
+
     withdrawal.status = 'rejected';
     withdrawal.processedBy = req.userId;
     withdrawal.processedAt = new Date();
     await withdrawal.save();
+
     res.json({ message: 'Withdrawal rejected, funds refunded' });
   } catch (err) {
     res.status(500).json({ error: err.message });

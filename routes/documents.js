@@ -12,8 +12,9 @@ const Document = require('../models/Document');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { upload } = require('../server');
+const { emitToUser, getIO } = require('../utils/sockets');   // 👈 socket helper
 
-console.log('✅ documents.js loaded (final version with validation)');
+console.log('✅ documents.js loaded (final version with validation + sockets)');
 
 const router = express.Router();
 
@@ -209,7 +210,7 @@ router.post('/upload',
   }
 );
 
-// ========== UNLOCK DOCUMENT ==========
+// ========== UNLOCK DOCUMENT (with socket events) ==========
 router.post('/:id/unlock',
   auth,
   validateObjectId('id'),
@@ -221,9 +222,11 @@ router.post('/:id/unlock',
       const user = await User.findById(req.userId);
       if (user.walletBalance < doc.price) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
+      // Deduct from buyer
       user.walletBalance -= doc.price;
       await user.save();
 
+      // Pay seller 65%
       const seller = await User.findById(doc.uploaderId);
       const sellerEarnings = doc.price * 0.65;
       seller.walletBalance += sellerEarnings;
@@ -235,6 +238,7 @@ router.post('/:id/unlock',
       doc.downloads += 1;
       await doc.save();
 
+      // Record transactions
       await Transaction.create({
         userId: req.userId, type: 'unlock_document', amount: -doc.price,
         description: `Unlocked: ${doc.title}`, referenceId: doc._id
@@ -258,6 +262,31 @@ router.post('/:id/unlock',
         reason: `Document sale: ${doc.title}`
       }).catch(err => console.error('Failed to send tutor payment email:', err));
 
+      // ✅ Socket events
+      const io = getIO(req);
+      
+      emitToUser(io, req.userId, 'wallet_update', {
+        newBalance: user.walletBalance,
+        transaction: { amount: -doc.price, type: 'unlock_document' }
+      });
+      emitToUser(io, req.userId, 'document_unlocked', {
+        documentId: doc._id,
+        documentTitle: doc.title,
+        fileUrl: doc.fileUrl,
+        price: doc.price
+      });
+
+      emitToUser(io, doc.uploaderId, 'wallet_update', {
+        newBalance: seller.walletBalance,
+        transaction: { amount: sellerEarnings, type: 'document_sale' }
+      });
+      emitToUser(io, doc.uploaderId, 'document_sold', {
+        documentId: doc._id,
+        documentTitle: doc.title,
+        earnings: sellerEarnings,
+        buyerName: user.fullName
+      });
+
       res.json({ message: 'Document unlocked', fileUrl: doc.fileUrl });
     } catch (err) {
       console.error('Unlock error:', err);
@@ -271,6 +300,7 @@ router.get('/preview/:id',
   param('id').isMongoId().withMessage('Invalid document ID'),
   handleValidationErrors,
   async (req, res) => {
+    // ... (unchanged, too long but keep exactly as you had)
     try {
       const doc = await Document.findById(req.params.id);
       if (!doc) return res.status(404).send('Document not found');

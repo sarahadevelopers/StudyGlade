@@ -10,6 +10,8 @@ const auth = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
 const { handleValidationErrors, sanitizeText, sanitizeEmail, validatePassword } = require('../middleware/validate');
+const Notification = require('../models/Notification');
+const { sendEmailWithTemplate } = require('../utils/email');
 
 const router = express.Router();
 
@@ -118,12 +120,10 @@ function getRefreshCookieOptions() {
 router.post('/register', 
   registerLimiter,
   upload.single('portfolio'),
-  // Validation & sanitization chain
   sanitizeEmail('email'),
   validatePassword('password'),
   sanitizeText('fullName').isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
   body('role').isIn(['student', 'tutor', 'admin']).withMessage('Invalid role'),
-  // Tutor‑specific validations (only if role === 'tutor')
   body('essay').if(body('role').equals('tutor')).isLength({ min: 500 }).withMessage('Essay must be at least 500 characters'),
   body('quizAnswers').if(body('role').equals('tutor')).custom(value => {
     try {
@@ -139,7 +139,6 @@ router.post('/register',
     try {
       const { fullName, email, password, role } = req.body;
 
-      // Check existing user (still needed)
       const existing = await User.findOne({ email });
       if (existing) return res.status(400).json({ error: 'Email already exists' });
 
@@ -156,7 +155,7 @@ router.post('/register',
       if (role === 'tutor') {
         const { qualifications, subjects, essay, essayFormat, quizAnswers } = req.body;
 
-        let parsedQuiz = JSON.parse(quizAnswers); // already validated
+        let parsedQuiz = JSON.parse(quizAnswers);
         let portfolioUrl = null;
         if (req.file) {
           const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/tutor_applications' });
@@ -192,6 +191,38 @@ router.post('/register',
       const { accessToken, refreshToken } = generateTokens(user._id, user.role);
       user.refreshToken = refreshToken;
       await user.save();
+
+      // ✅ Send pending application email to tutor (if role is tutor)
+      if (role === 'tutor') {
+        try {
+          await sendEmailWithTemplate(user.email, 'Tutor Application Received – StudyGlade', 'tutor-application-pending.ejs', {
+            tutorName: user.fullName
+          });
+          console.log(`📧 Pending application email sent to ${user.email}`);
+        } catch (emailErr) {
+          console.error('Failed to send pending tutor email:', emailErr);
+          // Do not block registration if email fails
+        }
+      }
+
+      // ✅ Welcome notification ONLY for instant‑approval roles (student, admin)
+      if (role !== 'tutor') {
+        try {
+          await Notification.create({
+            userId: user._id,
+            type: 'question_posted',
+            title: '🎉 Welcome to StudyGlade!',
+            message: `Hi ${fullName}, we're excited to have you! Start by posting a question, exploring the document library, or finding a tutor.`,
+            link: role === 'student' ? '/student-dashboard.html' : '/admin-dashboard.html',
+            read: false
+          });
+          console.log(`✅ Welcome notification created for ${email} (${role})`);
+        } catch (notifErr) {
+          console.error('Failed to create welcome notification:', notifErr);
+        }
+      } else {
+        console.log(`📝 Tutor ${email} registered – waiting for admin approval.`);
+      }
 
       res.cookie('accessToken', accessToken, getCookieOptions());
       res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
@@ -256,15 +287,18 @@ router.post('/login',
       res.cookie('accessToken', accessToken, getCookieOptions());
       res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
       
-      res.json({ user: { 
-        id: user._id, 
-        email, 
-        fullName: user.fullName, 
-        role: user.role, 
-        walletBalance: user.walletBalance,
-        avatar: user.avatar || '',
-        gender: user.gender || 'other'
-      } });
+      res.json({ 
+  user: { 
+    id: user._id, 
+    email, 
+    fullName: user.fullName, 
+    role: user.role, 
+    walletBalance: user.walletBalance,
+    avatar: user.avatar || '',
+    gender: user.gender || 'other'
+  },
+  accessToken  // 👈 add this line
+});
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Internal server error' });

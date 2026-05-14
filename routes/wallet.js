@@ -5,7 +5,8 @@ const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
 const axios = require('axios');
 const crypto = require('crypto');
-const { sendEmailWithTemplate } = require('../utils/email'); // ✅ added
+const { sendEmailWithTemplate } = require('../utils/email');
+const { emitToUser, getIO } = require('../utils/sockets');   // 👈 import socket helper
 
 const router = express.Router();
 
@@ -40,6 +41,14 @@ router.post('/add-funds', auth, async (req, res) => {
     user.walletBalance += amount;
     await user.save();
     await Transaction.create({ userId: req.userId, type: 'deposit', amount, description: `Simulated deposit: $${amount}` });
+    
+    // Emit real‑time update
+    const io = getIO(req);
+    emitToUser(io, req.userId, 'wallet_update', {
+      newBalance: user.walletBalance,
+      transaction: { amount, type: 'deposit' }
+    });
+    
     res.json({ balance: user.walletBalance });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -76,7 +85,7 @@ router.post('/paystack/initialize', auth, async (req, res) => {
   }
 });
 
-// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention + email ----------
+// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention + email + socket ----------
 router.post('/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
@@ -131,11 +140,20 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       newBalance: user.walletBalance,
       reference: reference
     }).catch(err => console.error('Failed to send deposit email:', err));
+
+    // ✅ Emit real‑time wallet update via Socket.io
+    const io = req.app.get('io');  // webhook route has req.app
+    if (io) {
+      emitToUser(io, userId, 'wallet_update', {
+        newBalance: user.walletBalance,
+        transaction: { amount: verifiedAmount, type: 'deposit' }
+      });
+    }
   }
   res.sendStatus(200);
 });
 
-// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) + email ----------
+// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) + email + socket ----------
 router.post('/withdraw', auth, async (req, res) => {
   try {
     const { amount, method, accountDetails } = req.body;
@@ -174,8 +192,7 @@ router.post('/withdraw', auth, async (req, res) => {
       withdrawalId: withdrawal._id
     }).catch(err => console.error('Failed to send withdrawal request email:', err));
 
-    // ✅ Also send an alert email to admin (optional)
-    // You can fetch admin emails from a settings collection or hardcode
+    // ✅ Send alert email to admin (optional)
     const adminEmails = ['admin@studyglade.com']; // change to your actual admin email
     for (const adminEmail of adminEmails) {
       sendEmailWithTemplate(adminEmail, 'Admin Alert: New Withdrawal Request', 'admin-alert.ejs', {
@@ -184,6 +201,13 @@ router.post('/withdraw', auth, async (req, res) => {
         adminUrl: 'https://studyglade.com/admin-dashboard.html#withdrawals'
       }).catch(err => console.error('Failed to send admin alert email:', err));
     }
+
+    // ✅ Emit real‑time wallet update (balance decreased)
+    const io = getIO(req);
+    emitToUser(io, req.userId, 'wallet_update', {
+      newBalance: user.walletBalance,
+      transaction: { amount: -amount, type: 'withdraw_request' }
+    });
 
     res.json({ message: 'Withdrawal request submitted. Admin will process within 3‑5 business days.', withdrawalId: withdrawal._id, balance: user.walletBalance });
   } catch (err) {

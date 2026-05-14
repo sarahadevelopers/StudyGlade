@@ -13,6 +13,7 @@ const Bid = require('../models/Bid');
 const Notification = require('../models/Notification');
 const { upload } = require('../server');
 const { sendEmailWithTemplate } = require('../utils/email');
+const { emitToUser, getIO } = require('../utils/sockets');   // 👈 new import
 
 const router = express.Router();
 const multerMemory = multer({ storage: multer.memoryStorage() });
@@ -227,6 +228,14 @@ router.put('/:id/accept',
         link: `/question-details.html?id=${question._id}`
       });
 
+      // ✅ Socket: notify student that tutor accepted
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'question_assigned', {
+        questionId: question._id,
+        questionTitle: question.title,
+        tutorName: tutor.fullName
+      });
+
       res.json(question);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -280,6 +289,14 @@ router.put('/:id/complete',
         amount: earnings,
         reason: `Completed question: ${question.title}`
       }).catch(err => console.error('Failed to send payment email:', err));
+
+      // ✅ Socket: notify student that question is completed
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'question_completed', {
+        questionId: question._id,
+        questionTitle: question.title,
+        tutorName: tutor.fullName
+      });
 
       const obj = question.toObject();
       if (obj.answerFile) {
@@ -341,6 +358,16 @@ router.post('/:id/bid',
         questionId: question._id
       }).catch(err => console.error('Failed to send bid email:', err));
 
+      // ✅ Socket: notify student of new bid
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'bid_placed', {
+        questionId: question._id,
+        questionTitle: question.title,
+        tutorName: tutor.fullName,
+        bidAmount: amount,
+        message: message || ''
+      });
+
       res.status(201).json(bid);
     } catch (err) {
       console.error('Bid error:', err);
@@ -392,6 +419,21 @@ router.post('/:id/accept-suggestion',
         title: 'Budget increased & you were assigned',
         message: `${student.fullName} increased the budget to $${question.budget} and assigned you to "${question.title}".`,
         link: `/question-details.html?id=${question._id}`
+      });
+
+      // ✅ Socket: notify tutor that budget increased and they were assigned
+      const io = getIO(req);
+      emitToUser(io, question.tutorId, 'question_assigned', {
+        questionId: question._id,
+        questionTitle: question.title,
+        newBudget: question.budget,
+        studentName: student.fullName
+      });
+
+      // Also emit wallet update for student (balance decreased)
+      emitToUser(io, req.userId, 'wallet_update', {
+        newBalance: student.walletBalance,
+        transaction: { amount: -extraNeeded, type: 'extra_funds' }
       });
 
       res.json({ message: 'Budget increased and tutor assigned', newBudget: question.budget });
@@ -451,6 +493,15 @@ router.post('/:id/upload-answer',
         questionId: question._id
       }).catch(err => console.error('Failed to send answer uploaded email:', err));
 
+      // ✅ Socket: notify student that answer is uploaded
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'answer_uploaded', {
+        questionId: question._id,
+        questionTitle: question.title,
+        tutorName: tutor.fullName,
+        fileUrl: result.secure_url
+      });
+
       res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
     } catch (err) {
       console.error('Upload answer error:', err);
@@ -501,6 +552,7 @@ router.post('/:id/accept-bid/:bidId',
       const originalBudget = question.budget;
       const bidAmount = bid.amount;
 
+      let balanceChange = 0;
       if (bidAmount > originalBudget) {
         const extra = bidAmount - originalBudget;
         const student = await User.findOneAndUpdate(
@@ -512,6 +564,7 @@ router.post('/:id/accept-bid/:bidId',
           userId: req.userId, type: 'post_question_extra', amount: -extra,
           description: `Extra budget for accepted bid on question: ${question.title}`, referenceId: question._id
         });
+        balanceChange = -extra;
       } else if (bidAmount < originalBudget) {
         const refund = originalBudget - bidAmount;
         await User.updateOne({ _id: req.userId }, { $inc: { walletBalance: refund } });
@@ -519,6 +572,7 @@ router.post('/:id/accept-bid/:bidId',
           userId: req.userId, type: 'refund', amount: refund,
           description: `Refund for lower bid on question: ${question.title}`, referenceId: question._id
         });
+        balanceChange = refund;
       }
 
       question.budget = bidAmount;
@@ -544,6 +598,23 @@ router.post('/:id/accept-bid/:bidId',
         bidAmount: bidAmount,
         questionId: question._id
       }).catch(err => console.error('Failed to send bid accepted email:', err));
+
+      // ✅ Socket: notify tutor that their bid was accepted
+      const io = getIO(req);
+      emitToUser(io, bid.tutorId, 'bid_accepted', {
+        questionId: question._id,
+        questionTitle: question.title,
+        acceptedBidAmount: bidAmount
+      });
+
+      // Socket: also notify student wallet update if balance changed
+      if (balanceChange !== 0) {
+        const student = await User.findById(req.userId);
+        emitToUser(io, req.userId, 'wallet_update', {
+          newBalance: student.walletBalance,
+          transaction: { amount: balanceChange, type: balanceChange < 0 ? 'extra_funds' : 'refund' }
+        });
+      }
 
       res.json({ message: 'Bid accepted, tutor assigned', newBudget: question.budget });
     } catch (err) {
@@ -580,6 +651,13 @@ router.post('/:id/rate',
       const avg = allRatings.reduce((sum, q) => sum + q.rating.score, 0) / allRatings.length;
       tutor.tutorProfile.rating = parseFloat(avg.toFixed(2));
       await tutor.save();
+
+      // ✅ Socket: notify tutor about new rating (optional)
+      const io = getIO(req);
+      emitToUser(io, tutor._id, 'rating_updated', {
+        newRating: tutor.tutorProfile.rating,
+        questionTitle: question.title
+      });
 
       res.json({ message: 'Rating updated' });
     } catch (err) {
@@ -631,6 +709,15 @@ router.post('/:id/request-additional-funds',
         link: `/question-details.html?id=${question._id}`
       });
 
+      // ✅ Socket: notify student about funds request
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'funds_requested', {
+        questionId: question._id,
+        questionTitle: question.title,
+        amount,
+        reason: reason || ''
+      });
+
       res.json({ message: 'Request sent to student', amount });
     } catch (err) {
       console.error('Error in request-additional-funds:', err);
@@ -655,6 +742,8 @@ router.post('/:id/respond-funds-request',
       if (!request || request.status !== 'pending') return res.status(400).json({ error: 'No pending request' });
 
       const { accept } = req.body;
+      let newBalance = null;
+
       if (accept) {
         const student = await User.findOneAndUpdate(
           { _id: req.userId, walletBalance: { $gte: request.amount } },
@@ -673,6 +762,7 @@ router.post('/:id/respond-funds-request',
           message: `Your request for additional $${request.amount} on "${question.title}" was approved.`,
           link: `/question-details.html?id=${question._id}`
         });
+        newBalance = student.walletBalance;
       } else {
         request.status = 'rejected';
         await Notification.create({
@@ -684,6 +774,23 @@ router.post('/:id/respond-funds-request',
       }
       request.studentResponseAt = new Date();
       await question.save();
+
+      // ✅ Socket: notify tutor about response
+      const io = getIO(req);
+      emitToUser(io, question.tutorId, 'funds_response', {
+        questionId: question._id,
+        accepted: accept,
+        amount: request.amount
+      });
+
+      // If funds were deducted, update student wallet in real time
+      if (accept && newBalance !== null) {
+        emitToUser(io, req.userId, 'wallet_update', {
+          newBalance,
+          transaction: { amount: -request.amount, type: 'extra_funds' }
+        });
+      }
+
       res.json({ message: accept ? 'Additional funds added' : 'Request rejected' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -717,6 +824,14 @@ router.post('/:id/cancel-assignment',
       question.tutorId = null;
       question.cancellationReason = reason;
       await question.save();
+
+      // ✅ Socket: notify student that tutor cancelled
+      const io = getIO(req);
+      emitToUser(io, question.studentId, 'assignment_cancelled', {
+        questionId: question._id,
+        questionTitle: question.title,
+        reason
+      });
 
       res.json({ message: 'Assignment cancelled. No penalty.' });
     } catch (err) {
