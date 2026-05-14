@@ -6,7 +6,8 @@ window.API_BASE = '/api';
   // Private variables
   let csrfToken = null;
   let csrfPromise = null;
-  
+  let isRefreshing = false;
+
   async function getCsrfToken() {
     if (csrfToken) return csrfToken;
     if (csrfPromise) return csrfPromise;
@@ -29,6 +30,20 @@ window.API_BASE = '/api';
     return csrfPromise;
   }
 
+  async function refreshAccessToken() {
+    try {
+      const res = await fetch(`${window.API_BASE}/auth/refresh-token`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return res.ok;
+    } catch (err) {
+      console.error('Refresh token error:', err);
+      return false;
+    }
+  }
+
   // Expose the core API fetch function globally
   window.apiFetch = async function(endpoint, options = {}) {
     const method = options.method || 'GET';
@@ -39,17 +54,39 @@ window.API_BASE = '/api';
       if (token) headers['X-CSRF-Token'] = token;
     }
     
-    const res = await fetch(`${window.API_BASE}${endpoint}`, {
-      ...options,
-      credentials: 'include',
-      headers
-    });
+    const makeRequest = async () => {
+      return await fetch(`${window.API_BASE}${endpoint}`, {
+        ...options,
+        credentials: 'include',
+        headers
+      });
+    };
 
-    if (res.status === 401) {
-      localStorage.clear();
-      window.showToast('Session expired. Please log in again.', 'error');
-      window.location.href = 'login.html';
-      throw new Error('Session expired');
+    let res = await makeRequest();
+
+    // If 401 and not already refreshing, try to refresh token once
+    if (res.status === 401 && !isRefreshing) {
+      isRefreshing = true;
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        // Retry original request with new token
+        res = await makeRequest();
+        isRefreshing = false;
+        if (res.status === 401) {
+          // Still 401 after refresh – force logout
+          localStorage.clear();
+          window.showToast('Session expired. Please log in again.', 'error');
+          window.location.href = 'login.html';
+          throw new Error('Session expired');
+        }
+        return handleResponse(res);
+      } else {
+        isRefreshing = false;
+        localStorage.clear();
+        window.showToast('Session expired. Please log in again.', 'error');
+        window.location.href = 'login.html';
+        throw new Error('Session expired');
+      }
     }
 
     if (res.status === 403) {
@@ -81,13 +118,9 @@ window.API_BASE = '/api';
     }
     const data = await res.json();
     if (!res.ok) {
-      // 👇 IMPROVED: show validation errors if present
       let errorMsg = 'Request failed';
-      if (data.error) {
-        errorMsg = data.error;
-      } else if (data.errors && data.errors.length > 0) {
-        errorMsg = data.errors[0].msg; // show the first validation error
-      }
+      if (data.error) errorMsg = data.error;
+      else if (data.errors && data.errors.length > 0) errorMsg = data.errors[0].msg;
       window.showToast(errorMsg, 'error');
       throw new Error(errorMsg);
     }
@@ -122,7 +155,6 @@ window.API_BASE = '/api';
     delete element.dataset.originalText;
   };
 
-  // Helper for formatting money (used by socket wallet update)
   window.formatMoney = function(amount) {
     return `$${parseFloat(amount).toFixed(2)}`;
   };
@@ -132,7 +164,7 @@ window.API_BASE = '/api';
   let warningTimer = null;
   let warningModal = null;
   const IDLE_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
-  const WARNING_BEFORE = 60 * 1000; // 1 minute before logout
+  const WARNING_BEFORE = 60 * 1000;
 
   function createWarningModal() {
     if (document.getElementById('idleWarningModal')) return;
@@ -261,7 +293,6 @@ window.API_BASE = '/api';
       console.log('🔌 Socket disconnected');
     });
 
-    // ---- Real‑time events ----
     socket.on('wallet_update', (data) => {
       console.log('💰 Wallet update:', data);
       const walletSpan = document.querySelector('#walletBalance');
@@ -277,7 +308,6 @@ window.API_BASE = '/api';
         badge.innerText = count + 1;
       }
       window.showToast(data.message, 'info');
-      // Play sound if enabled (optional)
       if (window.playNotificationSound) window.playNotificationSound();
     });
 
