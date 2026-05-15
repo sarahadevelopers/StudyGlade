@@ -144,31 +144,30 @@ async function loadOverview() {
 // ----- Tutor Applications Section -----
 async function loadTutorApplications() {
   try {
-    const data = await apiFetch('/admin/users');
-    // The response is { users: [], pagination: {...} }
-    const users = data.users || [];
+    const response = await apiFetch('/admin/users');
+    // API returns { users: [], pagination: {} }
+    const users = response.users || [];
     console.log('📋 All users:', users);
-    
+
     const pendingApps = users.filter(u => 
       u.role === 'tutor' && 
       u.tutorApplication && 
       u.tutorApplication.status === 'pending'
     );
-    
     console.log('📋 Pending tutor applications:', pendingApps);
-    
+
     const container = document.getElementById('tutorApplicationsList');
     if (!container) return;
-    
+
     if (!pendingApps.length) {
       container.innerHTML = '<div class="card">No pending tutor applications.</div>';
       return;
     }
-    
+
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></table>
         </thead>
         <tbody>
           ${pendingApps.map(t => `
@@ -187,44 +186,14 @@ async function loadTutorApplications() {
     console.error('Error loading tutor applications:', err);
   }
 }
-    
-    console.log('📋 Pending tutor applications:', pendingApps); // 👈 debug
 
-    const container = document.getElementById('tutorApplicationsList');
-    if (!container) return;
 
-    if (!pendingApps.length) {
-      container.innerHTML = '<div class="card">No pending tutor applications.</div>';
-      return;
-    }
-
-    container.innerHTML = `
-      <table class="data-table" id="tutorAppsTable">
-        <thead>
-          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
-        </thead>
-        <tbody>
-          ${pendingApps.map(t => `
-            <tr>
-              <td>${escapeHtml(t.fullName)}</td>
-              <td>${escapeHtml(t.email)}</td>
-              <td>${new Date(t.tutorApplication.appliedAt).toLocaleDateString()}</td>
-              <td>${escapeHtml(t.tutorApplication.subjects?.join(', ') || '—')}</td>
-              <td><button class="btn-sm btn-primary" onclick="showTutorReview('${t._id}')">Review</button></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error('Error loading tutor applications:', err);
-  }
-}
 
 let currentReviewUserId = null;
 async function showTutorReview(userId) {
-  const users = await apiFetch('/admin/users');
-  const tutor = users.find(u => u._id === userId);
+  const response = await apiFetch('/admin/users');
+const users = response.users || [];
+const tutor = users.find(u => u._id === userId);
   if (!tutor) return;
   currentReviewUserId = userId;
   const app = tutor.tutorApplication;
@@ -496,8 +465,9 @@ window.savePreviewText = async function() {
 // ----- Withdrawal Requests -----
 async function loadWithdrawals() {
   try {
-    const withdrawals = await apiFetch('/admin/withdrawals');
-    const pending = withdrawals.filter(w => w.status === 'pending');
+   const response = await apiFetch('/admin/withdrawals');
+const withdrawals = response.withdrawals || [];
+const pending = withdrawals.filter(w => w.status === 'pending');
     const container = document.getElementById('withdrawalsList');
     if (!pending.length) {
       container.innerHTML = '<div class="card">No pending withdrawals.</div>';
@@ -545,7 +515,8 @@ async function rejectWithdrawal(withdrawalId) {
 // ----- Breach Management -----
 async function loadBreaches() {
   try {
-    const breaches = await apiFetch('/admin/breaches');
+    const response = await apiFetch('/admin/breaches');
+const breaches = response.breaches || [];
     const container = document.getElementById('breachesList');
     container.innerHTML = `
       <table class="data-table" id="breachesTable">
@@ -581,7 +552,8 @@ window.resolveBreach = resolveBreach;
 // ----- Announcements -----
 async function loadAnnouncements() {
   try {
-    const announcements = await apiFetch('/admin/announcements');
+    const response = await apiFetch('/admin/announcements');
+const announcements = response.announcements || [];
     const container = document.getElementById('announcementsList');
     container.innerHTML = `
       <table class="data-table" id="announcementsTable">
