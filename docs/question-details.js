@@ -200,6 +200,7 @@ async function respondToFundsRequest(accept) {
     window.location.href = 'student-dashboard.html?walletUpdated=true';
   } catch (err) { showToast(err.message, 'error'); }
 }
+
 // ---------- Comments ----------
 async function loadComments() {
   try {
@@ -230,26 +231,58 @@ window.deleteComment = async (commentId) => {
   }
 };
 
+// ---------- Improved comment POST with 401 handling and token refresh ----------
 document.getElementById('postCommentBtn').addEventListener('click', async () => {
   const text = document.getElementById('commentText').value;
   const file = document.getElementById('commentFile').files[0];
   if (!text.trim() && !file) return alert('Enter a comment or attach a file.');
+  
   const formData = new FormData();
   formData.append('questionId', questionId);
   if (text.trim()) formData.append('text', text);
   if (file) formData.append('file', file);
-  try {
-    const res = await fetch(`${window.API_BASE}/comments`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData
-    });
-    if (res.ok) {
-      document.getElementById('commentText').value = '';
-      document.getElementById('commentFile').value = '';
-      loadComments();
-    } else { const data = await res.json(); alert(data.error); }
-  } catch (err) { alert(err.message); }
+  
+  let retried = false;
+  
+  const attempt = async () => {
+    try {
+      const res = await fetch(`${window.API_BASE}/comments`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (res.status === 401 && !retried) {
+        retried = true;
+        // Try to refresh the token
+        const refreshRes = await fetch(`${window.API_BASE}/auth/refresh-token`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (refreshRes.ok) {
+          // Retry the comment
+          return attempt();
+        } else {
+          alert('Session expired. Please log in again.');
+          window.location.href = 'login.html';
+          return;
+        }
+      }
+      
+      if (res.ok) {
+        document.getElementById('commentText').value = '';
+        document.getElementById('commentFile').value = '';
+        loadComments();
+      } else {
+        const data = await res.json();
+        alert(data.error);
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  
+  attempt();
 });
 
 // ---------- Start ----------
