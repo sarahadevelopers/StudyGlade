@@ -389,8 +389,10 @@ function initTabs() {
 
 // ----- Assignment actions -----
 async function uploadAnswer(questionId) {
+  console.log(`[UPLOAD] Starting for question ${questionId}`);
   const fileInput = document.getElementById(`answer-${questionId}`);
   if (!fileInput) {
+    console.error('[UPLOAD] File input not found');
     showToast('File input not found', 'error');
     return;
   }
@@ -419,28 +421,19 @@ async function uploadAnswer(questionId) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Upload failed');
 
-    // Update local assignment object
-    const assignment = allAssignments.find(a => a._id === questionId);
-    if (assignment) {
-      assignment.answerFile = data.fileUrl;
-      assignment.answerFileName = file.name;
-    }
+    console.log('[UPLOAD] Success, server returned:', data);
 
-    // Reload assignments from server to ensure consistency
+    // ✅ Reload all assignments from server – this updates the local array and re‑renders
     await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
 
-    // Force a fresh fetch of the specific question to guarantee answerFile is present
-    const fresh = await apiFetch(`/questions/${questionId}`);
-    const freshAssignment = allAssignments.find(a => a._id === questionId);
-    if (freshAssignment && fresh.answerFile) {
-      freshAssignment.answerFile = fresh.answerFile;
-      freshAssignment.answerFileName = fresh.answerFileName;
-    }
+    // ✅ (Optional) Verify that the specific question now has an answerFile
+    const freshQuestion = await apiFetch(`/questions/${questionId}`);
+    console.log(`[UPLOAD] After reload, question ${questionId} answerFile =`, freshQuestion.answerFile);
 
     showToast('Answer uploaded! You can now mark as complete.', 'success');
   } catch (err) {
-    console.error('Upload error:', err);
+    console.error('[UPLOAD] Error:', err);
     showToast(err.message, 'error');
   } finally {
     if (btn) {
