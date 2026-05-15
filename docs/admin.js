@@ -141,12 +141,25 @@ async function loadOverview() {
 async function loadTutorApplications() {
   try {
     const users = await apiFetch('/admin/users');
-    const pendingApps = users.filter(u => u.role === 'tutor' && u.tutorApplication?.status === 'pending');
+    console.log('📋 All users from API:', users); // 👈 debug: see what's returned
+
+    // Safe filter: ensure tutorApplication exists before checking status
+   const pendingApps = users.filter(u => 
+  u.role === 'tutor' && 
+  u.tutorApplication && 
+  u.tutorApplication.status === 'pending'
+);
+    
+    console.log('📋 Pending tutor applications:', pendingApps); // 👈 debug
+
     const container = document.getElementById('tutorApplicationsList');
+    if (!container) return;
+
     if (!pendingApps.length) {
       container.innerHTML = '<div class="card">No pending tutor applications.</div>';
       return;
     }
+
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
         <thead>
@@ -165,7 +178,9 @@ async function loadTutorApplications() {
         </tbody>
       </table>
     `;
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Error loading tutor applications:', err);
+  }
 }
 
 let currentReviewUserId = null;

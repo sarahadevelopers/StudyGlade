@@ -108,10 +108,10 @@ router.get('/users', async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    const users = await User.find(filter)
-      .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires')
-      .skip(skip)
-      .limit(limitNum);
+   const users = await User.find(filter)
+  .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires +tutorApplication')
+  .skip(skip)
+  .limit(limitNum);
 
     const total = await User.countDocuments(filter);
 
