@@ -419,8 +419,19 @@ async function uploadAnswer(questionId) {
       assignment.answerFile = data.fileUrl;
       assignment.answerFileName = file.name;
     }
+
+    // Reload assignments from server to ensure consistency
     await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
+
+    // Force a fresh fetch of the specific question to guarantee answerFile is present
+    const fresh = await apiFetch(`/questions/${questionId}`);
+    const freshAssignment = allAssignments.find(a => a._id === questionId);
+    if (freshAssignment && fresh.answerFile) {
+      freshAssignment.answerFile = fresh.answerFile;
+      freshAssignment.answerFileName = fresh.answerFileName;
+    }
+
     showToast('Answer uploaded! You can now mark as complete.', 'success');
   } catch (err) {
     console.error('Upload error:', err);
@@ -433,7 +444,6 @@ async function uploadAnswer(questionId) {
     fileInput.value = '';
   }
 }
-
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
@@ -503,6 +513,27 @@ async function doCompleteQuestion(id) {
     showToast('Invalid question ID. Please refresh the page and try again.', 'error');
     return;
   }
+
+  // 👇 FIRST: fetch the latest question data to confirm answerFile exists
+  let latest;
+  try {
+    latest = await apiFetch(`/questions/${id}`);
+    if (!latest.answerFile) {
+      showToast('Answer file not found. Please upload the answer again before marking complete.', 'error');
+      // Re-enable the button if needed
+      const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '✅ Mark Complete';
+      }
+      return;
+    }
+  } catch (err) {
+    console.error('Failed to fetch question before completion:', err);
+    showToast('Could not verify answer file. Please try again.', 'error');
+    return;
+  }
+
   console.log("Marking complete for question:", id);
   
   const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
