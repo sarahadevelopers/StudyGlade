@@ -100,10 +100,15 @@ async function loadAdminDashboard() {
 async function loadOverview() {
   try {
     const analytics = await apiFetch('/admin/analytics');
-    const users = await apiFetch('/admin/users');
-    const withdrawals = await apiFetch('/admin/withdrawals');
-    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
-    const pendingTutors = users.filter(u => u.role === 'tutor' && u.tutorApplication?.status === 'pending').length;
+    const usersRes = await apiFetch('/admin/users');
+    const withdrawalsRes = await apiFetch('/admin/withdrawals');
+
+    // ✅ Safely extract the actual arrays from the API responses
+    const usersList = Array.isArray(usersRes) ? usersRes : (usersRes.users || []);
+    const withdrawalsList = Array.isArray(withdrawalsRes) ? withdrawalsRes : (withdrawalsRes.withdrawals || []);
+
+    const pendingWithdrawals = withdrawalsList.filter(w => w.status === 'pending').length;
+    const pendingTutors = usersList.filter(u => u.role === 'tutor' && u.tutorApplication?.status === 'pending').length;
 
     const stats = [
       { label: 'Total Users', value: analytics.totalUsers || 0 },
@@ -125,9 +130,9 @@ async function loadOverview() {
       </div>
     `).join('');
 
-    const recent = users.slice(-5).reverse().map(u => `
+    const recent = usersList.slice(-5).reverse().map(u => `
       <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
-        ${u.fullName} (${u.role}) joined ${new Date(u.createdAt).toLocaleDateString()}
+        ${escapeHtml(u.fullName)} (${u.role}) joined ${new Date(u.createdAt).toLocaleDateString()}
       </div>
     `).join('');
     document.getElementById('recentActivity').innerHTML = recent || 'No recent activity.';
@@ -136,19 +141,52 @@ async function loadOverview() {
     document.getElementById('statsGrid').innerHTML = '<p>Error loading stats</p>';
   }
 }
-
 // ----- Tutor Applications Section -----
 async function loadTutorApplications() {
   try {
-    const users = await apiFetch('/admin/users');
-    console.log('📋 All users from API:', users); // 👈 debug: see what's returned
-
-    // Safe filter: ensure tutorApplication exists before checking status
-   const pendingApps = users.filter(u => 
-  u.role === 'tutor' && 
-  u.tutorApplication && 
-  u.tutorApplication.status === 'pending'
-);
+    const data = await apiFetch('/admin/users');
+    // The response is { users: [], pagination: {...} }
+    const users = data.users || [];
+    console.log('📋 All users:', users);
+    
+    const pendingApps = users.filter(u => 
+      u.role === 'tutor' && 
+      u.tutorApplication && 
+      u.tutorApplication.status === 'pending'
+    );
+    
+    console.log('📋 Pending tutor applications:', pendingApps);
+    
+    const container = document.getElementById('tutorApplicationsList');
+    if (!container) return;
+    
+    if (!pendingApps.length) {
+      container.innerHTML = '<div class="card">No pending tutor applications.</div>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <table class="data-table" id="tutorAppsTable">
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          ${pendingApps.map(t => `
+            <tr>
+              <td>${escapeHtml(t.fullName)}</td>
+              <td>${escapeHtml(t.email)}</td>
+              <td>${new Date(t.tutorApplication.appliedAt).toLocaleDateString()}</td>
+              <td>${escapeHtml(t.tutorApplication.subjects?.join(', ') || '—')}</td>
+              <td><button class="btn-sm btn-primary" onclick="showTutorReview('${t._id}')">Review</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error('Error loading tutor applications:', err);
+  }
+}
     
     console.log('📋 Pending tutor applications:', pendingApps); // 👈 debug
 
@@ -241,7 +279,10 @@ function closeTutorModal() {
 // ----- Users Management -----
 async function loadUsers() {
   try {
-    const users = await apiFetch('/admin/users');
+    const response = await apiFetch('/admin/users');
+    // Safely extract the users array – the API returns an object with a 'users' property
+    const usersList = Array.isArray(response) ? response : (response.users || []);
+    
     const container = document.getElementById('usersList');
     container.innerHTML = `
       <table class="data-table" id="usersTable">
@@ -249,7 +290,7 @@ async function loadUsers() {
           <tr><th>Name</th><th>Email</th><th>Role</th><th>Approved</th><th>Suspended</th><th>Actions</th></tr>
         </thead>
         <tbody>
-          ${users.map(u => `
+          ${usersList.map(u => `
             <tr>
               <td>${escapeHtml(u.fullName)}</td>
               <td>${escapeHtml(u.email)}</td>
@@ -268,7 +309,9 @@ async function loadUsers() {
         </tbody>
       </table>
     `;
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Error loading users:', err);
+  }
 }
 
 async function toggleSuspend(userId, suspend) {
@@ -299,7 +342,8 @@ window.setTutorLevel = setTutorLevel;
 // ----- All Questions Section -----
 async function loadAllQuestions() {
   try {
-    const questions = await apiFetch('/admin/questions');
+    const response = await apiFetch('/admin/questions');
+const questions = response.questions || [];
     const container = document.getElementById('questionsList');
     if (!questions.length) {
       container.innerHTML = '<div class="card">No questions found.</div>';
@@ -331,7 +375,8 @@ async function loadAllQuestions() {
 // ----- Document Approval (shows ALL documents with Edit/Preview buttons) -----
 async function loadDocuments() {
   try {
-    const docs = await apiFetch('/admin/documents');
+    const response = await apiFetch('/admin/documents');
+const docs = response.documents || [];
     const container = document.getElementById('documentsList');
     if (!docs.length) {
       container.innerHTML = '<div class="card">No documents found.</div>';
