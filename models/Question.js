@@ -21,7 +21,7 @@ const questionSchema = new mongoose.Schema({
   suggestedBudget: { type: Number, default: 0 },
   suggestedTutorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   budgetSuggestionSent: { type: Boolean, default: false },
-  // Answer file
+  // Answer file (tutor upload)
   answerFile: { type: String, default: '' },
   answerFileName: { type: String, default: '' },
   answerUploadedAt: { type: Date, default: null },
@@ -33,12 +33,12 @@ const questionSchema = new mongoose.Schema({
   },
   // Tutor requests additional funds
   additionalFundsRequest: {
-  amount: { type: Number },
-  reason: { type: String },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'] }, // no default
-  requestedAt: Date,
-  studentResponseAt: Date
-},
+    amount: { type: Number },
+    reason: { type: String },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'] }, // no default
+    requestedAt: Date,
+    studentResponseAt: Date
+  },
   // Tutor cancellation reason (no penalty)
   cancellationReason: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }

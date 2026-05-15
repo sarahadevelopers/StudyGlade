@@ -515,32 +515,10 @@ async function confirmComplete() {
 }
 
 async function doCompleteQuestion(id) {
-  console.log('doCompleteQuestion START, id:', id);
   if (!id) {
-    console.error('doCompleteQuestion called with null or undefined ID');
-    showToast('Invalid question ID. Please refresh the page and try again.', 'error');
+    showToast('Invalid question ID', 'error');
     return;
   }
-
-  // Pre‑completion check: verify answer file exists on server
-  let latest;
-  try {
-    latest = await apiFetch(`/questions/${id}`);
-    if (!latest.answerFile) {
-      showToast('Answer file not found. Please upload the answer again before marking complete.', 'error');
-      const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '✅ Mark Complete';
-      }
-      return;
-    }
-  } catch (err) {
-    console.error('Failed to fetch question before completion:', err);
-    showToast('Could not verify answer file. Please try again.', 'error');
-    return;
-  }
-
   console.log("Marking complete for question:", id);
   const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
   const originalText = btn?.innerHTML;
@@ -548,41 +526,27 @@ async function doCompleteQuestion(id) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Completing...';
   }
-  
   let attempts = 0;
   const maxAttempts = 4;
   let delay = 1000;
-  
   while (attempts < maxAttempts) {
     try {
       const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-      console.log("API Response:", response);
       showToast('Question marked as complete! Payment processed.', 'success');
       await loadTutorDashboard();
       return;
     } catch (err) {
       attempts++;
-      console.error(`Complete attempt ${attempts} failed:`, err.message);
-      if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer'))) {
-        if (attempts < maxAttempts) {
-          console.log(`Retrying after ${delay}ms... (attempt ${attempts}/${maxAttempts})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay = delay * 2;
-        } else {
-          showToast('Answer file not ready after multiple attempts. Please wait a moment and try again.', 'error');
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalText || '✅ Mark Complete';
-          }
-          return;
-        }
+      console.error(`Attempt ${attempts} failed:`, err.message);
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
       } else {
-        showToast(`Error: ${err.message}`, 'error');
+        showToast('Failed to complete after multiple attempts. Please refresh and try again.', 'error');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText || '✅ Mark Complete';
         }
-        return;
       }
     }
   }

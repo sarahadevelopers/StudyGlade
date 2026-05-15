@@ -475,41 +475,43 @@ router.post('/:id/upload-answer',
       if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-      console.log(`[UPLOAD] File: ${req.file.originalname}, size: ${req.file.size}, type: ${req.file.mimetype}`);
+      console.log(`[UPLOAD] File: ${req.file.originalname}, size: ${req.file.size}`);
 
       // Upload to Cloudinary
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder: 'studyglade/answers', resource_type: 'raw' },
           (error, uploadResult) => {
-            if (error) {
-              console.error('[UPLOAD] Cloudinary error:', error);
-              reject(error);
-            } else {
-              console.log('[UPLOAD] Cloudinary success:', uploadResult.secure_url);
-              resolve(uploadResult);
-            }
+            if (error) reject(error);
+            else resolve(uploadResult);
           }
         ).end(req.file.buffer);
       });
 
-      // Update the question
-      question.answerFile = result.secure_url;
-      question.answerFileName = req.file.originalname;
-      question.answerUploadedAt = new Date();
-      
-      // Save and verify
-      const savedQuestion = await question.save();
-      console.log(`[UPLOAD] Saved answerFile: ${savedQuestion.answerFile}`);
-      
-      if (!savedQuestion.answerFile) {
-        throw new Error('Database save did not persist answerFile');
+      // ✅ DIRECT UPDATE – forces the field to be set
+      const updated = await Question.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: {
+            answerFile: result.secure_url,
+            answerFileName: req.file.originalname,
+            answerUploadedAt: new Date()
+          }
+        },
+        { new: true, runValidators: false }  // bypass any schema issues
+      );
+
+      console.log(`[UPLOAD] Updated document – answerFile = ${updated.answerFile}`);
+
+      if (!updated.answerFile) {
+        throw new Error('Database update did not set answerFile');
       }
 
-      // Notifications & emails (keep as is)
+      // Notifications and emails (unchanged)
       const tutor = await User.findById(req.userId).select('fullName');
       await Notification.create({
-        userId: question.studentId, type: 'answer_uploaded',
+        userId: question.studentId,
+        type: 'answer_uploaded',
         title: 'Answer Uploaded',
         message: `${tutor.fullName} has uploaded an answer for "${question.title}".`,
         link: `/answer-details.html?id=${question._id}`
@@ -521,7 +523,7 @@ router.post('/:id/upload-answer',
         questionTitle: question.title,
         tutorName: tutor.fullName,
         questionId: question._id
-      }).catch(err => console.error('Failed to send answer uploaded email:', err));
+      }).catch(err => console.error('Failed to send email:', err));
 
       const io = getIO(req);
       emitToUser(io, question.studentId, 'answer_uploaded', {
