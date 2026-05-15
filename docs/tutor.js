@@ -279,31 +279,31 @@ function renderAssignmentsByTab(tab) {
     const now = new Date();
     filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
   } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
-  
+
   const start = (assignmentsPage - 1) * ASSIGNMENTS_PER_PAGE;
   const paginated = filtered.slice(start, start + ASSIGNMENTS_PER_PAGE);
-  
+
   const container = document.getElementById('assignmentsList');
   if (!container) return;
   if (paginated.length === 0) {
     container.innerHTML = '<div class="assignment-item">No assignments found.</div>';
     return;
   }
-  
+
   let html = '';
   paginated.forEach(a => {
     const statusText = a.status === 'assigned' ? 'In Progress' : a.status;
     let statusClass = 'status-in-progress';
     if (a.status === 'completed') statusClass = 'status-completed';
     if (a.status === 'overdue') statusClass = 'status-overdue';
-    
+
     let deadlineDisplay = 'No deadline';
     if (a.deadline) {
       const deadlineDate = new Date(a.deadline);
       deadlineDisplay = deadlineDate.toLocaleString();
     }
     const showCancel = a.additionalFundsRequest && a.additionalFundsRequest.status === 'rejected';
-    
+
     html += `
       <div class="assignment-item">
         <div class="assignment-header">
@@ -314,12 +314,12 @@ function renderAssignmentsByTab(tab) {
           <span class="status-badge ${statusClass}">${statusText}</span>
         </div>
     `;
-    
+
     if (a.status === 'assigned') {
       html += `
         <div class="btn-group">
-          <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
-          <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
+          <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
+          <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click()">📎 Upload Answer</button>
           <button class="btn-sm btn-success-sm" data-question-id="${a._id}" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
           <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
@@ -343,6 +343,16 @@ function renderAssignmentsByTab(tab) {
     html += `</div>`;
   });
   container.innerHTML = html;
+
+  // Attach change event listeners to all file inputs with class "assignment-file-input"
+  document.querySelectorAll('.assignment-file-input').forEach(input => {
+    const questionId = input.id.replace('answer-', '');
+    input.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        uploadAnswer(questionId);
+      }
+    });
+  });
 }
 
 function renderAssignmentsPagination() {
