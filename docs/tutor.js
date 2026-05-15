@@ -314,7 +314,7 @@ function renderAssignmentsByTab(tab) {
         <div class="btn-group">
           <input type="file" id="answer-${a._id}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
           <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click(); uploadAnswer('${a._id}')">📎 Upload Answer</button>
-          <button class="btn-sm btn-success-sm" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
+          <button class="btn-sm btn-success-sm" data-question-id="${a._id}" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
           <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
           ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
@@ -384,36 +384,53 @@ function initTabs() {
 // ----- Assignment actions -----
 async function uploadAnswer(questionId) {
   const fileInput = document.getElementById(`answer-${questionId}`);
+  if (!fileInput) {
+    showToast('File input not found', 'error');
+    return;
+  }
   const file = fileInput.files[0];
-  if (!file) { showToast('Select a file', 'error'); return; }
-  
+  if (!file) {
+    showToast('Select a file', 'error');
+    return;
+  }
+
   const btn = fileInput.closest('.btn-group')?.querySelector('.btn-primary-sm');
   const originalText = btn?.innerHTML;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...'; }
-  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Uploading...';
+  }
+
   const formData = new FormData();
   formData.append('answer', file);
+
   try {
-    const res = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
+    const response = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
       method: 'POST',
       credentials: 'include',
       body: formData
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
-    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Upload failed');
+
+    // Update local assignment object
     const assignment = allAssignments.find(a => a._id === questionId);
     if (assignment) {
       assignment.answerFile = data.fileUrl;
       assignment.answerFileName = file.name;
     }
+    // Reload assignments from server to ensure consistency
+    await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
     showToast('Answer uploaded! You can now mark as complete.', 'success');
   } catch (err) {
     console.error('Upload error:', err);
     showToast(err.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
     fileInput.value = '';
   }
 }
@@ -431,46 +448,113 @@ async function downloadAnswer(questionId) {
   }
 }
 
-async function completeQuestion(id, event) {
-  if (event) {
-    event.stopPropagation();
-    event.preventDefault();
+// ---------- Confirmation modal for complete question ----------
+let pendingCompleteQuestionId = null;
+
+function showCompleteModal(questionId) {
+  pendingCompleteQuestionId = questionId;
+  const modal = document.getElementById('completeQuestionModal');
+  if (modal) {
+    // Reset checkboxes
+    document.getElementById('confirmOriginalWork').checked = false;
+    document.getElementById('confirmNoPlagiarism').checked = false;
+    document.getElementById('confirmGrammar').checked = false;
+    document.getElementById('confirmTerms').checked = false;
+    modal.style.display = 'flex';
+  } else {
+    console.warn('Complete modal not found');
+    // fallback: proceed without modal
+    doCompleteQuestion(questionId);
   }
-  
+}
+
+function closeCompleteModal() {
+  const modal = document.getElementById('completeQuestionModal');
+  if (modal) modal.style.display = 'none';
+  pendingCompleteQuestionId = null;
+}
+
+async function confirmComplete() {
+  if (!pendingCompleteQuestionId) return;
+  // Check if all boxes are ticked
+  const originalWork = document.getElementById('confirmOriginalWork').checked;
+  const noPlagiarism = document.getElementById('confirmNoPlagiarism').checked;
+  const grammar = document.getElementById('confirmGrammar').checked;
+  const terms = document.getElementById('confirmTerms').checked;
+  if (!originalWork || !noPlagiarism || !grammar || !terms) {
+    showToast('Please confirm all requirements before marking as complete.', 'error');
+    return;
+  }
+  closeCompleteModal();
+  await doCompleteQuestion(pendingCompleteQuestionId);
+  pendingCompleteQuestionId = null;
+}
+
+// Attach event listener to confirm button (once)
+document.getElementById('confirmCompleteBtn')?.addEventListener('click', confirmComplete);
+window.closeCompleteModal = closeCompleteModal;
+
+// The actual completion logic with better retry mechanism (exponential backoff)
+async function doCompleteQuestion(id) {
   console.log("Marking complete for question:", id);
   
-  const btn = event?.target?.closest('.btn-success-sm');
+  const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
   const originalText = btn?.innerHTML;
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Completing...';
   }
   
-  let retried = false;
+  let attempts = 0;
+  const maxAttempts = 4;
+  let delay = 1000; // start with 1 second
   
-  const attempt = async () => {
+  while (attempts < maxAttempts) {
     try {
       const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
       console.log("API Response:", response);
       showToast('Question marked as complete! Payment processed.', 'success');
       await loadTutorDashboard();
+      return; // success – exit
     } catch (err) {
-      console.error("Complete error:", err);
-      if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer')) && !retried) {
-        retried = true;
-        console.log("Retrying after 1 second...");
-        setTimeout(attempt, 1000);
+      attempts++;
+      console.error(`Complete attempt ${attempts} failed:`, err.message);
+      if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer'))) {
+        if (attempts < maxAttempts) {
+          console.log(`Retrying after ${delay}ms... (attempt ${attempts}/${maxAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay = delay * 2; // exponential backoff
+        } else {
+          showToast('Answer file not ready after multiple attempts. Please wait a moment and try again.', 'error');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText || '✅ Mark Complete';
+          }
+          return;
+        }
       } else {
+        // other error (e.g., network, validation)
         showToast(`Error: ${err.message}`, 'error');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText || '✅ Mark Complete';
         }
+        return;
       }
     }
-  };
-  
-  attempt();
+  }
+}
+
+// New wrapper function to show modal
+async function completeQuestion(id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  // Store the question ID on the button for later reference
+  const btn = event?.target?.closest('.btn-success-sm');
+  if (btn) btn.setAttribute('data-question-id', id);
+  showCompleteModal(id);
 }
 
 async function requestAdditionalFunds(questionId) {

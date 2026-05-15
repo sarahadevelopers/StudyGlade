@@ -251,7 +251,25 @@
       <div id="previewContent">Loading...</div>
     </div>
   </div>
-  
+  <!-- Modal for marking question as complete -->
+<div id="completeQuestionModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 500px;">
+    <span class="close-modal" onclick="closeCompleteModal()">&times;</span>
+    <h3>Confirm Completion</h3>
+    <p>Before marking this question as complete, please confirm the following:</p>
+    <div class="confirm-checkboxes">
+      <label><input type="checkbox" id="confirmOriginalWork"> I confirm the work is original and not AI‑generated</label><br>
+      <label><input type="checkbox" id="confirmNoPlagiarism"> I confirm there is no plagiarism</label><br>
+      <label><input type="checkbox" id="confirmGrammar"> I confirm the answer is grammatically correct</label><br>
+      <label><input type="checkbox" id="confirmTerms"> I agree to the tutor and platform terms &amp; conditions</label>
+    </div>
+    <div style="margin-top: 1rem; text-align: right;">
+      <button class="btn-outline-sm" onclick="closeCompleteModal()">Cancel</button>
+      <button class="btn-primary-sm" id="confirmCompleteBtn">Submit & Complete</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="api.js?v=2"></script>
 <script src="auth.js?v=2"></script>

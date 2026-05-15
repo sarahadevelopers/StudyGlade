@@ -1030,3 +1030,38 @@ body {
     display: block;
   }
 }
+
+/* ========== CONFIRMATION MODAL (Complete Question) ========== */
+.confirm-checkboxes {
+  margin: 1rem 0;
+  background: var(--ice-blue);
+  padding: 1rem;
+  border-radius: 20px;
+}
+.confirm-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-navy);
+}
+.confirm-checkboxes input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--brand-blue);
+}
+.confirm-checkboxes label:last-child {
+  margin-bottom: 0;
+}
+#completeQuestionModal .modal-content {
+  max-width: 500px;
+}
+#completeQuestionModal .btn-outline-sm,
+#completeQuestionModal .btn-primary-sm {
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  border-radius: 40px;
+}
