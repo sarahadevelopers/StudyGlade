@@ -125,8 +125,18 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     res.status(201).json(comment);
   } catch (err) {
-    if (req.file) await fs.unlink(req.file.path).catch(() => {});
-    console.error('Comment post error:', err);
+    // Enhanced error logging – show file details and full error
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+      console.error('Comment post error:', err);
+      console.error('File details:', {
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    } else {
+      console.error('Comment post error (no file):', err);
+    }
     res.status(400).json({ error: err.message });
   }
 });
