@@ -265,6 +265,12 @@ async function loadAssignments(page = 1) {
   }
 }
 
+async function refreshAssignments() {
+  await loadAssignments(assignmentsPage);
+  renderAssignmentsByTab(currentTab);
+  showToast('Assignments refreshed', 'success');
+}
+
 function renderAssignmentsByTab(tab) {
   let filtered = [];
   if (tab === 'all') filtered = allAssignments;
@@ -457,8 +463,6 @@ async function downloadAnswer(questionId) {
   }
 }
 
-
-
 // ---------- Confirmation modal for marking complete ----------
 let pendingCompleteQuestionId = null;
 
@@ -511,121 +515,19 @@ async function confirmComplete() {
 }
 
 async function doCompleteQuestion(id) {
-  console.log('doCompleteQuestion START, id:', id);  // 👈 debug log
+  console.log('doCompleteQuestion START, id:', id);
   if (!id) {
     console.error('doCompleteQuestion called with null or undefined ID');
     showToast('Invalid question ID. Please refresh the page and try again.', 'error');
     return;
   }
 
-  // // 👇 TEMPORARILY COMMENTED OUT – pre‑completion answerFile check
-  // let latest;
-  // try {
-  //   latest = await apiFetch(`/questions/${id}`);
-  //   if (!latest.answerFile) {
-  //     showToast('Answer file not found. Please upload the answer again before marking complete.', 'error');
-  //     const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
-  //     if (btn) {
-  //       btn.disabled = false;
-  //       btn.innerHTML = '✅ Mark Complete';
-  //     }
-  //     return;
-  //   }
-  // } catch (err) {
-  //   console.error('Failed to fetch question before completion:', err);
-  //   showToast('Could not verify answer file. Please try again.', 'error');
-  //   return;
-  // }
-
-  console.log("Marking complete for question:", id);
-  
-  const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
-  const originalText = btn?.innerHTML;
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Completing...';
-  }
-  
-  let attempts = 0;
-  const maxAttempts = 4;
-  let delay = 1000;
-  
-  while (attempts < maxAttempts) {
-    try {
-      const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
-      console.log("API Response:", response);
-      showToast('Question marked as complete! Payment processed.', 'success');
-      await loadTutorDashboard();
-      return;
-    } catch (err) {
-      attempts++;
-      console.error(`Complete attempt ${attempts} failed:`, err.message);
-      if (err.message && (err.message.includes('answer file') || err.message.includes('upload the answer'))) {
-        if (attempts < maxAttempts) {
-          console.log(`Retrying after ${delay}ms... (attempt ${attempts}/${maxAttempts})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay = delay * 2;
-        } else {
-          showToast('Answer file not ready after multiple attempts. Please wait a moment and try again.', 'error');
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalText || '✅ Mark Complete';
-          }
-          return;
-        }
-      } else {
-        showToast(`Error: ${err.message}`, 'error');
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = originalText || '✅ Mark Complete';
-        }
-        return;
-      }
-    }
-  }
-}
-
-function closeCompleteModal() {
-  const modal = document.getElementById('completeQuestionModal');
-  if (modal) modal.style.display = 'none';
-  // Do NOT clear pendingCompleteQuestionId here – keep it until after confirmation.
-}
-
-async function confirmComplete() {
-  console.log('confirmComplete called, pending ID:', pendingCompleteQuestionId);
-  if (!pendingCompleteQuestionId) {
-    showToast('No question selected. Please try again.', 'error');
-    closeCompleteModal();
-    return;
-  }
-  const originalWork = document.getElementById('confirmOriginalWork').checked;
-  const noPlagiarism = document.getElementById('confirmNoPlagiarism').checked;
-  const grammar = document.getElementById('confirmGrammar').checked;
-  const terms = document.getElementById('confirmTerms').checked;
-  if (!originalWork || !noPlagiarism || !grammar || !terms) {
-    showToast('Please confirm all requirements before marking as complete.', 'error');
-    return;
-  }
-  closeCompleteModal();
-  const idToComplete = pendingCompleteQuestionId;
-  pendingCompleteQuestionId = null;
-  await doCompleteQuestion(idToComplete);
-}
-
-async function doCompleteQuestion(id) {
-  if (!id) {
-    console.error('doCompleteQuestion called with null or undefined ID');
-    showToast('Invalid question ID. Please refresh the page and try again.', 'error');
-    return;
-  }
-
-  // 👇 FIRST: fetch the latest question data to confirm answerFile exists
-  /*let latest;
+  // Pre‑completion check: verify answer file exists on server
+  let latest;
   try {
     latest = await apiFetch(`/questions/${id}`);
     if (!latest.answerFile) {
       showToast('Answer file not found. Please upload the answer again before marking complete.', 'error');
-      // Re-enable the button if needed
       const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
       if (btn) {
         btn.disabled = false;
@@ -637,10 +539,9 @@ async function doCompleteQuestion(id) {
     console.error('Failed to fetch question before completion:', err);
     showToast('Could not verify answer file. Please try again.', 'error');
     return;
-  }*/
+  }
 
   console.log("Marking complete for question:", id);
-  
   const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
   const originalText = btn?.innerHTML;
   if (btn) {
@@ -978,9 +879,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (withdrawBtn) withdrawBtn.addEventListener('click', withdrawFunds);
   const userMenuEl = document.querySelector('.user-menu');
   if (userMenuEl) userMenuEl.addEventListener('click', toggleUserMenu);
-  // Attach confirm button listener
   const confirmBtn = document.getElementById('confirmCompleteBtn');
   if (confirmBtn) confirmBtn.addEventListener('click', confirmComplete);
+  const refreshBtn = document.getElementById('refreshAssignmentsBtn');
+  if (refreshBtn) refreshBtn.addEventListener('click', refreshAssignments);
 });
 
 // Expose global functions

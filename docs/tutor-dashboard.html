@@ -145,14 +145,15 @@
         <!-- My Assignments -->
         <div class="assignments-card">
           <div class="card-header">
-            <h2>My Assignments</h2>
-            <div class="tab-buttons">
-              <button class="tab-btn active" data-tab="all">All</button>
-              <button class="tab-btn" data-tab="in-progress">In Progress</button>
-              <button class="tab-btn" data-tab="overdue">Overdue</button>
-              <button class="tab-btn" data-tab="completed">Completed</button>
-            </div>
-          </div>
+  <h2>My Assignments</h2>
+  <div class="tab-buttons">
+    <button class="tab-btn active" data-tab="all">All</button>
+    <button class="tab-btn" data-tab="in-progress">In Progress</button>
+    <button class="tab-btn" data-tab="overdue">Overdue</button>
+    <button class="tab-btn" data-tab="completed">Completed</button>
+  </div>
+  <button id="refreshAssignmentsBtn" class="btn-sm btn-outline-sm" style="margin-left: auto;">⟳ Refresh</button>
+</div>
           <div id="assignmentsList" class="assignments-list">
             <div class="loading">Loading assignments...</div>
           </div>
