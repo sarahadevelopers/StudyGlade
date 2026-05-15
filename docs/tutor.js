@@ -515,7 +515,7 @@ async function doCompleteQuestion(id) {
   }
 
   // 👇 FIRST: fetch the latest question data to confirm answerFile exists
-  let latest;
+  /*let latest;
   try {
     latest = await apiFetch(`/questions/${id}`);
     if (!latest.answerFile) {
@@ -532,7 +532,7 @@ async function doCompleteQuestion(id) {
     console.error('Failed to fetch question before completion:', err);
     showToast('Could not verify answer file. Please try again.', 'error');
     return;
-  }
+  }*/
 
   console.log("Marking complete for question:", id);
   
