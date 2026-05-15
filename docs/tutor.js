@@ -253,7 +253,6 @@ async function acceptQuestion(questionId) {
 async function loadAssignments(page = 1) {
   try {
     const all = await apiFetch('/questions/my-assignments');
-    // Sort by createdAt descending (newest first)
     all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     allAssignments = all;
     assignmentsTotalPages = Math.ceil(allAssignments.length / ASSIGNMENTS_PER_PAGE);
@@ -265,6 +264,7 @@ async function loadAssignments(page = 1) {
     document.getElementById('assignmentsList').innerHTML = '<div>Error loading assignments</div>';
   }
 }
+
 function renderAssignmentsByTab(tab) {
   let filtered = [];
   if (tab === 'all') filtered = allAssignments;
@@ -374,7 +374,7 @@ function initTabs() {
       tabs.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentTab = btn.getAttribute('data-tab');
-      assignmentsPage = 1;   // reset pagination when changing tab
+      assignmentsPage = 1;
       renderAssignmentsByTab(currentTab);
       renderAssignmentsPagination();
     });
@@ -419,7 +419,6 @@ async function uploadAnswer(questionId) {
       assignment.answerFile = data.fileUrl;
       assignment.answerFileName = file.name;
     }
-    // Reload assignments from server to ensure consistency
     await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
     showToast('Answer uploaded! You can now mark as complete.', 'success');
@@ -448,14 +447,18 @@ async function downloadAnswer(questionId) {
   }
 }
 
-// ---------- Confirmation modal for complete question ----------
+// ---------- Confirmation modal for marking complete ----------
 let pendingCompleteQuestionId = null;
 
 function showCompleteModal(questionId) {
+  console.log('showCompleteModal called with ID:', questionId);
+  if (!questionId) {
+    console.error('showCompleteModal: No question ID provided');
+    return;
+  }
   pendingCompleteQuestionId = questionId;
   const modal = document.getElementById('completeQuestionModal');
   if (modal) {
-    // Reset checkboxes
     document.getElementById('confirmOriginalWork').checked = false;
     document.getElementById('confirmNoPlagiarism').checked = false;
     document.getElementById('confirmGrammar').checked = false;
@@ -463,7 +466,6 @@ function showCompleteModal(questionId) {
     modal.style.display = 'flex';
   } else {
     console.warn('Complete modal not found');
-    // fallback: proceed without modal
     doCompleteQuestion(questionId);
   }
 }
@@ -471,12 +473,16 @@ function showCompleteModal(questionId) {
 function closeCompleteModal() {
   const modal = document.getElementById('completeQuestionModal');
   if (modal) modal.style.display = 'none';
-  pendingCompleteQuestionId = null;
+  // Do NOT clear pendingCompleteQuestionId here – keep it until after confirmation.
 }
 
 async function confirmComplete() {
-  if (!pendingCompleteQuestionId) return;
-  // Check if all boxes are ticked
+  console.log('confirmComplete called, pending ID:', pendingCompleteQuestionId);
+  if (!pendingCompleteQuestionId) {
+    showToast('No question selected. Please try again.', 'error');
+    closeCompleteModal();
+    return;
+  }
   const originalWork = document.getElementById('confirmOriginalWork').checked;
   const noPlagiarism = document.getElementById('confirmNoPlagiarism').checked;
   const grammar = document.getElementById('confirmGrammar').checked;
@@ -486,16 +492,17 @@ async function confirmComplete() {
     return;
   }
   closeCompleteModal();
-  await doCompleteQuestion(pendingCompleteQuestionId);
+  const idToComplete = pendingCompleteQuestionId;
   pendingCompleteQuestionId = null;
+  await doCompleteQuestion(idToComplete);
 }
 
-// Attach event listener to confirm button (once)
-document.getElementById('confirmCompleteBtn')?.addEventListener('click', confirmComplete);
-window.closeCompleteModal = closeCompleteModal;
-
-// The actual completion logic with better retry mechanism (exponential backoff)
 async function doCompleteQuestion(id) {
+  if (!id) {
+    console.error('doCompleteQuestion called with null or undefined ID');
+    showToast('Invalid question ID. Please refresh the page and try again.', 'error');
+    return;
+  }
   console.log("Marking complete for question:", id);
   
   const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
@@ -507,7 +514,7 @@ async function doCompleteQuestion(id) {
   
   let attempts = 0;
   const maxAttempts = 4;
-  let delay = 1000; // start with 1 second
+  let delay = 1000;
   
   while (attempts < maxAttempts) {
     try {
@@ -515,7 +522,7 @@ async function doCompleteQuestion(id) {
       console.log("API Response:", response);
       showToast('Question marked as complete! Payment processed.', 'success');
       await loadTutorDashboard();
-      return; // success – exit
+      return;
     } catch (err) {
       attempts++;
       console.error(`Complete attempt ${attempts} failed:`, err.message);
@@ -523,7 +530,7 @@ async function doCompleteQuestion(id) {
         if (attempts < maxAttempts) {
           console.log(`Retrying after ${delay}ms... (attempt ${attempts}/${maxAttempts})`);
           await new Promise(resolve => setTimeout(resolve, delay));
-          delay = delay * 2; // exponential backoff
+          delay = delay * 2;
         } else {
           showToast('Answer file not ready after multiple attempts. Please wait a moment and try again.', 'error');
           if (btn) {
@@ -533,7 +540,6 @@ async function doCompleteQuestion(id) {
           return;
         }
       } else {
-        // other error (e.g., network, validation)
         showToast(`Error: ${err.message}`, 'error');
         if (btn) {
           btn.disabled = false;
@@ -545,13 +551,12 @@ async function doCompleteQuestion(id) {
   }
 }
 
-// New wrapper function to show modal
+// Wrapper function called from button onclick
 async function completeQuestion(id, event) {
   if (event) {
     event.stopPropagation();
     event.preventDefault();
   }
-  // Store the question ID on the button for later reference
   const btn = event?.target?.closest('.btn-success-sm');
   if (btn) btn.setAttribute('data-question-id', id);
   showCompleteModal(id);
@@ -671,7 +676,7 @@ if (soundToggle) {
   updateSoundToggleUI();
 }
 
-// ========== NOTIFICATIONS DROPDOWN (with pagination) ==========
+// ========== NOTIFICATIONS DROPDOWN ==========
 const notificationBell = document.querySelector('.notification-bell');
 let notificationDropdown = null;
 let notificationPage = 1;
@@ -820,7 +825,7 @@ async function updateUnreadCountAndSound() {
 updateUnreadCountAndSound();
 setInterval(updateUnreadCountAndSound, 30000);
 
-// Refresh assignments & available questions every 30 seconds (optional)
+// Refresh assignments & available questions every 30 seconds
 setInterval(async () => {
   if (document.querySelector('.main-content')) {
     await loadAssignments();
@@ -837,6 +842,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (withdrawBtn) withdrawBtn.addEventListener('click', withdrawFunds);
   const userMenuEl = document.querySelector('.user-menu');
   if (userMenuEl) userMenuEl.addEventListener('click', toggleUserMenu);
+  // Attach confirm button listener
+  const confirmBtn = document.getElementById('confirmCompleteBtn');
+  if (confirmBtn) confirmBtn.addEventListener('click', confirmComplete);
 });
 
 // Expose global functions
@@ -853,3 +861,4 @@ window.changeAvailablePage = changeAvailablePage;
 window.previewQuestion = previewQuestion;
 window.closeQuestionPreview = closeQuestionPreview;
 window.changeAssignmentsPage = changeAssignmentsPage;
+window.closeCompleteModal = closeCompleteModal;
