@@ -389,10 +389,10 @@ function initTabs() {
 
 // ----- Assignment actions -----
 async function uploadAnswer(questionId) {
-  console.log(`[UPLOAD] Starting for question ${questionId}`);
+  console.log(`[UPLOAD] Called for question ${questionId}`);
   const fileInput = document.getElementById(`answer-${questionId}`);
   if (!fileInput) {
-    console.error('[UPLOAD] File input not found');
+    console.error(`[UPLOAD] File input not found: answer-${questionId}`);
     showToast('File input not found', 'error');
     return;
   }
@@ -401,6 +401,7 @@ async function uploadAnswer(questionId) {
     showToast('Select a file', 'error');
     return;
   }
+  console.log(`[UPLOAD] File selected: ${file.name}, size: ${file.size}`);
 
   const btn = fileInput.closest('.btn-group')?.querySelector('.btn-primary-sm');
   const originalText = btn?.innerHTML;
@@ -413,23 +414,28 @@ async function uploadAnswer(questionId) {
   formData.append('answer', file);
 
   try {
+    console.log(`[UPLOAD] Sending POST to /api/questions/${questionId}/upload-answer`);
     const response = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
       method: 'POST',
       credentials: 'include',
       body: formData
     });
+    console.log(`[UPLOAD] Response status: ${response.status}`);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Upload failed');
+    console.log(`[UPLOAD] Success, fileUrl = ${data.fileUrl}`);
 
-    console.log('[UPLOAD] Success, server returned:', data);
-
-    // ✅ Reload all assignments from server – this updates the local array and re‑renders
+    // ✅ Force a fresh reload of all assignments from the server
     await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
 
-    // ✅ (Optional) Verify that the specific question now has an answerFile
-    const freshQuestion = await apiFetch(`/questions/${questionId}`);
-    console.log(`[UPLOAD] After reload, question ${questionId} answerFile =`, freshQuestion.answerFile);
+    // ✅ Verify the question now has an answerFile
+    const fresh = await apiFetch(`/questions/${questionId}`);
+    console.log(`[UPLOAD] After reload, question ${questionId} answerFile = ${fresh.answerFile || 'MISSING'}`);
+
+    if (!fresh.answerFile) {
+      throw new Error('Database did not save the file!');
+    }
 
     showToast('Answer uploaded! You can now mark as complete.', 'success');
   } catch (err) {
