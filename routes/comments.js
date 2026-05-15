@@ -75,8 +75,16 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     let fileUrl = null;
     if (req.file) {
-      // ✅ No restriction on file name – upload normally
-      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'studyglade/comments' });
+      // Determine resource type: images go to 'image', everything else to 'raw'
+      let resourceType = 'raw';
+      if (req.file.mimetype.startsWith('image/')) {
+        resourceType = 'image';
+      }
+      console.log(`[COMMENT] Uploading ${req.file.originalname} as ${resourceType}`);
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'studyglade/comments',
+        resource_type: resourceType
+      });
       fileUrl = result.secure_url;
       await fs.unlink(req.file.path);
     }
@@ -125,7 +133,6 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     res.status(201).json(comment);
   } catch (err) {
-    // Enhanced error logging – show file details and full error
     if (req.file) {
       await fs.unlink(req.file.path).catch(() => {});
       console.error('Comment post error:', err);
