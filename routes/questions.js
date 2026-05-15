@@ -468,31 +468,45 @@ router.post('/:id/upload-answer',
   handleValidationErrors,
   async (req, res) => {
     try {
+      console.log(`[UPLOAD] Starting for question ${req.params.id}`);
       const question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
       if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+      console.log(`[UPLOAD] File: ${req.file.originalname}, size: ${req.file.size}, type: ${req.file.mimetype}`);
+
+      // Upload to Cloudinary
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder: 'studyglade/answers', resource_type: 'raw' },
           (error, uploadResult) => {
-            if (error) reject(error);
-            else resolve(uploadResult);
+            if (error) {
+              console.error('[UPLOAD] Cloudinary error:', error);
+              reject(error);
+            } else {
+              console.log('[UPLOAD] Cloudinary success:', uploadResult.secure_url);
+              resolve(uploadResult);
+            }
           }
         ).end(req.file.buffer);
       });
 
+      // Update the question
       question.answerFile = result.secure_url;
       question.answerFileName = req.file.originalname;
       question.answerUploadedAt = new Date();
-      await question.save();
-      console.log(`✅ Uploaded answer for question ${question._id}: answerFile = ${question.answerFile}`);
+      
+      // Save and verify
+      const savedQuestion = await question.save();
+      console.log(`[UPLOAD] Saved answerFile: ${savedQuestion.answerFile}`);
+      
+      if (!savedQuestion.answerFile) {
+        throw new Error('Database save did not persist answerFile');
+      }
 
-      const saved = await Question.findById(question._id);
-      console.log(`✅ Uploaded answer for question ${question._id}: file URL = ${saved.answerFile}, original name = ${saved.answerFileName}`);
-
+      // Notifications & emails (keep as is)
       const tutor = await User.findById(req.userId).select('fullName');
       await Notification.create({
         userId: question.studentId, type: 'answer_uploaded',
@@ -501,7 +515,6 @@ router.post('/:id/upload-answer',
         link: `/answer-details.html?id=${question._id}`
       });
 
-      // Send email to student that answer is ready
       const student = await User.findById(question.studentId);
       sendEmailWithTemplate(student.email, 'Answer Uploaded for Your Question', 'answer-uploaded.ejs', {
         studentName: student.fullName,
@@ -510,7 +523,6 @@ router.post('/:id/upload-answer',
         questionId: question._id
       }).catch(err => console.error('Failed to send answer uploaded email:', err));
 
-      // ✅ Socket: notify student that answer is uploaded
       const io = getIO(req);
       emitToUser(io, question.studentId, 'answer_uploaded', {
         questionId: question._id,
@@ -521,7 +533,7 @@ router.post('/:id/upload-answer',
 
       res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
     } catch (err) {
-      console.error('Upload answer error:', err);
+      console.error('[UPLOAD] Error:', err);
       res.status(500).json({ error: err.message });
     }
   }
