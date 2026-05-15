@@ -190,39 +190,92 @@ async function loadTutorApplications() {
 
 
 let currentReviewUserId = null;
+
 async function showTutorReview(userId) {
-  const response = await apiFetch('/admin/users');
-const users = response.users || [];
-const tutor = users.find(u => u._id === userId);
-  if (!tutor) return;
-  currentReviewUserId = userId;
-  const app = tutor.tutorApplication;
-  const modalBody = document.getElementById('tutorReviewBody');
-  modalBody.innerHTML = `
-    <p><strong>Full Name:</strong> ${escapeHtml(tutor.fullName)}</p>
-    <p><strong>Email:</strong> ${escapeHtml(tutor.email)}</p>
-    <p><strong>Qualifications:</strong><br>${escapeHtml(app.qualifications || 'Not provided')}</p>
-    <p><strong>Subjects:</strong> ${escapeHtml(app.subjects?.join(', ') || '—')}</p>
-    <p><strong>Essay Format:</strong> ${app.essayFormat || 'APA'}</p>
-    <p><strong>Essay (500-1000 words):</strong></p>
-    <div style="background:#f9fafb; padding:1rem; border-radius:0.5rem; white-space:pre-wrap;">${escapeHtml(app.essay || '')}</div>
-    <p><strong>Quiz Answers:</strong> Q1: ${app.quizAnswers?.q1 || '?'}, Q2: ${app.quizAnswers?.q2 || '?'}, Q3: ${app.quizAnswers?.q3 || '?'}</p>
-    ${app.portfolioUrl ? `<p><strong>Portfolio:</strong> <a href="${app.portfolioUrl}" target="_blank">Download file</a></p>` : ''}
-  `;
-  document.getElementById('tutorReviewModal').style.display = 'flex';
+  try {
+    console.log('showTutorReview called for userId:', userId);
+    
+    // Fetch users from the API (response is { users: [], pagination: {} })
+    const response = await apiFetch('/admin/users');
+    const users = response.users || [];
+    
+    // Find the specific tutor by ID
+    const tutor = users.find(u => u._id === userId);
+    if (!tutor) {
+      console.error('Tutor not found for userId:', userId);
+      alert('Tutor not found. Please refresh the page and try again.');
+      return;
+    }
+    
+    // Store the ID for the approve/reject actions
+    currentReviewUserId = userId;
+    
+    const app = tutor.tutorApplication;
+    if (!app) {
+      console.error('No tutorApplication found for user:', tutor.email);
+      alert('This user does not have a tutor application.');
+      return;
+    }
+    
+    const modalBody = document.getElementById('tutorReviewBody');
+    if (!modalBody) {
+      console.error('Modal body element not found');
+      return;
+    }
+    
+    modalBody.innerHTML = `
+      <p><strong>Full Name:</strong> ${escapeHtml(tutor.fullName)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(tutor.email)}</p>
+      <p><strong>Qualifications:</strong><br>${escapeHtml(app.qualifications || 'Not provided')}</p>
+      <p><strong>Subjects:</strong> ${escapeHtml(app.subjects?.join(', ') || '—')}</p>
+      <p><strong>Essay Format:</strong> ${app.essayFormat || 'APA'}</p>
+      <p><strong>Essay (500-1000 words):</strong></p>
+      <div style="background:#f9fafb; padding:1rem; border-radius:0.5rem; white-space:pre-wrap;">${escapeHtml(app.essay || '')}</div>
+      <p><strong>Quiz Answers:</strong> Q1: ${app.quizAnswers?.q1 || '?'}, Q2: ${app.quizAnswers?.q2 || '?'}, Q3: ${app.quizAnswers?.q3 || '?'}</p>
+      ${app.portfolioUrl ? `<p><strong>Portfolio:</strong> <a href="${app.portfolioUrl}" target="_blank">Download file</a></p>` : ''}
+    `;
+    
+    // Show the modal
+    const modal = document.getElementById('tutorReviewModal');
+    if (modal) modal.style.display = 'flex';
+  } catch (err) {
+    console.error('Error in showTutorReview:', err);
+    alert('Failed to load tutor application details.');
+  }
 }
 
 async function approveTutorApplication() {
-  if (!currentReviewUserId) return;
+  // Validate that a tutor is selected
+  if (!currentReviewUserId) {
+    console.error('No tutor selected for approval');
+    alert('No tutor selected. Please click "Review" on a tutor application first.');
+    return;
+  }
+
+  // Confirm with the admin before approving
+  if (!confirm('Are you sure you want to approve this tutor application? The tutor will be able to log in and start using the platform.')) {
+    return;
+  }
+
   try {
-    await apiFetch(`/admin/users/${currentReviewUserId}/approve-tutor`, {
+    console.log('Approving tutor with ID:', currentReviewUserId);
+    
+    const response = await apiFetch(`/admin/users/${currentReviewUserId}/approve-tutor`, {
       method: 'PUT',
       body: JSON.stringify({ approved: true })
     });
-    alert('Tutor approved. They can now log in.');
+    
+    console.log('Approval response:', response);
+    alert('✅ Tutor approved successfully. They can now log in.');
+    
+    // Close the modal and refresh the dashboard
     closeTutorModal();
-    loadAdminDashboard();
-  } catch (err) { alert('Error: ' + err.message); }
+    await loadAdminDashboard(); // Refresh all sections including tutor applications
+    
+  } catch (err) {
+    console.error('Approval error:', err);
+    alert('❌ Failed to approve tutor: ' + err.message);
+  }
 }
 
 async function rejectTutorApplication() {
