@@ -519,7 +519,6 @@ async function doCompleteQuestion(id) {
     showToast('Invalid question ID', 'error');
     return;
   }
-  console.log("Marking complete for question:", id);
   const btn = document.querySelector(`.btn-success-sm[data-question-id="${id}"]`);
   const originalText = btn?.innerHTML;
   if (btn) {
@@ -531,7 +530,7 @@ async function doCompleteQuestion(id) {
   let delay = 1000;
   while (attempts < maxAttempts) {
     try {
-      const response = await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
+      await apiFetch(`/questions/${id}/complete`, { method: 'PUT' });
       showToast('Question marked as complete! Payment processed.', 'success');
       await loadTutorDashboard();
       return;

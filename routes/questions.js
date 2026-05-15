@@ -482,13 +482,18 @@ router.post('/:id/upload-answer',
         cloudinary.uploader.upload_stream(
           { folder: 'studyglade/answers', resource_type: 'raw' },
           (error, uploadResult) => {
-            if (error) reject(error);
-            else resolve(uploadResult);
+            if (error) {
+              console.error('[UPLOAD] Cloudinary error:', error);
+              reject(error);
+            } else {
+              console.log('[UPLOAD] Cloudinary success:', uploadResult.secure_url);
+              resolve(uploadResult);
+            }
           }
         ).end(req.file.buffer);
       });
 
-      // ✅ DIRECT UPDATE – forces the field to be set
+      // ✅ DIRECT UPDATE – forces the field to be set, bypasses Mongoose validation
       const updated = await Question.findByIdAndUpdate(
         req.params.id,
         {
@@ -498,7 +503,7 @@ router.post('/:id/upload-answer',
             answerUploadedAt: new Date()
           }
         },
-        { new: true, runValidators: false }  // bypass any schema issues
+        { new: true, runValidators: false }
       );
 
       console.log(`[UPLOAD] Updated document – answerFile = ${updated.answerFile}`);
