@@ -259,10 +259,21 @@ router.put('/:id/complete',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const question = await Question.findById(req.params.id);
+      // 👇 changed from const to let to allow reassignment
+      let question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
-      if (!question.answerFile) return res.status(400).json({ error: 'Please upload the answer file first' });
+
+      // 👇 retry logic: if answerFile missing, wait 500ms and refresh
+      if (!question.answerFile) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const refreshed = await Question.findById(req.params.id);
+        if (refreshed && refreshed.answerFile) {
+          question = refreshed;
+        } else {
+          return res.status(400).json({ error: 'Please upload the answer file first' });
+        }
+      }
 
       question.status = 'completed';
       await question.save();
@@ -291,14 +302,12 @@ router.put('/:id/complete',
         link: `/answer-details.html?id=${question._id}`
       });
 
-      // Send email to tutor about payment received
       sendEmailWithTemplate(tutor.email, 'Payment Received – StudyGlade', 'tutor-payment.ejs', {
         tutorName: tutor.fullName,
         amount: earnings,
         reason: `Completed question: ${question.title}`
       }).catch(err => console.error('Failed to send payment email:', err));
 
-      // ✅ Socket: notify student that question is completed
       const io = getIO(req);
       emitToUser(io, question.studentId, 'question_completed', {
         questionId: question._id,
@@ -317,7 +326,6 @@ router.put('/:id/complete',
     }
   }
 );
-
 // ------------------- 8. Place a bid -------------------
 router.post('/:id/bid', 
   auth, 
@@ -480,6 +488,7 @@ router.post('/:id/upload-answer',
       question.answerFileName = req.file.originalname;
       question.answerUploadedAt = new Date();
       await question.save();
+      console.log(`✅ Uploaded answer for question ${question._id}: answerFile = ${question.answerFile}`);
 
       const saved = await Question.findById(question._id);
       console.log(`✅ Uploaded answer for question ${question._id}: file URL = ${saved.answerFile}, original name = ${saved.answerFileName}`);

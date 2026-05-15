@@ -137,7 +137,9 @@ router.post('/register',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { fullName, email, password, role } = req.body;
+      let { fullName, email, password, role } = req.body;
+      // ✅ Normalize email to lowercase
+      email = email.toLowerCase();
 
       const existing = await User.findOne({ email });
       if (existing) return res.status(400).json({ error: 'Email already exists' });
@@ -145,7 +147,7 @@ router.post('/register',
       const hashed = await bcrypt.hash(password, 10);
 
       const userData = {
-        email,
+        email,  // stored as lowercase
         password: hashed,
         fullName,
         role,
@@ -254,7 +256,8 @@ router.post('/login',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { email, password } = req.body;
+      let { email, password } = req.body;
+      email = email.toLowerCase(); // ✅ normalize to lowercase
       const user = await User.findOne({ email });
       
       if (user && user.lockUntil && user.lockUntil > Date.now()) {
@@ -288,17 +291,17 @@ router.post('/login',
       res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
       
       res.json({ 
-  user: { 
-    id: user._id, 
-    email, 
-    fullName: user.fullName, 
-    role: user.role, 
-    walletBalance: user.walletBalance,
-    avatar: user.avatar || '',
-    gender: user.gender || 'other'
-  },
-  accessToken  // 👈 add this line
-});
+        user: { 
+          id: user._id, 
+          email, 
+          fullName: user.fullName, 
+          role: user.role, 
+          walletBalance: user.walletBalance,
+          avatar: user.avatar || '',
+          gender: user.gender || 'other'
+        },
+        accessToken
+      });
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -340,18 +343,24 @@ router.post('/forgot-password',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { email } = req.body;
+      let { email } = req.body;
+      // ✅ Normalize email to lowercase
+      email = email.toLowerCase();
+
       const user = await User.findOne({ email });
       if (!user) return res.status(404).json({ error: 'No account with that email' });
+
       const token = crypto.randomBytes(32).toString('hex');
       user.resetPasswordToken = token;
       user.resetPasswordExpires = Date.now() + 3600000;
       await user.save();
+
       const resetLink = `https://studyglade.com/reset-password.html?token=${token}`;
       await sendEmailWithTemplate(user.email, 'Password Reset – StudyGlade', 'password-reset.ejs', {
-  userName: user.fullName,
-  resetLink: resetLink
-});
+        userName: user.fullName,
+        resetLink: resetLink
+      });
+
       res.json({ message: 'Reset link sent to your email' });
     } catch (err) {
       console.error('Forgot password error:', err);
