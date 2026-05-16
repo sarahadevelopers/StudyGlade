@@ -222,7 +222,7 @@ router.put('/users/:id/suspend', async (req, res) => {
 router.get('/questions', async (req, res) => {
   try {
     const questions = await Question.find().populate('studentId tutorId', 'fullName email');
-    res.json(questions);
+    res.json({ questions });   // ✅ sends object with 'questions' key
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -639,7 +639,6 @@ router.get('/announcements', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 router.post('/announcements', async (req, res) => {
   try {
     const { title, message, expiresAt } = req.body;
