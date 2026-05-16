@@ -354,7 +354,7 @@ router.get('/top-documents', async (req, res) => {
 router.get('/withdrawals', async (req, res) => {
   try {
     const withdrawals = await Withdrawal.find().populate('userId', 'fullName email walletBalance');
-    res.json(withdrawals);
+    res.json({ withdrawals });   // ✅ wrap in object
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
