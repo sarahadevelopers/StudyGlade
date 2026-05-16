@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - StudyGlade</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
- <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
   <nav class="navbar">
@@ -34,7 +34,6 @@
         <li data-section="breaches">⚠️ Breach History</li>
         <li data-section="announcements">📢 Announcements</li>
         <li data-section="blog">✍️ Blog</li>
-        <!-- ✅ NEW: Content Violations -->
         <li data-section="content-violations">⚠️ Content Violations</li>
       </ul>
     </div>
@@ -107,20 +106,15 @@
         <div id="announcementsList">Loading...</div>
       </div>
 
-      <!-- Financial Reports Section -->
-      <div id="financial" class="section">
-        <h2>Financial Reports</h2>
-        <div style="margin-bottom: 1rem;">
-          <label>From: <input type="date" id="reportFrom"></label>
-          <label>To: <input type="date" id="reportTo"></label>
-          <button class="btn-sm btn-primary" onclick="loadFinancialReport()">Apply Filter</button>
-          <button class="btn-sm btn-secondary" onclick="exportTableToCSV('studentsTable', 'students.csv')">Export Students CSV</button>
-          <button class="btn-sm btn-secondary" onclick="downloadFinancialPDF()">Download PDF</button>
-        </div>
-        <div id="financialContent">Loading...</div>
+      <!-- Blog Management Section (NEW) -->
+      <div id="blog" class="section">
+        <h2>Blog Posts</h2>
+        <button class="btn-sm btn-primary" onclick="window.location.href='/admin/blog/new'">➕ New Post</button>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('blogTable', 'blog_posts.csv')">📎 Export CSV</button>
+        <div id="blogList">Loading blog posts...</div>
       </div>
 
-      <!-- ========== NEW: Content Violations Section ========== -->
+      <!-- Content Violations Section -->
       <div id="content-violations" class="section">
         <h2>Content Violations Log</h2>
         <button class="btn-sm btn-secondary" onclick="exportViolationsCSV()">📎 Export CSV</button>
@@ -241,8 +235,8 @@
       <div id="fullQuestionBody"></div>
     </div>
   </div>
-  
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="api.js"></script>
   <script src="auth.js"></script>
   <script src="admin.js"></script>

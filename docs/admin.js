@@ -365,7 +365,7 @@ window.setTutorLevel = setTutorLevel;
 async function loadAllQuestions() {
   try {
     const response = await apiFetch('/admin/questions');
-const questions = response.questions || [];
+ const questions = response.questions || [];
     const container = document.getElementById('questionsList');
     if (!questions.length) {
       container.innerHTML = '<div class="card">No questions found.</div>';
@@ -686,6 +686,73 @@ window.deleteAnnouncement = deleteAnnouncement;
 window.saveAnnouncement = saveAnnouncement;
 window.showCreateAnnouncementModal = showCreateAnnouncementModal;
 window.closeAnnouncementModal = closeAnnouncementModal;
+
+async function loadBlogPosts(page = 1) {
+  const container = document.getElementById('blogList');
+  if (!container) return;
+
+  // Show loading state
+  container.innerHTML = '<div class="loading-spinner">Loading blog posts...</div>';
+
+  try {
+    const limit = 10;
+    const response = await apiFetch(`/admin/blog/posts?page=${page}&limit=${limit}`);
+    const { posts, pagination } = response;
+
+    if (!posts || posts.length === 0) {
+      container.innerHTML = `
+        <div class="card">
+          <p>No blog posts yet.</p>
+          <a href="/admin/blog/new" class="btn-sm btn-primary">➕ Create your first post</a>
+        </div>`;
+      return;
+    }
+
+    let html = `
+      <table class="data-table" id="blogTable">
+        <thead>
+          <tr><th>Title</th><th>Author</th><th>Published</th><th>Status</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+    `;
+
+    for (const post of posts) {
+      html += `
+        <tr>
+          <td>${escapeHtml(post.title)}</td>
+          <td>${escapeHtml(post.author || 'StudyGlade Team')}</td>
+          <td>${post.isPublished ? '✅' : '❌'}</td>
+          <td>${post.isPublished ? 'Published' : 'Draft'}</td>
+          <td>${new Date(post.createdAt).toLocaleDateString()}</td>
+          <td>
+            <a href="/admin/blog/${post._id}/edit" class="btn-sm btn-primary">Edit</a>
+            <button class="btn-sm btn-danger" onclick="deleteBlogPost('${post._id}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    html += `</tbody></table>`;
+
+    if (pagination && pagination.pages > 1) {
+      html += `
+        <div class="pagination" style="margin-top: 1rem; text-align: center;">
+          ${pagination.page > 1 ? `<button class="btn-sm btn-secondary" onclick="loadBlogPosts(${pagination.page - 1})">← Previous</button>` : ''}
+          <span>Page ${pagination.page} of ${pagination.pages}</span>
+          ${pagination.page < pagination.pages ? `<button class="btn-sm btn-secondary" onclick="loadBlogPosts(${pagination.page + 1})">Next →</button>` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Error loading blog posts:', err);
+    container.innerHTML = '<div class="card error">Failed to load blog posts. Please try again later.</div>';
+  }
+}
+
+// Add delete function (already referenced)
+
 
 // ----- User Dashboard Modal -----
 async function showUserDashboard(userId) {
