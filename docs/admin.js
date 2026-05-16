@@ -1199,4 +1199,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadNotifications();
   if (notificationInterval) clearInterval(notificationInterval);
   notificationInterval = setInterval(loadNotifications, 30000);
+
+  // ✅ Add these two lines
+  document.getElementById('approveTutorBtn')?.addEventListener('click', approveTutorApplication);
+  document.getElementById('rejectTutorBtn')?.addEventListener('click', rejectTutorApplication);
 });
