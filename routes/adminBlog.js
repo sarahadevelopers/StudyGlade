@@ -7,9 +7,9 @@ const router = express.Router();
 
 router.use(auth, roleCheck('admin'));
 
-// ========== JSON API for admin dashboard ==========
-// IMPORTANT: This route must come BEFORE any parameterized routes (e.g., /:id/edit)
-router.get('/posts', async (req, res) => {
+// ========== JSON API for admin dashboard (with /api prefix) ==========
+// This matches the frontend request: /api/admin/blog/posts
+router.get('/api/admin/blog/posts', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -37,7 +37,7 @@ router.get('/posts', async (req, res) => {
   }
 });
 
-// ========== Server‑rendered pages ==========
+// ========== Server‑rendered pages (unchanged) ==========
 // List all posts (HTML)
 router.get('/', async (req, res) => {
   try {
