@@ -168,7 +168,7 @@ router.put('/users/:id/approve-tutor', async (req, res) => {
 
     await user.save();
 
-    // ✅ In‑app notification (only for approval)
+    // ✅ In‑app notification for the tutor (only for approval)
     if (approved) {
       await Notification.create({
         userId: user._id,
@@ -190,6 +190,27 @@ router.put('/users/:id/approve-tutor', async (req, res) => {
         tutorName: user.fullName,
         reason: feedback || 'Your application did not meet our current requirements.'
       });
+    }
+
+    // ✅ NEW: Notify all OTHER admins about this decision
+    const allAdmins = await User.find({ role: 'admin' });
+    const io = req.app.get('io');
+    const actingAdmin = await User.findById(req.userId).select('fullName');
+    for (const admin of allAdmins) {
+      if (admin._id.toString() === req.userId) continue; // skip the acting admin
+      await Notification.create({
+        userId: admin._id,
+        type: 'tutor_application_handled',
+        title: `Tutor Application ${approved ? 'Approved' : 'Rejected'}`,
+        message: `${actingAdmin.fullName} ${approved ? 'approved' : 'rejected'} the application of ${user.fullName}.`,
+        link: '/admin-dashboard.html?section=tutor-apps',
+        read: false
+      }).catch(err => console.error('Failed to notify other admin:', err));
+      if (io) {
+        io.to(`user_${admin._id}`).emit('notification_new', {
+          message: `Tutor application ${approved ? 'approved' : 'rejected'} by ${actingAdmin.fullName}`
+        });
+      }
     }
 
     res.json({ message: approved ? 'Tutor approved' : 'Tutor rejected' });

@@ -210,6 +210,31 @@ router.post('/register',
           console.error('Failed to send pending tutor email:', emailErr);
           // Do not block registration if email fails
         }
+
+        // ✅ NEW: Notify all admins about new tutor application
+        try {
+          const admins = await User.find({ role: 'admin' });
+          const io = req.app.get('io');
+          for (const admin of admins) {
+            await Notification.create({
+              userId: admin._id,
+              type: 'tutor_application',
+              title: 'New Tutor Application',
+              message: `${fullName} (${email}) applied to become a tutor.`,
+              link: '/admin-dashboard.html?section=tutor-apps',
+              read: false
+            });
+            if (io) {
+              io.to(`user_${admin._id}`).emit('notification_new', {
+                message: `${fullName} applied as tutor`
+              });
+            }
+          }
+          console.log(`📢 Notified ${admins.length} admin(s) about new tutor application`);
+        } catch (notifErr) {
+          console.error('Failed to notify admins about new tutor:', notifErr);
+          // Do not block registration
+        }
       }
 
       // ✅ Welcome notification ONLY for instant‑approval roles (student, admin)
@@ -252,6 +277,8 @@ router.post('/register',
     }
   }
 );
+
+
 
 // ----------------- Login (with validation) -----------------
 router.post('/login',

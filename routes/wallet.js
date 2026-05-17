@@ -3,10 +3,11 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
+const Notification = require('../models/Notification');   // ✅ added
 const axios = require('axios');
 const crypto = require('crypto');
 const { sendEmailWithTemplate } = require('../utils/email');
-const { emitToUser, getIO } = require('../utils/sockets');   // 👈 import socket helper
+const { emitToUser, getIO } = require('../utils/sockets');
 
 const router = express.Router();
 
@@ -42,7 +43,6 @@ router.post('/add-funds', auth, async (req, res) => {
     await user.save();
     await Transaction.create({ userId: req.userId, type: 'deposit', amount, description: `Simulated deposit: $${amount}` });
     
-    // Emit real‑time update
     const io = getIO(req);
     emitToUser(io, req.userId, 'wallet_update', {
       newBalance: user.walletBalance,
@@ -85,7 +85,7 @@ router.post('/paystack/initialize', auth, async (req, res) => {
   }
 });
 
-// ---------- PAYSTACK WEBHOOK (charge.success) with duplicate prevention + email + socket ----------
+// ---------- PAYSTACK WEBHOOK (charge.success) ----------
 router.post('/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
@@ -133,7 +133,6 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
     });
     console.log(`Wallet credited: ${verifiedAmount} to user ${userId}`);
 
-    // ✅ Send deposit confirmation email
     sendEmailWithTemplate(user.email, 'Deposit Successful – StudyGlade', 'deposit-confirmation.ejs', {
       userName: user.fullName,
       amount: verifiedAmount,
@@ -141,8 +140,7 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
       reference: reference
     }).catch(err => console.error('Failed to send deposit email:', err));
 
-    // ✅ Emit real‑time wallet update via Socket.io
-    const io = req.app.get('io');  // webhook route has req.app
+    const io = req.app.get('io');
     if (io) {
       emitToUser(io, userId, 'wallet_update', {
         newBalance: user.walletBalance,
@@ -153,7 +151,7 @@ router.post('/paystack-webhook', express.raw({type: 'application/json'}), async 
   res.sendStatus(200);
 });
 
-// ---------- WITHDRAWAL REQUEST (deduct immediately, create pending request for admin) + email + socket ----------
+// ---------- WITHDRAWAL REQUEST (with admin notifications) ----------
 router.post('/withdraw', auth, async (req, res) => {
   try {
     const { amount, method, accountDetails } = req.body;
@@ -202,7 +200,32 @@ router.post('/withdraw', auth, async (req, res) => {
       }).catch(err => console.error('Failed to send admin alert email:', err));
     }
 
-    // ✅ Emit real‑time wallet update (balance decreased)
+    // ✅ NEW: Notify all admins via in‑app notification
+    try {
+      const admins = await User.find({ role: 'admin' });
+      const io = getIO(req);
+      for (const admin of admins) {
+        await Notification.create({
+          userId: admin._id,
+          type: 'withdrawal_request',
+          title: 'New Withdrawal Request',
+          message: `${user.fullName} (${user.email}) requested $${amount} withdrawal (${method}).`,
+          link: '/admin-dashboard.html?section=withdrawals',
+          read: false
+        });
+        if (io) {
+          io.to(`user_${admin._id}`).emit('notification_new', {
+            message: `${user.fullName} requested $${amount} withdrawal`
+          });
+        }
+      }
+      console.log(`📢 Notified ${admins.length} admin(s) about new withdrawal request`);
+    } catch (notifErr) {
+      console.error('Failed to notify admins about withdrawal:', notifErr);
+      // Do not block the withdrawal process
+    }
+
+    // ✅ Emit real‑time wallet update to the user (balance decreased)
     const io = getIO(req);
     emitToUser(io, req.userId, 'wallet_update', {
       newBalance: user.walletBalance,

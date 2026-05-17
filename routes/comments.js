@@ -48,6 +48,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     if (!user) return res.status(401).json({ error: 'User not found' });
 
     // ---- BLOCK CONTACT INFO & LOG ATTEMPT (only for text, not for file name) ----
+      // ---- BLOCK CONTACT INFO & LOG ATTEMPT (only for text, not for file name) ----
     if (text && containsContactInfo(text)) {
       await ContentFilterLog.create({
         userId: req.userId,
@@ -58,11 +59,30 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
         detectedPattern: getMatchingPattern(text)
       }).catch(err => console.error('Failed to log content filter attempt:', err));
 
+      // ✅ NEW: Notify all admins in real time
+      const admins = await User.find({ role: 'admin' });
+      const io = req.app.get('io');
+      for (const admin of admins) {
+        await Notification.create({
+          userId: admin._id,
+          type: 'content_violation',
+          title: 'Content Violation Detected',
+          message: `${user.fullName} attempted to post blocked content: ${text.substring(0, 100)}`,
+          link: '/admin-dashboard.html?section=content-violations',
+          read: false
+        }).catch(err => console.error('Failed to create admin notification:', err));
+        if (io) {
+          io.to(`user_${admin._id}`).emit('notification_new', {
+            message: `Violation from ${user.fullName}`
+          });
+        }
+      }
+
       return res.status(400).json({ 
         error: 'Messages cannot contain email addresses, phone numbers, URLs, or third‑party contact information (e.g., WhatsApp, Telegram, social media).' 
       });
     }
-
+    
     const question = await Question.findById(questionId);
     if (!question) return res.status(404).json({ error: 'Question not found' });
 

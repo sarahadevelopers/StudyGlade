@@ -149,6 +149,7 @@ router.get('/library',
 );
 
 // ========== UPLOAD DOCUMENT ==========
+// ========== UPLOAD DOCUMENT (with admin notifications) ==========
 router.post('/upload', 
   auth,
   roleCheck('tutor', 'admin'),
@@ -202,6 +203,34 @@ router.post('/upload',
         isApproved: user.role === 'admin' ? true : false,
         previewText, previewImageUrl, slug
       });
+
+      // ✅ NEW: Notify all admins about new document upload (if not auto‑approved)
+      if (user.role !== 'admin') {  // only for tutor‑uploaded documents
+        try {
+          const admins = await User.find({ role: 'admin' });
+          const io = getIO(req);
+          for (const admin of admins) {
+            await Notification.create({
+              userId: admin._id,
+              type: 'document_upload',
+              title: 'New Document Upload',
+              message: `${user.fullName} uploaded "${title}" – pending approval.`,
+              link: '/admin-dashboard.html?section=documents',
+              read: false
+            });
+            if (io) {
+              io.to(`user_${admin._id}`).emit('notification_new', {
+                message: `${user.fullName} uploaded new document`
+              });
+            }
+          }
+          console.log(`📢 Notified ${admins.length} admin(s) about new document upload`);
+        } catch (notifErr) {
+          console.error('Failed to notify admins about document upload:', notifErr);
+          // Do not block the upload
+        }
+      }
+
       res.status(201).json(doc);
     } catch (err) {
       console.error(err);
