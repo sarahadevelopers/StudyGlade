@@ -105,7 +105,18 @@
         <button class="btn-sm btn-primary" onclick="showCreateAnnouncementModal()">➕ Create Announcement</button>
         <div id="announcementsList">Loading...</div>
       </div>
-
+      <!-- Financial Reports Section -->
+      <div id="financial" class="section">
+        <h2>Financial Reports</h2>
+        <div style="margin-bottom: 1rem;">
+          <label>From: <input type="date" id="reportFrom"></label>
+          <label>To: <input type="date" id="reportTo"></label>
+          <button class="btn-sm btn-primary" onclick="loadFinancialReport()">Apply Filter</button>
+          <button class="btn-sm btn-secondary" onclick="exportTableToCSV('studentsTable', 'students.csv')">Export Students CSV</button>
+          <button class="btn-sm btn-secondary" onclick="downloadFinancialPDF()">Download PDF</button>
+        </div>
+        <div id="financialContent">Loading...</div>
+      </div>
       <!-- Blog Management Section (NEW) -->
       <div id="blog" class="section">
         <h2>Blog Posts</h2>
