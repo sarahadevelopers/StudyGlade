@@ -13,11 +13,6 @@ function formatMoney(amount) {
   return `$${parseFloat(amount).toFixed(2)}`;
 }
 
-// ----- DUMMY QUESTION POOL (100+ templates) -----
-// ----- DUMMY QUESTION POOL (now with optional fileUrl) -----
-
-// For a real deployment, you should expand this to at least 100 unique entries.
-// You can generate them programmatically or manually add more.
 
 // ----- Global variables -----
 let currentPage = 1;
@@ -145,7 +140,7 @@ async function loadTutorDashboard() {
   }
 }
 
-// ----- Load Available Questions (with pagination + dummy injection) -----
+// ----- Load Available Questions (with pagination and backend demo questions) -----
 async function loadAvailableQuestions(page = 1) {
   try {
     const res = await fetch(`${window.API_BASE}/questions/pending?page=${page}&limit=${PAGE_SIZE}`, { credentials: 'include' });
@@ -211,7 +206,7 @@ window.changeAvailablePage = (delta) => {
   loadAvailableQuestions(newPage);
 };
 
-// ----- Place Bid (now with dummy handling) -----
+// ----- Place Bid (with demo question handling) -----
 async function placeBid(questionId, isDemo = false) {
   if (isDemo) {
     showToast('Bid placed (demo) – this is a practice question', 'success');
@@ -350,8 +345,8 @@ function renderAssignmentsByTab(tab) {
     if (a.status === 'assigned') {
       html += `
         <div class="btn-group">
-          <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none;">
-          <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click()">📎 Upload Answer</button>
+         <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" multiple style="display:none;">
+          <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click()">📎 Upload Answers</button>
           <button class="btn-sm btn-success-sm" data-question-id="${a._id}" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
           <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
@@ -438,12 +433,12 @@ async function uploadAnswer(questionId) {
     showToast('File input not found', 'error');
     return;
   }
-  const file = fileInput.files[0];
-  if (!file) {
-    showToast('Select a file', 'error');
+  const files = fileInput.files;
+  if (!files.length) {
+    showToast('Select at least one file', 'error');
     return;
   }
-  console.log(`[UPLOAD] File selected: ${file.name}, size: ${file.size}`);
+  console.log(`[UPLOAD] ${files.length} file(s) selected`);
 
   const btn = fileInput.closest('.btn-group')?.querySelector('.btn-primary-sm');
   const originalText = btn?.innerHTML;
@@ -453,11 +448,14 @@ async function uploadAnswer(questionId) {
   }
 
   const formData = new FormData();
-  formData.append('answer', file);
+  // Append all files under the same field name 'answers'
+  for (let i = 0; i < files.length; i++) {
+    formData.append('answers', files[i]);
+  }
 
   try {
-    console.log(`[UPLOAD] Sending POST to /api/questions/${questionId}/upload-answer`);
-    const response = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answer`, {
+    console.log(`[UPLOAD] Sending POST to /api/questions/${questionId}/upload-answers`);
+    const response = await fetch(`${window.API_BASE}/questions/${questionId}/upload-answers`, {
       method: 'POST',
       credentials: 'include',
       body: formData
@@ -465,21 +463,13 @@ async function uploadAnswer(questionId) {
     console.log(`[UPLOAD] Response status: ${response.status}`);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Upload failed');
-    console.log(`[UPLOAD] Success, fileUrl = ${data.fileUrl}`);
+    console.log(`[UPLOAD] Success, uploaded ${data.urls.length} file(s)`);
 
-    // ✅ Force a fresh reload of all assignments from the server
+    // Reload assignments to reflect new files
     await loadAssignments(assignmentsPage);
     renderAssignmentsByTab(currentTab);
 
-    // ✅ Verify the question now has an answerFile
-    const fresh = await apiFetch(`/questions/${questionId}`);
-    console.log(`[UPLOAD] After reload, question ${questionId} answerFile = ${fresh.answerFile || 'MISSING'}`);
-
-    if (!fresh.answerFile) {
-      throw new Error('Database did not save the file!');
-    }
-
-    showToast('Answer uploaded! You can now mark as complete.', 'success');
+    showToast('Answer(s) uploaded! You can now mark as complete.', 'success');
   } catch (err) {
     console.error('[UPLOAD] Error:', err);
     showToast(err.message, 'error');
@@ -488,9 +478,10 @@ async function uploadAnswer(questionId) {
       btn.disabled = false;
       btn.innerHTML = originalText;
     }
-    fileInput.value = '';
+    fileInput.value = ''; // clear selection
   }
 }
+
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);

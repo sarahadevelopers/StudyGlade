@@ -12,7 +12,7 @@ const questionSchema = new mongoose.Schema({
   files: [String],
   school: String,
   course: String,
-  isDemo: { type: Boolean, default: false },          // ✅ new field for demo questions
+  isDemo: { type: Boolean, default: false },
   status: {
     type: String,
     enum: ['pending', 'assigned', 'completed', 'cancelled'],
@@ -22,17 +22,24 @@ const questionSchema = new mongoose.Schema({
   suggestedBudget: { type: Number, default: 0 },
   suggestedTutorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   budgetSuggestionSent: { type: Boolean, default: false },
-  // Answer file (tutor upload)
+  
+  // ---------- Answer upload (legacy single file) ----------
   answerFile: { type: String, default: '' },
   answerFileName: { type: String, default: '' },
+  
+  // ---------- Multiple answer files (new) ----------
+  answerFiles: { type: [String], default: [] },       // array of Cloudinary URLs
+  answerFileNames: { type: [String], default: [] },   // original file names
+  
   answerUploadedAt: { type: Date, default: null },
-  // Rating (student gives after completion)
+  
+  // Rating
   rating: {
     score: { type: Number, min: 1, max: 5 },
     feedback: { type: String },
     createdAt: { type: Date }
   },
-  // Tutor requests additional funds
+  // Additional funds request
   additionalFundsRequest: {
     amount: { type: Number },
     reason: { type: String },
@@ -40,12 +47,12 @@ const questionSchema = new mongoose.Schema({
     requestedAt: Date,
     studentResponseAt: Date
   },
-  // Tutor cancellation reason (no penalty)
+  // Tutor cancellation reason
   cancellationReason: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
-// ✅ Index for faster filtering of demo questions (used in $sample queries)
+// Index for faster demo question filtering
 questionSchema.index({ isDemo: 1 });
 
 module.exports = mongoose.model('Question', questionSchema);

@@ -265,6 +265,14 @@ router.put('/:id/accept',
     try {
       const question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
+
+      // ✅ Demo question: fake acceptance – no real assignment
+      if (question.isDemo) {
+        console.log(`🎭 Demo accept: tutor ${req.userId} pretended to accept demo question ${question._id}`);
+        return res.json({ message: 'Question accepted!', demo: true });
+      }
+
+      // ---------- Real accept logic (unchanged) ----------
       if (question.status !== 'pending') return res.status(400).json({ error: 'Question already assigned' });
       question.tutorId = req.userId;
       question.status = 'assigned';
@@ -278,7 +286,6 @@ router.put('/:id/accept',
         link: `/question-details.html?id=${question._id}`
       });
 
-      // ✅ Socket: notify student that tutor accepted
       const io = getIO(req);
       emitToUser(io, question.studentId, 'question_assigned', {
         questionId: question._id,
@@ -512,10 +519,10 @@ router.post('/:id/accept-suggestion',
 );
 
 // ------------------- 10. Upload answer (tutor) -------------------
-router.post('/:id/upload-answer', 
+router.post('/:id/upload-answers', 
   auth, 
   roleCheck('tutor'), 
-  multerMemory.single('answer'),
+  multerMemory.array('answers', 10),   // up to 10 files, field name 'answers'
   param('id').isMongoId().withMessage('Invalid question ID'),
   handleValidationErrors,
   async (req, res) => {
@@ -525,52 +532,55 @@ router.post('/:id/upload-answer',
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
       if (question.status !== 'assigned') return res.status(400).json({ error: 'Question not assigned' });
-      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+      if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
 
-      console.log(`[UPLOAD] File: ${req.file.originalname}, size: ${req.file.size}`);
+      console.log(`[UPLOAD] ${req.files.length} file(s) received`);
 
-      // Upload to Cloudinary
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { folder: 'studyglade/answers', resource_type: 'raw' },
-          (error, uploadResult) => {
-            if (error) {
-              console.error('[UPLOAD] Cloudinary error:', error);
-              reject(error);
-            } else {
-              console.log('[UPLOAD] Cloudinary success:', uploadResult.secure_url);
-              resolve(uploadResult);
+      const uploadedUrls = [];
+      const uploadedFileNames = [];
+
+      for (const file of req.files) {
+        console.log(`[UPLOAD] Uploading: ${file.originalname}, size: ${file.size}`);
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { folder: 'studyglade/answers', resource_type: 'raw' },
+            (error, uploadResult) => {
+              if (error) {
+                console.error('[UPLOAD] Cloudinary error:', error);
+                reject(error);
+              } else {
+                console.log('[UPLOAD] Cloudinary success:', uploadResult.secure_url);
+                resolve(uploadResult);
+              }
             }
-          }
-        ).end(req.file.buffer);
-      });
+          ).end(file.buffer);
+        });
+        uploadedUrls.push(result.secure_url);
+        uploadedFileNames.push(file.originalname);
+      }
 
-      // ✅ DIRECT UPDATE – forces the field to be set, bypasses Mongoose validation
+      // Store as array in the question document
       const updated = await Question.findByIdAndUpdate(
         req.params.id,
         {
           $set: {
-            answerFile: result.secure_url,
-            answerFileName: req.file.originalname,
+            answerFiles: uploadedUrls,
+            answerFileNames: uploadedFileNames,
             answerUploadedAt: new Date()
           }
         },
         { new: true, runValidators: false }
       );
 
-      console.log(`[UPLOAD] Updated document – answerFile = ${updated.answerFile}`);
+      console.log(`[UPLOAD] Updated document – answerFiles = ${updated.answerFiles?.length || 0} files`);
 
-      if (!updated.answerFile) {
-        throw new Error('Database update did not set answerFile');
-      }
-
-      // Notifications and emails (unchanged)
+      // Notifications and emails (unchanged – adjust message to reflect multiple files)
       const tutor = await User.findById(req.userId).select('fullName');
       await Notification.create({
         userId: question.studentId,
         type: 'answer_uploaded',
         title: 'Answer Uploaded',
-        message: `${tutor.fullName} has uploaded an answer for "${question.title}".`,
+        message: `${tutor.fullName} has uploaded ${uploadedUrls.length} file(s) for "${question.title}".`,
         link: `/answer-details.html?id=${question._id}`
       });
 
@@ -579,6 +589,7 @@ router.post('/:id/upload-answer',
         studentName: student.fullName,
         questionTitle: question.title,
         tutorName: tutor.fullName,
+        fileCount: uploadedUrls.length,
         questionId: question._id
       }).catch(err => console.error('Failed to send email:', err));
 
@@ -587,10 +598,10 @@ router.post('/:id/upload-answer',
         questionId: question._id,
         questionTitle: question.title,
         tutorName: tutor.fullName,
-        fileUrl: result.secure_url
+        fileUrls: uploadedUrls
       });
 
-      res.json({ message: 'Answer uploaded', fileUrl: result.secure_url });
+      res.json({ message: 'Answer(s) uploaded', fileUrls: uploadedUrls });
     } catch (err) {
       console.error('[UPLOAD] Error:', err);
       res.status(500).json({ error: err.message });

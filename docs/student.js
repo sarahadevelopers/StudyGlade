@@ -73,86 +73,84 @@ if (window.studentDashboardLoaded) {
   let completedDisplayCount = 10;
 
   // ---------- Load Student Dashboard ----------
-async function loadStudentDashboard() {
-  // If we came from a wallet-changing action, remove the parameter and reload once
-  if (window.location.search.includes('walletUpdated=true')) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-    window.location.reload();
-    return;
-  }
-
-  // Fetch fresh user data from server (cache‑busting)
-  let user;
-  try {
-    user = await apiFetch('/auth/me?_=' + Date.now());
-    console.log('🔍 /auth/me response:', user);
-    if (user && user.id) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      throw new Error('Invalid user response');
-    }
-  } catch (err) {
-    console.warn('Failed to fetch user, using localStorage fallback:', err);
-    user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.id) {
-      localStorage.clear();
-      window.location.href = 'login.html';
+  async function loadStudentDashboard() {
+    if (window.location.search.includes('walletUpdated=true')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.reload();
       return;
     }
-  }
 
-  updateUserMenu(user);
-  if (typeof window.initSocket === 'function') window.initSocket();
-
-  const walletEl = document.getElementById('walletBalance');
-  if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
-
-  const questions = await apiFetch('/questions/my-questions');
-  const active = questions.filter(q => q.status !== 'completed');
-  const completed = questions.filter(q => q.status === 'completed');
-  allCompletedQuestions = completed;
-
-  document.getElementById('activeCount').innerText = active.length;
-  document.getElementById('completedCount').innerText = completed.length;
-  document.getElementById('activeBadge').innerText = active.length;
-
-  const totalQuestions = active.length + completed.length;
-  const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
-  document.getElementById('successRate').innerText = `${successRate}%`;
-
-  renderActiveQuestions(active);
-  renderCompletedQuestions();
-  const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
-  if (loadMoreBtn) {
-    loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
-  }
-
-  await checkForSuggestions(questions);
-  await checkForFundsRequests(questions);
-}
-
-window.addEventListener('pageshow', function(event) {
-  if (event.persisted) {
-    console.log('Page restored from bfcache – reloading dashboard');
-    loadStudentDashboard();
-  }
-});
-// Refresh wallet balance when page becomes visible (tab switch)
-document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) {
-    apiFetch('/auth/me').then(user => {
-      if (user && user.walletBalance !== undefined) {
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (storedUser) {
-          storedUser.walletBalance = user.walletBalance;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-          const walletSpan = document.getElementById('walletBalance');
-          if (walletSpan) walletSpan.innerText = `$${user.walletBalance.toFixed(2)}`;
-        }
+    let user;
+    try {
+      user = await apiFetch('/auth/me?_=' + Date.now());
+      console.log('🔍 /auth/me response:', user);
+      if (user && user.id) {
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        throw new Error('Invalid user response');
       }
-    }).catch(err => console.warn('Failed to refresh wallet:', err));
+    } catch (err) {
+      console.warn('Failed to fetch user, using localStorage fallback:', err);
+      user = JSON.parse(localStorage.getItem('user'));
+      if (!user || !user.id) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        return;
+      }
+    }
+
+    updateUserMenu(user);
+    if (typeof window.initSocket === 'function') window.initSocket();
+
+    const walletEl = document.getElementById('walletBalance');
+    if (walletEl) walletEl.innerText = `$${user.walletBalance?.toFixed(2) || '0.00'}`;
+
+    const questions = await apiFetch('/questions/my-questions');
+    const active = questions.filter(q => q.status !== 'completed');
+    const completed = questions.filter(q => q.status === 'completed');
+    allCompletedQuestions = completed;
+
+    document.getElementById('activeCount').innerText = active.length;
+    document.getElementById('completedCount').innerText = completed.length;
+    document.getElementById('activeBadge').innerText = active.length;
+
+    const totalQuestions = active.length + completed.length;
+    const successRate = totalQuestions === 0 ? 0 : Math.round((completed.length / totalQuestions) * 100);
+    document.getElementById('successRate').innerText = `${successRate}%`;
+
+    renderActiveQuestions(active);
+    renderCompletedQuestions();
+    const loadMoreBtn = document.getElementById('loadMoreCompletedBtn');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = completedDisplayCount < allCompletedQuestions.length ? 'inline-block' : 'none';
+    }
+
+    await checkForSuggestions(questions);
+    await checkForFundsRequests(questions);
   }
-});
+
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      console.log('Page restored from bfcache – reloading dashboard');
+      loadStudentDashboard();
+    }
+  });
+
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      apiFetch('/auth/me').then(user => {
+        if (user && user.walletBalance !== undefined) {
+          const storedUser = JSON.parse(localStorage.getItem('user'));
+          if (storedUser) {
+            storedUser.walletBalance = user.walletBalance;
+            localStorage.setItem('user', JSON.stringify(storedUser));
+            const walletSpan = document.getElementById('walletBalance');
+            if (walletSpan) walletSpan.innerText = `$${user.walletBalance.toFixed(2)}`;
+          }
+        }
+      }).catch(err => console.warn('Failed to refresh wallet:', err));
+    }
+  });
 
   // ---------- Render Active Questions ----------
   function renderActiveQuestions(active) {
@@ -244,14 +242,28 @@ document.addEventListener('visibilitychange', function() {
       const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
       return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${tutorHtml}</td><td>${subject}</td><td>${budget}</td><td><span class="status-badge ${statusClass}">${statusText}</span></td><td>${actionBtn}</td></tr>`;
     } else {
-      const viewAnswerBtn = q.answerFile
-        ? `<button class="btn-sm btn-outline-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">View Answer</button>`
-        : '<span class="disabled">No answer</span>';
+      // Handle answer files (multiple or single)
+      let answerButtons = '';
+      if (q.answerFiles && q.answerFiles.length > 0) {
+        // Multiple files – display all as download links
+        answerButtons = `<div class="answer-files" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
+        q.answerFiles.forEach((fileUrl, idx) => {
+          const fileName = q.answerFileNames?.[idx] || `file_${idx+1}`;
+          answerButtons += `<a href="${fileUrl}" target="_blank" class="btn-sm btn-outline-sm" style="margin-right:0;">📎 ${escapeHtml(fileName)}</a>`;
+        });
+        answerButtons += `</div>`;
+      } else if (q.answerFile) {
+        // Single file (legacy)
+        answerButtons = `<a href="${q.answerFile}" target="_blank" class="btn-sm btn-outline-sm">📎 ${escapeHtml(q.answerFileName || 'Download Answer')}</a>`;
+      } else {
+        answerButtons = '<span class="disabled">No answer</span>';
+      }
+
       const rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
       const ratingStars = q.rating && q.rating.score
         ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
         : 'Not rated';
-      return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${subject}</td><td>${tutorHtml}</td><td>${budget}</td><td>${ratingStars}</td><td>${viewAnswerBtn} ${rateBtn}</td><table>`;
+      return `<tr><td style="vertical-align: top;"><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td style="vertical-align: top;">${subject}</td><td style="vertical-align: top;">${tutorHtml}</td><td style="vertical-align: top;">${budget}</td><td style="vertical-align: top;">${ratingStars}</td><td style="vertical-align: top;">${answerButtons}<br>${rateBtn}</td></tr>`;
     }
   }
 
@@ -304,7 +316,7 @@ document.addEventListener('visibilitychange', function() {
     document.getElementById('ratingModal').style.display = 'none';
   };
 
-  // ---------- Additional Funds Request (with null check) ----------
+  // ---------- Additional Funds Request ----------
   async function checkForFundsRequests(questions) {
     for (const q of questions) {
       const req = q.additionalFundsRequest;
@@ -347,7 +359,7 @@ document.addEventListener('visibilitychange', function() {
     }
   };
 
-  // ---------- Budget Suggestion System (with null check) ----------
+  // ---------- Budget Suggestion System ----------
   async function checkForSuggestions(questions) {
     const pendingWithSuggestion = questions.filter(q => q.status === 'pending' && q.suggestedBudget && q.suggestedBudget > 0);
     for (const q of pendingWithSuggestion) {
@@ -428,7 +440,7 @@ document.addEventListener('visibilitychange', function() {
     }
   }
 
-  // ---------- Transaction History (premium card layout) ----------
+  // ---------- Transaction History ----------
   let transactionPage = 1;
   let transactionHasMore = true;
 
@@ -549,13 +561,12 @@ document.addEventListener('visibilitychange', function() {
   window.uploadAvatar = uploadAvatar;
 
   // ========== NOTIFICATION SOUND CONTROL ==========
-  let notificationSoundEnabled = localStorage.getItem('notificationSound') !== 'false'; // default true
+  let notificationSoundEnabled = localStorage.getItem('notificationSound') !== 'false';
   const audio = new Audio('/sounds/notification.mp3');
 
   function playNotificationSound() {
     if (!notificationSoundEnabled) return;
     audio.play().catch(() => {
-      // fallback beep using Web Audio API
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
@@ -593,7 +604,7 @@ document.addEventListener('visibilitychange', function() {
     updateSoundToggleUI();
   }
 
-  // ========== NOTIFICATIONS DROPDOWN (with pagination & "Load more") ==========
+  // ========== NOTIFICATIONS DROPDOWN ==========
   const notificationBell = document.querySelector('.notification-bell');
   let notificationDropdown = null;
   let notificationPage = 1;
@@ -752,7 +763,6 @@ document.addEventListener('visibilitychange', function() {
     handlePaymentReturn();
   });
 
-  // Expose global functions for inline onclick
   window.toggleUserMenu = toggleUserMenu;
   window.logoutUser = logoutUser;
 }
