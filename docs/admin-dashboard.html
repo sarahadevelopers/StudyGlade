@@ -11,12 +11,18 @@
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
-      <div class="nav-links">
-        <div class="notification-icon" onclick="openNotificationModal()">
-          🔔 <span id="notificationBadge" class="notification-badge">0</span>
-        </div>
-        <button id="logoutBtn" class="btn-outline">Logout</button>
-      </div>
+    <div class="nav-links">
+  <!-- Sound Toggle -->
+  <div class="notification-sound-toggle" id="notificationSoundToggle">
+    <i class="fas fa-volume-up"></i>
+  </div>
+  <!-- Notification Bell (now opens dropdown instead of modal) -->
+  <div class="notification-bell" id="notificationBell">
+    <i class="fas fa-bell"></i>
+    <span class="badge">0</span>
+  </div>
+  <button id="logoutBtn" class="btn-outline">Logout</button>
+</div>
     </div>
   </nav>
 
@@ -172,15 +178,15 @@
   </div>
 
   <!-- Notification Modal -->
-  <div id="notificationModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3>Recent Notifications</h3>
-        <span class="close-modal" onclick="closeNotificationModal()">&times;</span>
-      </div>
-      <div id="notificationList">Loading...</div>
-    </div>
+  <!-- Notification Dropdown (replaces modal) -->
+<div id="notificationDropdown" class="notification-dropdown" style="display: none;">
+  <div class="notification-header">Recent Notifications</div>
+  <div class="notification-list" id="notificationListDropdown">Loading...</div>
+  <div class="notification-footer">
+    <a href="#" id="markAllReadBtn">Mark all as read</a>
+    <button id="loadMoreNotificationsBtn" class="load-more-btn" style="display: none;">Load more</button>
   </div>
+</div>
 
   <!-- Edit Document Modal (title, price, description) -->
   <div id="editDocumentModal" class="modal">

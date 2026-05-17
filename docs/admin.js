@@ -19,14 +19,8 @@ function escapeHtml(str) {
 }
 
 // ----- Notification last viewed helpers -----
-function getLastNotificationView() {
-  const last = localStorage.getItem('lastNotificationView');
-  return last ? new Date(last).toISOString() : new Date(0).toISOString();
-}
 
-function updateLastNotificationView() {
-  localStorage.setItem('lastNotificationView', new Date().toISOString());
-}
+
 
 // ----- Export CSV -----
 function exportTableToCSV(tableId, filename) {
@@ -1065,47 +1059,6 @@ async function postAdminComment(questionId) {
 function closeFullQuestionModal() {
   document.getElementById('fullQuestionModal').style.display = 'none';
 }
-
-// ----- Notifications (Polling) -----
-let notificationInterval;
-async function loadNotifications() {
-  try {
-    const since = getLastNotificationView();
-    const notifs = await apiFetch(`/admin/notifications?since=${encodeURIComponent(since)}`);
-    const badge = document.getElementById('notificationBadge');
-    if (badge) badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
-    const listDiv = document.getElementById('notificationList');
-    if (listDiv) {
-      listDiv.innerHTML = notifs.map(n => `
-        <div style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem;">
-          <div>${escapeHtml(n.message)}</div>
-          <small>${new Date(n.createdAt).toLocaleString()}</small>
-          <a href="#" onclick="handleNotificationClick('${n.link}'); return false;">View</a>
-        </div>
-      `).join('');
-      if (notifs.length === 0) listDiv.innerHTML = '<p>No new notifications.</p>';
-    }
-  } catch (err) { console.error(err); }
-}
-
-function handleNotificationClick(link) {
-  closeNotificationModal();
-  const sectionId = link.substring(1);
-  const menuItem = document.querySelector(`.sidebar-menu li[data-section="${sectionId}"]`);
-  if (menuItem) menuItem.click();
-}
-
-function openNotificationModal() {
-  document.getElementById('notificationModal').style.display = 'flex';
-  loadNotifications().then(() => {
-    updateLastNotificationView();
-    loadNotifications();
-  });
-}
-function closeNotificationModal() {
-  document.getElementById('notificationModal').style.display = 'none';
-}
-
 // ----- Financial Report -----
 let currentTransactionPage = 1;
 let totalTransactionPages = 1;
@@ -1368,9 +1321,6 @@ window.showUserDashboard = showUserDashboard;
 window.closeUserDashboardModal = closeUserDashboardModal;
 window.deleteDocument = deleteDocument;
 window.exportTableToCSV = exportTableToCSV;
-window.openNotificationModal = openNotificationModal;
-window.closeNotificationModal = closeNotificationModal;
-window.handleNotificationClick = handleNotificationClick;
 window.downloadReport = downloadReport;
 window.viewFullQuestion = viewFullQuestion;
 window.postAdminComment = postAdminComment;
@@ -1381,7 +1331,7 @@ window.setTutorLevel = setTutorLevel;
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
 document.getElementById('announcementForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveAnnouncement(); });
 document.getElementById('editPreviewForm')?.addEventListener('submit', (e) => { e.preventDefault(); savePreviewText(); });
-document.querySelector('.notification-icon')?.addEventListener('click', openNotificationModal);
+
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
   localStorage.clear();
@@ -1430,16 +1380,199 @@ function initSidebar() {
     });
   });
 }
+// ---------- New Notification System (dropdown, sound, unread count) ----------
+let notificationDropdown = null;
+let notificationPage = 1;
+let notificationHasMore = true;
+let isLoadingNotifications = false;
+let notificationSoundEnabled = localStorage.getItem('notificationSound') !== 'false';
+const notificationAudio = new Audio('/sounds/notification.mp3');
+let lastUnreadCount = 0;
 
+function playNotificationSound() {
+  if (!notificationSoundEnabled) return;
+  notificationAudio.play().catch(() => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.frequency.value = 800;
+      gain.gain.value = 0.5;
+      oscillator.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+      oscillator.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
+  });
+}
+
+function initSoundToggle() {
+  const soundToggle = document.getElementById('notificationSoundToggle');
+  if (!soundToggle) return;
+  const updateUI = () => {
+    if (notificationSoundEnabled) {
+      soundToggle.classList.remove('muted');
+      soundToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+    } else {
+      soundToggle.classList.add('muted');
+      soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
+    }
+  };
+  updateUI();
+  soundToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    notificationSoundEnabled = !notificationSoundEnabled;
+    localStorage.setItem('notificationSound', notificationSoundEnabled);
+    updateUI();
+    if (notificationSoundEnabled) playNotificationSound();
+  });
+}
+
+function createNotificationDropdown() {
+  if (notificationDropdown) return;
+  notificationDropdown = document.createElement('div');
+  notificationDropdown.id = 'notificationDropdown';
+  notificationDropdown.className = 'notification-dropdown';
+  notificationDropdown.innerHTML = `
+    <div class="notification-header">Recent Notifications</div>
+    <div class="notification-list" id="notificationListDropdown">Loading...</div>
+    <div class="notification-footer">
+      <a href="#" id="markAllReadBtn">Mark all as read</a>
+      <button id="loadMoreNotificationsBtn" class="load-more-btn" style="display: none;">Load more</button>
+    </div>
+  `;
+  document.body.appendChild(notificationDropdown);
+}
+
+async function loadNotificationsDropdown(reset = true) {
+  if (isLoadingNotifications) return;
+  isLoadingNotifications = true;
+  if (!notificationDropdown) createNotificationDropdown();
+  const listDiv = notificationDropdown.querySelector('.notification-list');
+  if (reset) {
+    notificationPage = 1;
+    notificationHasMore = true;
+    listDiv.innerHTML = '<div class="notification-item">Loading...</div>';
+  }
+  try {
+    const res = await fetch('/api/notifications?limit=10&page=' + notificationPage, { credentials: 'include' });
+    const data = await res.json();
+    let html = '';
+    if (data.notifications.length === 0 && reset) {
+      html = '<div class="notification-item no-notifications">No notifications</div>';
+      notificationHasMore = false;
+    } else {
+      data.notifications.forEach(n => {
+        html += `<div class="notification-item" data-id="${n._id}">
+                   <strong>${escapeHtml(n.title)}</strong><br>
+                   ${escapeHtml(n.message)}
+                   <div class="notification-time">${new Date(n.createdAt).toLocaleString()}</div>
+                 </div>`;
+      });
+      notificationHasMore = data.pagination && notificationPage < data.pagination.pages;
+    }
+    if (reset) {
+      listDiv.innerHTML = html;
+    } else {
+      listDiv.insertAdjacentHTML('beforeend', html);
+    }
+    const loadMoreBtn = notificationDropdown.querySelector('#loadMoreNotificationsBtn');
+    if (loadMoreBtn) loadMoreBtn.style.display = notificationHasMore ? 'inline-block' : 'none';
+  } catch (err) {
+    listDiv.innerHTML = '<div class="notification-item error">Failed to load</div>';
+  } finally {
+    isLoadingNotifications = false;
+  }
+}
+
+async function loadMoreNotifications() {
+  if (!notificationHasMore || isLoadingNotifications) return;
+  notificationPage++;
+  await loadNotificationsDropdown(false);
+}
+
+async function toggleNotificationDropdown(event) {
+  event.stopPropagation();
+  if (!notificationDropdown) createNotificationDropdown();
+  const isVisible = notificationDropdown.style.display === 'block';
+  if (isVisible) {
+    notificationDropdown.style.display = 'none';
+  } else {
+    await loadNotificationsDropdown(true);
+    notificationDropdown.style.display = 'block';
+  }
+}
+
+async function markAllRead() {
+  try {
+    const res = await fetch('/api/notifications/read-all', { method: 'PUT', credentials: 'include' });
+    if (res.ok) {
+      showToast('All notifications marked as read', 'info');
+      const badge = document.querySelector('.notification-bell .badge');
+      if (badge) badge.innerText = '0';
+      if (notificationDropdown && notificationDropdown.style.display === 'block') {
+        loadNotificationsDropdown(true);
+      }
+    } else {
+      showToast('Failed to mark as read', 'error');
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function updateUnreadCountAndSound() {
+  try {
+    const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+    const data = await res.json();
+    const currentCount = data.count;
+    if (currentCount > lastUnreadCount && notificationSoundEnabled) {
+      playNotificationSound();
+    }
+    lastUnreadCount = currentCount;
+    const badge = document.querySelector('.notification-bell .badge');
+    if (badge) badge.innerText = currentCount > 9 ? '9+' : currentCount;
+  } catch (err) {
+    console.error('Failed to fetch unread count:', err);
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  if (notificationDropdown && !notificationDropdown.contains(e.target) && !e.target.closest('.notification-bell')) {
+    notificationDropdown.style.display = 'none';
+  }
+});
 // ----- Start -----
 document.addEventListener('DOMContentLoaded', () => {
   initSidebar();
   loadAdminDashboard();
-  loadNotifications();
-  if (notificationInterval) clearInterval(notificationInterval);
-  notificationInterval = setInterval(loadNotifications, 30000);
-
-  // ✅ Add these two lines
+  initSoundToggle();                    // initialize sound toggle
+  // Set up notification bell click
+  const bell = document.getElementById('notificationBell');
+  if (bell) bell.addEventListener('click', toggleNotificationDropdown);
+  // Mark all read button (delegation)
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'markAllReadBtn' || e.target.closest('#markAllReadBtn')) {
+      e.preventDefault();
+      markAllRead();
+    }
+    if (e.target.id === 'loadMoreNotificationsBtn' || e.target.closest('#loadMoreNotificationsBtn')) {
+      loadMoreNotifications();
+    }
+  });
+  // Poll unread count every 30 seconds
+  updateUnreadCountAndSound();
+  setInterval(updateUnreadCountAndSound, 30000);
+  // Logout button
+  document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    localStorage.clear();
+    window.location.href = 'login.html';
+  });
+  // Tutor approve/reject buttons (keep existing)
   document.getElementById('approveTutorBtn')?.addEventListener('click', approveTutorApplication);
   document.getElementById('rejectTutorBtn')?.addEventListener('click', rejectTutorApplication);
 });
