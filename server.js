@@ -210,6 +210,7 @@ app.use('/api/auth', (req, res, next) => {
   if (req.path === '/reset-password') return next();
   if (req.path === '/register') return next();
   if (req.path === '/login') return next();
+  if (req.path === '/avatar') return next();   // ✅ Exclude avatar upload from CSRF
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
 });
@@ -499,7 +500,7 @@ cron.schedule('0 8 * * *', async () => {
           <tr><th>User</th><th>Email</th><th>Role</th><th>Action</th><th>Pattern</th><th>Blocked Text</th><th>Timestamp</th></tr>
         </thead>
         <tbody>${rows}</tbody>
-      </table>
+      </tr>
       <p><a href="https://studyglade.com/admin-dashboard.html?section=content-violations">View full log in admin dashboard</a></p>
     `;
 
