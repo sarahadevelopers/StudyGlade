@@ -1,35 +1,68 @@
-// scripts/seedDemoQuestions.js
 require('dotenv').config();
 const mongoose = require('mongoose');
+const User = require('../models/User');
 const Question = require('../models/Question');
 
-const demoQuestions = [
-  // Generate 100+ items; I'll provide a sample of 20, you can duplicate and modify.
-  { title: "How does photosynthesis work? Explain in detail.", subject: "Biology", budget: 25, description: "Need a thorough explanation of the photosynthesis process including light-dependent and light-independent reactions." },
-  { title: "Solve the quadratic equation: 2x² - 5x + 3 = 0", subject: "Math", budget: 18, description: "Show all steps, including factoring or quadratic formula." },
-  { title: "Write a Python function to reverse a linked list.", subject: "Programming", budget: 30, description: "Write efficient code with O(n) time complexity." },
-  { title: "Discuss the causes of World War I.", subject: "History", budget: 22, description: "Include militarism, alliances, imperialism, nationalism, and the assassination of Franz Ferdinand." },
-  { title: "Explain the concept of supply and demand with examples.", subject: "Economics", budget: 20, description: "Use real-world examples to illustrate shifts in curves." },
-  // ... add up to 100+ items. You can generate programmatically using loops.
-];
+// Generate 100+ unique demo questions (expand as needed)
+const generateDemoQuestions = (studentId) => {
+  const subjects = ['Biology', 'Math', 'Programming', 'History', 'Economics', 'Physics', 'Chemistry', 'English', 'Political Science'];
+  const templates = [
+    { title: "How does photosynthesis work? Explain in detail.", minBudget: 20, maxBudget: 30 },
+    { title: "Solve the quadratic equation: 2x² - 5x + 3 = 0", minBudget: 15, maxBudget: 25 },
+    { title: "Write a Python function to reverse a linked list.", minBudget: 25, maxBudget: 35 },
+    { title: "Discuss the causes of World War I.", minBudget: 18, maxBudget: 28 },
+    { title: "Explain the concept of supply and demand with examples.", minBudget: 16, maxBudget: 26 },
+    // Add more templates as needed – you can loop to create many
+  ];
+  
+  const demoQuestions = [];
+  for (let i = 0; i < 120; i++) {
+    const template = templates[i % templates.length];
+    const subject = subjects[i % subjects.length];
+    const budget = Math.floor(Math.random() * (template.maxBudget - template.minBudget + 1)) + template.minBudget;
+    demoQuestions.push({
+      title: `${template.title} (${i+1})`,
+      subject,
+      budget,
+      description: `This is a practice question. ${template.title} Please provide a detailed answer.`,
+      studentId,          // ✅ assign the real user ID
+      isDemo: true,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+  return demoQuestions;
+};
 
 async function seedDemoQuestions() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    await Question.deleteMany({ isDemo: true }); // remove previous demos
-    const docs = demoQuestions.map(q => ({
-      ...q,
-      studentId: null, // no real student
-      status: 'pending',
-      isDemo: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }));
-    await Question.insertMany(docs);
-    console.log(`Inserted ${docs.length} demo questions`);
+    console.log('✅ Connected to MongoDB');
+
+    // Find a user to act as the "student" for demo questions (any existing user, e.g., an admin)
+    let demoStudent = await User.findOne({ role: 'admin' });
+    if (!demoStudent) {
+      // If no admin exists, try any user
+      demoStudent = await User.findOne();
+      if (!demoStudent) {
+        console.error('❌ No user found in database. Please create at least one user first.');
+        process.exit(1);
+      }
+    }
+    console.log(`📌 Using user ${demoStudent.fullName} (${demoStudent._id}) as student for demo questions`);
+
+    // Delete existing demo questions (optional – start fresh)
+    await Question.deleteMany({ isDemo: true });
+    console.log('🗑️ Removed existing demo questions');
+
+    const questions = generateDemoQuestions(demoStudent._id);
+    await Question.insertMany(questions);
+    console.log(`✅ Inserted ${questions.length} demo questions`);
+
     process.exit(0);
   } catch (err) {
-    console.error(err);
+    console.error('❌ Seeding error:', err);
     process.exit(1);
   }
 }
