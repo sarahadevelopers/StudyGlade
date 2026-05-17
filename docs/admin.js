@@ -1029,14 +1029,22 @@ function getTransactionColorClass(type, amount) {
 }
 
 function renderFinancialReport(data) {
-  const { summary, students, tutors, withdrawalHistory, refunds, transactions } = data;
+  // Ensure all expected properties exist, default to empty arrays
+  const summary = data.summary || {};
+  const students = data.students || [];
+  const tutors = data.tutors || [];
+  const withdrawalHistory = data.withdrawalHistory || [];
+  const refunds = data.refunds || [];
+  const transactions = data.transactions || [];
+  const pagination = data.pagination || { page: 1, pages: 1, total: 0 };
+
   let html = `
     <div class="stats-grid">
-      <div class="stat-card"><h4>Total Deposits</h4><div class="value">${formatMoney(summary.totalDeposits)}</div></div>
-      <div class="stat-card"><h4>Total Withdrawals</h4><div class="value">${formatMoney(summary.totalWithdrawals)}</div></div>
-      <div class="stat-card"><h4>Platform Revenue</h4><div class="value">${formatMoney(summary.platformRevenue)}</div></div>
-      <div class="stat-card"><h4>Pending Withdrawals</h4><div class="value">${summary.pendingWithdrawals}</div></div>
-      <div class="stat-card"><h4>Pending Amount</h4><div class="value">${formatMoney(summary.pendingWithdrawalsAmount)}</div></div>
+      <div class="stat-card"><h4>Total Deposits</h4><div class="value">${formatMoney(summary.totalDeposits || 0)}</div></div>
+      <div class="stat-card"><h4>Total Withdrawals</h4><div class="value">${formatMoney(summary.totalWithdrawals || 0)}</div></div>
+      <div class="stat-card"><h4>Platform Revenue</h4><div class="value">${formatMoney(summary.platformRevenue || 0)}</div></div>
+      <div class="stat-card"><h4>Pending Withdrawals</h4><div class="value">${summary.pendingWithdrawals || 0}</div></div>
+      <div class="stat-card"><h4>Pending Amount</h4><div class="value">${formatMoney(summary.pendingWithdrawalsAmount || 0)}</div></div>
     </div>
 
     <h3>Students</h3>
@@ -1064,11 +1072,11 @@ function renderFinancialReport(data) {
             <td>${escapeHtml(t.fullName)}</td>
             <td>${escapeHtml(t.email)}</td>
             <td>${formatMoney(t.earnings)}</td>
-            <td>${formatMoney(t.commissionDeducted)}<tr>
+            <td>${formatMoney(t.commissionDeducted)}</td>
             <td>${formatMoney(t.withdrawals)}</td>
             <td>${formatMoney(t.balance)}</td>
-            <td>${t.tutorProfile.level}</td>
-            <td>${t.tutorProfile.rating} ⭐</td>
+            <td>${escapeHtml(t.tutorProfile?.level || 'Entry-Level')}</td>
+            <td>${t.tutorProfile?.rating || 0} ⭐</td>
           </tr>
         `).join('')}
       </tbody>
@@ -1083,7 +1091,7 @@ function renderFinancialReport(data) {
             <td>${escapeHtml(w.name)}</td>
             <td>${escapeHtml(w.email)}</td>
             <td class="${getTransactionColorClass('withdraw', w.amount)}">${formatMoney(w.amount)}</td>
-            <td>${w.method}</td>
+            <td>${escapeHtml(w.method)}</td>
             <td>${new Date(w.date).toLocaleDateString()}</td>
           </tr>
         `).join('')}
@@ -1114,7 +1122,7 @@ function renderFinancialReport(data) {
           <tr>
             <td>${escapeHtml(t.user)}</td>
             <td>${escapeHtml(t.email)}</td>
-            <td>${t.type}</td>
+            <td>${escapeHtml(t.type)}</td>
             <td class="${getTransactionColorClass(t.type, t.amount)}">${formatMoney(t.amount)}</td>
             <td>${escapeHtml(t.description)}</td>
             <td>${new Date(t.date).toLocaleDateString()}</td>
@@ -1124,7 +1132,11 @@ function renderFinancialReport(data) {
     </table>
     <div id="transactionsPagination"></div>
   `;
+
   document.getElementById('financialContent').innerHTML = html;
+  if (pagination && pagination.pages > 1) {
+    renderTransactionPagination();
+  }
 }
 
 function exportFinancialCSV() {
