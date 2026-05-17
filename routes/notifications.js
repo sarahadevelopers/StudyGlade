@@ -1,10 +1,66 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const roleCheck = require('../middleware/roleCheck');   // <-- added for admin check
 const Notification = require('../models/Notification');
 
 const router = express.Router();
 
-// ----------------- Get user's notifications (latest first, paginated) -----------------
+// POST /api/notifications – create a notification (admin only)
+router.post('/', auth, roleCheck('admin'), async (req, res) => {
+  try {
+    const { userId, type, title, message, link } = req.body;
+    if (!userId || !title || !message) {
+      return res.status(400).json({ error: 'Missing required fields: userId, title, message' });
+    }
+    const notification = await Notification.create({
+      userId,
+      type: type || 'admin_test',
+      title,
+      message,
+      link: link || '/admin-dashboard.html',
+      read: false
+    });
+    const io = req.app.get('io');
+    if (io) io.to(`user_${userId}`).emit('notification_new', notification);
+    res.status(201).json(notification);
+  } catch (err) {
+    console.error('Error creating notification:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- POST: Create a notification (admin only) -----------------
+router.post('/', auth, roleCheck('admin'), async (req, res) => {
+  try {
+    const { userId, type, title, message, link } = req.body;
+
+    if (!userId || !title || !message) {
+      return res.status(400).json({ error: 'Missing required fields: userId, title, message' });
+    }
+
+    const notification = await Notification.create({
+      userId,
+      type: type || 'admin_test',
+      title,
+      message,
+      link: link || '/admin-dashboard.html',
+      read: false
+    });
+
+    // Emit real‑time update via Socket.io if available
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user_${userId}`).emit('notification_new', notification);
+    }
+
+    res.status(201).json(notification);
+  } catch (err) {
+    console.error('Error creating notification:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- GET user's notifications (latest first, paginated) -----------------
 router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -33,7 +89,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ----------------- Get unread count (for bell badge) -----------------
+// ----------------- GET unread count (for bell badge) -----------------
 router.get('/unread-count', auth, async (req, res) => {
   try {
     const count = await Notification.countDocuments({ userId: req.userId, read: false });
@@ -44,7 +100,7 @@ router.get('/unread-count', auth, async (req, res) => {
   }
 });
 
-// ----------------- Mark a single notification as read -----------------
+// ----------------- PUT: Mark a single notification as read -----------------
 router.put('/:id/read', auth, async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -60,7 +116,7 @@ router.put('/:id/read', auth, async (req, res) => {
   }
 });
 
-// ----------------- Mark all notifications as read -----------------
+// ----------------- PUT: Mark all notifications as read -----------------
 router.put('/read-all', auth, async (req, res) => {
   try {
     await Notification.updateMany(

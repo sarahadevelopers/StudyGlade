@@ -357,3 +357,25 @@
 .nav-links {
   position: relative;
 }
+
+.notification-bell,
+.notification-sound-toggle {
+  font-size: 1.3rem;
+  color: #1f2937;  /* darker gray for better contrast */
+}
+.notification-bell .badge {
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  top: -6px;
+  right: -8px;
+}
+.notification-bell,
+.notification-sound-toggle {
+  font-size: 1.3rem;
+  color: #1f2937;  /* darker gray for better contrast */
+}
+.notification-bell i,
+.notification-sound-toggle i {
+  background: red !important;
+}
