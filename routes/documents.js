@@ -13,6 +13,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { upload } = require('../server');
 const { emitToUser, getIO } = require('../utils/sockets');   // 👈 socket helper
+const Notification = require('../models/Notification');
 
 console.log('✅ documents.js loaded (final version with validation + sockets)');
 
@@ -156,7 +157,7 @@ router.post('/upload',
   upload.single('file'),
   [
     sanitizeText('title').isLength({ min: 3, max: 100 }).withMessage('Title must be 3-100 characters'),
-    sanitizeText('description').isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
+    sanitizeText('description').isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters'),
     sanitizeText('subject').notEmpty().withMessage('Subject is required'),
     sanitizeText('subcategory').optional(),
     sanitizeText('level').notEmpty().withMessage('Level is required'),
