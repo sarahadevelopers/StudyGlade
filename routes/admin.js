@@ -494,7 +494,7 @@ router.get('/users/:id/dashboard', async (req, res) => {
 router.get('/breaches', async (req, res) => {
   try {
     const breaches = await Breach.find().populate('userId', 'fullName email').sort({ createdAt: -1 });
-    res.json(breaches);
+    res.json({ breaches });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
