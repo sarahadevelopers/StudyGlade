@@ -7,37 +7,7 @@ const router = express.Router();
 
 router.use(auth, roleCheck('admin'));
 
-// ========== JSON API for admin dashboard (with /api prefix) ==========
-// This matches the frontend request: /api/admin/blog/posts
-router.get('/api/admin/blog/posts', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const posts = await BlogPost.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await BlogPost.countDocuments();
-
-    res.json({
-      posts,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ========== Server‑rendered pages (unchanged) ==========
+// ========== Server‑rendered pages ==========
 // List all posts (HTML)
 router.get('/', async (req, res) => {
   try {

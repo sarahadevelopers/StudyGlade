@@ -16,6 +16,8 @@ const socketIo = require('socket.io');
 
 const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
 const { sendEmailWithTemplate } = require('./utils/email');
+const auth = require('./middleware/auth');
+const roleCheck = require('./middleware/roleCheck');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -170,7 +172,7 @@ const io = socketIo(server, {
     credentials: true
   }
 });
-global.io = io;   // 👈 make io globally accessible for Notification model
+global.io = io;
 app.set('io', io);
 
 io.use(async (socket, next) => {
@@ -202,21 +204,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// CSRF protection for state-changing API routes
-// Apply CSRF protection ONLY to authentication routes
-// CSRF protection for state-changing API routes
-// Apply CSRF protection ONLY to authentication routes
+// CSRF protection for state-changing API routes (authentication only)
 app.use('/api/auth', (req, res, next) => {
-  // Skip CSRF for these public or special endpoints
   if (req.path === '/refresh-token') return next();
   if (req.path === '/reset-password') return next();
-  if (req.path === '/register') return next();   // 👈 add
-  if (req.path === '/login') return next();      // 👈 add
+  if (req.path === '/register') return next();
+  if (req.path === '/login') return next();
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
 });
 
-// All other API routes (comments, questions, etc.) have no CSRF check
 app.use(methodOverride('_method'));
 
 app.use((req, res, next) => {
@@ -266,7 +263,37 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 12. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 12. DEDICATED JSON ENDPOINT FOR ADMIN BLOG POSTS ==========
+// This endpoint is called by the frontend via apiFetch (which prepends /api)
+app.get('/api/admin/blog/posts', auth, roleCheck('admin'), async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const posts = await BlogPost.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await BlogPost.countDocuments();
+
+    res.json({
+      posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== 13. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -305,7 +332,7 @@ app.use('/question', publicQuestionRoutes);
 app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
-// ========== 13. DYNAMIC SITEMAP ==========
+// ========== 14. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
@@ -392,15 +419,15 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 14. STATIC FRONTEND ==========
+// ========== 15. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 15. CATCH-ALL ==========
+// ========== 16. CATCH-ALL ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 16. CRON JOBS ==========
+// ========== 17. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -488,7 +515,7 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-// ========== 17. GLOBAL ERROR HANDLER ==========
+// ========== 18. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -497,6 +524,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 18. START SERVER ==========
+// ========== 19. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
