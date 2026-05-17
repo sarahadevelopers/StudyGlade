@@ -5,25 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - StudyGlade</title>
  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0-beta3/css/all.css">
-  
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="logo">StudyGlade</a>
-    <div class="nav-links">
-  <!-- Sound Toggle -->
-  <div class="notification-sound-toggle" id="notificationSoundToggle">
-    <i class="fas fa-volume-up"></i>
-  </div>
-  <!-- Notification Bell (now opens dropdown instead of modal) -->
-  <div class="notification-bell" id="notificationBell">
-    <i class="fas fa-bell"></i>
-    <span class="badge">0</span>
-  </div>
-  <button id="logoutBtn" class="btn-outline">Logout</button>
-</div>
+      <div class="nav-links">
+        <!-- Sound Toggle -->
+        <div class="notification-sound-toggle" id="notificationSoundToggle">
+          <i class="fas fa-volume-up"></i>
+        </div>
+        <!-- Notification Bell (now opens dropdown instead of modal) -->
+        <div class="notification-bell" id="notificationBell">
+          <i class="fas fa-bell"></i>
+          <span class="badge">0</span>
+        </div>
+        <button id="logoutBtn" class="btn-outline">Logout</button>
+      </div>
     </div>
   </nav>
 
@@ -41,6 +40,7 @@
         <li data-section="breaches">⚠️ Breach History</li>
         <li data-section="announcements">📢 Announcements</li>
         <li data-section="blog">✍️ Blog</li>
+        <li data-section="demo-questions">🎓 Demo Questions</li>   <!-- NEW -->
         <li data-section="content-violations">⚠️ Content Violations</li>
       </ul>
     </div>
@@ -112,6 +112,7 @@
         <button class="btn-sm btn-primary" onclick="showCreateAnnouncementModal()">➕ Create Announcement</button>
         <div id="announcementsList">Loading...</div>
       </div>
+
       <!-- Financial Reports Section -->
       <div id="financial" class="section">
         <h2>Financial Reports</h2>
@@ -124,12 +125,21 @@
         </div>
         <div id="financialContent">Loading...</div>
       </div>
-      <!-- Blog Management Section (NEW) -->
+
+      <!-- Blog Management Section -->
       <div id="blog" class="section">
         <h2>Blog Posts</h2>
         <button class="btn-sm btn-primary" onclick="window.location.href='/admin/blog/new'">➕ New Post</button>
         <button class="btn-sm btn-secondary" onclick="exportTableToCSV('blogTable', 'blog_posts.csv')">📎 Export CSV</button>
         <div id="blogList">Loading blog posts...</div>
+      </div>
+
+      <!-- NEW: Demo Questions Section -->
+      <div id="demo-questions" class="section">
+        <h2>Demo Questions</h2>
+        <button class="btn-sm btn-primary" onclick="showCreateDemoQuestionModal()">➕ Create Demo Question</button>
+        <button class="btn-sm btn-secondary" onclick="exportTableToCSV('demoQuestionsTable', 'demo_questions.csv')">📎 Export CSV</button>
+        <div id="demoQuestionsList">Loading...</div>
       </div>
 
       <!-- Content Violations Section -->
@@ -178,16 +188,15 @@
     </div>
   </div>
 
-  <!-- Notification Modal -->
-  <!-- Notification Dropdown (replaces modal) -->
-<div id="notificationDropdown" class="notification-dropdown" style="display: none;">
-  <div class="notification-header">Recent Notifications</div>
-  <div class="notification-list" id="notificationListDropdown">Loading...</div>
-  <div class="notification-footer">
-    <a href="#" id="markAllReadBtn">Mark all as read</a>
-    <button id="loadMoreNotificationsBtn" class="load-more-btn" style="display: none;">Load more</button>
+  <!-- Notification Dropdown -->
+  <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
+    <div class="notification-header">Recent Notifications</div>
+    <div class="notification-list" id="notificationListDropdown">Loading...</div>
+    <div class="notification-footer">
+      <a href="#" id="markAllReadBtn">Mark all as read</a>
+      <button id="loadMoreNotificationsBtn" class="load-more-btn" style="display: none;">Load more</button>
+    </div>
   </div>
-</div>
 
   <!-- Edit Document Modal (title, price, description) -->
   <div id="editDocumentModal" class="modal">
@@ -253,7 +262,63 @@
       <div id="fullQuestionBody"></div>
     </div>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- NEW: Demo Question Modal (Create/Edit) -->
+  <div id="demoQuestionModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="demoQuestionModalTitle">Create Demo Question</h3>
+        <span class="close-modal" onclick="closeDemoQuestionModal()">&times;</span>
+      </div>
+      <form id="demoQuestionForm">
+        <input type="hidden" id="demoQuestionId">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" id="demoTitle" required>
+        </div>
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea id="demoDescription" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Subject *</label>
+          <input type="text" id="demoSubject" required>
+        </div>
+        <div class="form-group">
+          <label>Budget ($) *</label>
+          <input type="number" id="demoBudget" step="0.5" min="1" required>
+        </div>
+        <div class="form-group">
+          <label>Level</label>
+          <select id="demoLevel">
+            <option value="College">College</option>
+            <option value="High School">High School</option>
+            <option value="Masters">Masters</option>
+            <option value="PhD">PhD</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="demoType">
+            <option value="Assignment">Assignment</option>
+            <option value="Notes">Notes</option>
+            <option value="Exam Prep">Exam Prep</option>
+            <option value="Guide">Guide</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>File URLs (optional, comma separated)</label>
+          <input type="text" id="demoFiles" placeholder="https://example.com/file.pdf, https://example.com/image.jpg">
+        </div>
+        <div style="text-align: right;">
+          <button type="button" class="btn-secondary btn-sm" onclick="closeDemoQuestionModal()">Cancel</button>
+          <button type="submit" class="btn-primary btn-sm">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="api.js"></script>
   <script src="auth.js"></script>

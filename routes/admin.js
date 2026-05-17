@@ -438,6 +438,97 @@ router.get('/top-documents', async (req, res) => {
   }
 });
 
+// ========== DEMO QUESTIONS MANAGEMENT (admin only) ==========
+// Get all demo questions (paginated)
+router.get('/demo-questions', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const questions = await Question.find({ isDemo: true })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Question.countDocuments({ isDemo: true });
+
+    res.json({
+      questions,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
+  } catch (err) {
+    console.error('Error fetching demo questions:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create a new demo question
+router.post('/demo-questions', async (req, res) => {
+  try {
+    const { title, description, subject, budget, level, type, files } = req.body;
+    if (!title || !description || !subject || !budget) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newQuestion = await Question.create({
+      title,
+      description,
+      subject,
+      budget: parseFloat(budget),
+      level: level || 'College',
+      type: type || 'Assignment',
+      studentId: req.userId,  // admin's own ID as the "student" for demo questions
+      isDemo: true,
+      status: 'pending',
+      files: files || []
+    });
+
+    res.status(201).json(newQuestion);
+  } catch (err) {
+    console.error('Error creating demo question:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Update a demo question
+router.put('/demo-questions/:id', async (req, res) => {
+  try {
+    const { title, description, subject, budget, level, type, files } = req.body;
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Demo question not found' });
+    if (!question.isDemo) return res.status(400).json({ error: 'Not a demo question' });
+
+    question.title = title;
+    question.description = description;
+    question.subject = subject;
+    question.budget = parseFloat(budget);
+    if (level) question.level = level;
+    if (type) question.type = type;
+    if (files) question.files = files;
+    await question.save();
+
+    res.json({ message: 'Demo question updated', question });
+  } catch (err) {
+    console.error('Error updating demo question:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Delete a demo question
+router.delete('/demo-questions/:id', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Demo question not found' });
+    if (!question.isDemo) return res.status(400).json({ error: 'Not a demo question' });
+
+    await question.deleteOne();
+    res.json({ message: 'Demo question deleted' });
+  } catch (err) {
+    console.error('Error deleting demo question:', err);
+    res.status(500).json({ error: err.message });
+  }
+}); 
+
 // ========== WITHDRAWALS ==========
 router.get('/withdrawals', async (req, res) => {
   try {
@@ -785,33 +876,7 @@ router.put('/tutors/:id/level', async (req, res) => {
   }
 });
 
-router.get('/questions', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
 
-    const questions = await Question.find()
-      .populate('studentId tutorId', 'fullName email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Question.countDocuments();
-
-    res.json({
-      questions,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
 // Helper function to fetch financial data (used by both JSON and PDF endpoints)

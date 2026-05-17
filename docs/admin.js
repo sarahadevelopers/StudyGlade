@@ -18,10 +18,6 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// ----- Notification last viewed helpers -----
-
-
-
 // ----- Export CSV -----
 function exportTableToCSV(tableId, filename) {
   const table = document.getElementById(tableId);
@@ -161,7 +157,7 @@ async function loadTutorApplications() {
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></table>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></td>
         </thead>
         <tbody>
           ${pendingApps.map(t => `
@@ -323,7 +319,7 @@ async function loadUsers() {
             </tr>
           `).join('')}
         </tbody>
-      </table>
+      <tr>
     `;
   } catch (err) {
     console.error('Error loading users:', err);
@@ -744,7 +740,7 @@ const announcements = response.announcements || [];
             </tr>
           `).join('')}
         </tbody>
-      </table>
+      <tr>
     `;
   } catch (err) { console.error(err); }
 }
@@ -893,6 +889,143 @@ async function deleteBlogPost(postId) {
 }
 window.deleteBlogPost = deleteBlogPost;
 
+// ========== DEMO QUESTIONS MANAGEMENT (NEW) ==========
+let currentDemoPage = 1;
+let totalDemoPages = 1;
+
+async function loadDemoQuestions(page = 1) {
+  const container = document.getElementById('demoQuestionsList');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-spinner">Loading demo questions...</div>';
+  try {
+    const limit = 20;
+    const response = await apiFetch(`/admin/demo-questions?page=${page}&limit=${limit}`);
+    const { questions, pagination } = response;
+    currentDemoPage = pagination.page;
+    totalDemoPages = pagination.pages;
+    
+    if (!questions.length) {
+      container.innerHTML = '<div class="card">No demo questions found. Create one!</div>';
+      return;
+    }
+    
+    let html = `
+      <table class="data-table" id="demoQuestionsTable">
+        <thead>
+          <tr><th>Title</th><th>Subject</th><th>Budget</th><th>Level</th><th>Type</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+    `;
+    for (const q of questions) {
+      html += `
+        <tr>
+          <td>${escapeHtml(q.title)}</td>
+          <td>${escapeHtml(q.subject)}</td>
+          <td>${formatMoney(q.budget)}</td>
+          <td>${escapeHtml(q.level || '—')}</td>
+          <td>${escapeHtml(q.type || '—')}</td>
+          <td>${new Date(q.createdAt).toLocaleDateString()}</td>
+          <td>
+            <button class="btn-sm btn-primary" onclick="editDemoQuestion('${q._id}')">Edit</button>
+            <button class="btn-sm btn-danger" onclick="deleteDemoQuestion('${q._id}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    }
+    html += `</tbody></table>`;
+    if (totalDemoPages > 1) {
+      html += `
+        <div class="pagination" style="margin-top:1rem;">
+          ${currentDemoPage > 1 ? `<button class="btn-sm btn-secondary" onclick="loadDemoQuestions(${currentDemoPage-1})">← Previous</button>` : ''}
+          <span>Page ${currentDemoPage} of ${totalDemoPages}</span>
+          ${currentDemoPage < totalDemoPages ? `<button class="btn-sm btn-secondary" onclick="loadDemoQuestions(${currentDemoPage+1})">Next →</button>` : ''}
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<div class="card error">Failed to load demo questions.</div>';
+  }
+}
+
+function showCreateDemoQuestionModal() {
+  document.getElementById('demoQuestionModalTitle').innerText = 'Create Demo Question';
+  document.getElementById('demoQuestionId').value = '';
+  document.getElementById('demoTitle').value = '';
+  document.getElementById('demoDescription').value = '';
+  document.getElementById('demoSubject').value = '';
+  document.getElementById('demoBudget').value = '';
+  document.getElementById('demoLevel').value = 'College';
+  document.getElementById('demoType').value = 'Assignment';
+  document.getElementById('demoFiles').value = '';
+  document.getElementById('demoQuestionModal').style.display = 'flex';
+}
+
+async function editDemoQuestion(questionId) {
+  try {
+    const response = await apiFetch(`/admin/demo-questions?page=1&limit=1000`); // fetch all to find one
+    const question = response.questions.find(q => q._id === questionId);
+    if (!question) throw new Error('Not found');
+    document.getElementById('demoQuestionModalTitle').innerText = 'Edit Demo Question';
+    document.getElementById('demoQuestionId').value = question._id;
+    document.getElementById('demoTitle').value = question.title;
+    document.getElementById('demoDescription').value = question.description;
+    document.getElementById('demoSubject').value = question.subject;
+    document.getElementById('demoBudget').value = question.budget;
+    document.getElementById('demoLevel').value = question.level || 'College';
+    document.getElementById('demoType').value = question.type || 'Assignment';
+    document.getElementById('demoFiles').value = (question.files || []).join(', ');
+    document.getElementById('demoQuestionModal').style.display = 'flex';
+  } catch (err) {
+    showToast('Failed to load question details', 'error');
+  }
+}
+
+async function deleteDemoQuestion(questionId) {
+  if (!confirm('Delete this demo question permanently?')) return;
+  try {
+    await apiFetch(`/admin/demo-questions/${questionId}`, { method: 'DELETE' });
+    showToast('Demo question deleted', 'success');
+    loadDemoQuestions(currentDemoPage);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// Demo question form submission handler
+document.getElementById('demoQuestionForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('demoQuestionId').value;
+  const data = {
+    title: document.getElementById('demoTitle').value,
+    description: document.getElementById('demoDescription').value,
+    subject: document.getElementById('demoSubject').value,
+    budget: parseFloat(document.getElementById('demoBudget').value),
+    level: document.getElementById('demoLevel').value,
+    type: document.getElementById('demoType').value,
+    files: document.getElementById('demoFiles').value.split(',').map(s => s.trim()).filter(Boolean)
+  };
+  try {
+    if (id) {
+      await apiFetch(`/admin/demo-questions/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      showToast('Demo question updated', 'success');
+    } else {
+      await apiFetch('/admin/demo-questions', { method: 'POST', body: JSON.stringify(data) });
+      showToast('Demo question created', 'success');
+    }
+    closeDemoQuestionModal();
+    loadDemoQuestions(currentDemoPage);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+function closeDemoQuestionModal() {
+  document.getElementById('demoQuestionModal').style.display = 'none';
+}
+// ========== END DEMO QUESTIONS MANAGEMENT ==========
+
 // ----- User Dashboard Modal -----
 async function showUserDashboard(userId) {
   try {
@@ -952,7 +1085,7 @@ async function showUserDashboard(userId) {
     if (transactions.length) {
       html += `<h4>Recent Transactions</h4>
       <table class="data-table">
-        <thead><tr><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></tr></thead>
+        <thead><tr><th>Type</th><th>Amount</th><th>Description</th><th>Date</th></table></thead>
         <tbody>
           ${transactions.slice(0, 10).map(t => `
             <tr>
@@ -978,7 +1111,7 @@ async function showUserDashboard(userId) {
             </tr>
           `).join('')}
         </tbody>
-      </table>`;
+      <tr>`;
     }
 
     document.getElementById('userDashboardBody').innerHTML = html;
@@ -1159,7 +1292,7 @@ function renderFinancialReport(data) {
 
     <h3>Withdrawal History (approved)</h3>
     <table class="data-table" id="withdrawalsTable">
-      <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+      <thead><tr><th>User</th><th>Email</th><th>Amount</th><th>Method</th><th>Date</th><tr></thead>
       <tbody>
         ${withdrawalHistory.map(w => `
           <tr>
@@ -1240,7 +1373,7 @@ async function loadViolations(page = 1) {
     const tbody = document.getElementById('violationsList');
     if (!tbody) return;
     if (data.logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7">No violations recorded.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7">No violations recorded.瓣</td></tr>';
     } else {
       tbody.innerHTML = data.logs.map(v => `
         <tr>
@@ -1257,7 +1390,7 @@ async function loadViolations(page = 1) {
     renderViolationsPagination(data.pagination);
   } catch (err) {
     console.error('Failed to load violations:', err);
-    document.getElementById('violationsList').innerHTML = '<tr><td colspan="7">Error loading data.</td></tr>';
+    document.getElementById('violationsList').innerHTML = '<tr><td colspan="7">Error loading data.瓣</td></tr>';
   }
 }
 
@@ -1273,11 +1406,11 @@ async function loadViolationsSummary() {
       </div>
       <h4>Top Offenders</h4>
       <table class="data-table" style="margin-bottom:1rem;"><thead><tr><th>Name</th><th>Email</th><th>Attempts</th></tr></thead>
-      <tbody>${summary.byUser.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.count}</td></tr>`).join('')}</tbody>
+      <tbody>${summary.byUser.map(u => `<tr><td>${escapeHtml(u.name)}瓣</td><td>${escapeHtml(u.email)}瓣</td><td>${u.count}瓣</td></tr>`).join('')}</tbody>
       </table>
       <h4>Detected Patterns</h4>
       <table class="data-table"><thead><tr><th>Pattern</th><th>Count</th></tr></thead>
-      <tbody>${summary.byPattern.map(p => `<tr><td>${p._id || 'unknown'}</td><td>${p.count}</td></tr>`).join('')}</tbody>
+      <tbody>${summary.byPattern.map(p => `<tr><td>${p._id || 'unknown'}瓣</td><td>${p.count}瓣</td></tr>`).join('')}</tbody>
       </table>
     `;
   } catch (err) {
@@ -1331,6 +1464,7 @@ window.setTutorLevel = setTutorLevel;
 document.getElementById('editDocForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveDocumentEdit(); });
 document.getElementById('announcementForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveAnnouncement(); });
 document.getElementById('editPreviewForm')?.addEventListener('submit', (e) => { e.preventDefault(); savePreviewText(); });
+// Removed old notification icon listener – now using bell
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
@@ -1376,6 +1510,8 @@ function initSidebar() {
         loadViolations();
       } else if (sectionId === 'blog') {
         loadBlogPosts();
+      } else if (sectionId === 'demo-questions') {   // NEW
+        loadDemoQuestions();
       }
     });
   });
