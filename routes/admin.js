@@ -232,7 +232,7 @@ router.get('/questions', async (req, res) => {
 router.get('/documents', async (req, res) => {
   try {
     const docs = await Document.find().populate('uploaderId', 'fullName email');
-    res.json(docs);
+    res.json({ documents: docs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
