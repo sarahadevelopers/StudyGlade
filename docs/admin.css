@@ -375,7 +375,3 @@
   font-size: 1.3rem;
   color: #1f2937;  /* darker gray for better contrast */
 }
-.notification-bell i,
-.notification-sound-toggle i {
-  background: red !important;
-}
