@@ -398,7 +398,7 @@ async function loadAllQuestions() {
 async function loadDocuments() {
   try {
     const response = await apiFetch('/admin/documents');
-const docs = response.documents || [];
+    const docs = response.documents || [];
     const container = document.getElementById('documentsList');
     if (!docs.length) {
       container.innerHTML = '<div class="card">No documents found.</div>';
@@ -417,17 +417,64 @@ const docs = response.documents || [];
               <td>${formatMoney(d.price)}</td>
               <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
               <td>
-                <button class="btn-sm btn-primary" onclick="editDocument(${JSON.stringify(d._id)}, ${JSON.stringify(d.title)}, ${d.price}, ${JSON.stringify(d.description)})">Edit</button>
-                <button class="btn-sm btn-secondary" onclick="showPreviewModal(${JSON.stringify(d._id)}, ${JSON.stringify(sanitizeForOnclick(d.previewText || ''))})">Edit Preview</button>
-                ${!d.isApproved ? `<button class="btn-sm btn-success" onclick="approveDoc('${d._id}')">Approve</button>` : ''}
-                <button class="btn-sm btn-danger" onclick="deleteDocument('${d._id}')">Delete</button>
+                <button class="btn-sm btn-primary edit-doc-btn" data-id="${d._id}" data-title="${encodeURIComponent(d.title)}" data-price="${d.price}" data-description="${encodeURIComponent(d.description || '')}">Edit</button>
+                <button class="btn-sm btn-secondary preview-doc-btn" data-id="${d._id}" data-preview="${encodeURIComponent(d.previewText || '')}">Edit Preview</button>
+                ${!d.isApproved ? `<button class="btn-sm btn-success approve-doc-btn" data-id="${d._id}">Approve</button>` : ''}
+                <button class="btn-sm btn-danger delete-doc-btn" data-id="${d._id}">Delete</button>
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+
+    // Attach event listeners (remove old ones first to avoid duplicates)
+    document.querySelectorAll('#allDocumentsTable .edit-doc-btn').forEach(btn => {
+      btn.removeEventListener('click', handleEditDocument);
+      btn.addEventListener('click', handleEditDocument);
+    });
+    document.querySelectorAll('#allDocumentsTable .preview-doc-btn').forEach(btn => {
+      btn.removeEventListener('click', handlePreviewDocument);
+      btn.addEventListener('click', handlePreviewDocument);
+    });
+    document.querySelectorAll('#allDocumentsTable .approve-doc-btn').forEach(btn => {
+      btn.removeEventListener('click', handleApproveDocument);
+      btn.addEventListener('click', handleApproveDocument);
+    });
+    document.querySelectorAll('#allDocumentsTable .delete-doc-btn').forEach(btn => {
+      btn.removeEventListener('click', handleDeleteDocument);
+      btn.addEventListener('click', handleDeleteDocument);
+    });
   } catch (err) { console.error(err); }
+}
+
+// Helper handlers
+function handleEditDocument(e) {
+  const btn = e.currentTarget;
+  const docId = btn.getAttribute('data-id');
+  const title = decodeURIComponent(btn.getAttribute('data-title'));
+  const price = parseFloat(btn.getAttribute('data-price'));
+  const description = decodeURIComponent(btn.getAttribute('data-description'));
+  editDocument(docId, title, price, description);
+}
+
+function handlePreviewDocument(e) {
+  const btn = e.currentTarget;
+  const docId = btn.getAttribute('data-id');
+  const previewText = decodeURIComponent(btn.getAttribute('data-preview'));
+  showPreviewModal(docId, previewText);
+}
+
+function handleApproveDocument(e) {
+  const docId = e.currentTarget.getAttribute('data-id');
+  approveDoc(docId);
+}
+
+function handleDeleteDocument(e) {
+  const docId = e.currentTarget.getAttribute('data-id');
+  if (confirm('Delete this document permanently?')) {
+    deleteDocument(docId);
+  }
 }
 
 // ----- Document edit modals -----
