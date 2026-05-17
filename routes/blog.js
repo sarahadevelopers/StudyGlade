@@ -1,6 +1,5 @@
 const express = require('express');
 const BlogPost = require('../models/BlogPost');
-const marked = require('marked');
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 
@@ -8,13 +7,11 @@ const router = express.Router();
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 
-function renderMarkdown(content) {
-  if (!content) return '';
-  const rawHtml = marked.parse(content);
-  return DOMPurify.sanitize(rawHtml);
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
 }
 
-// Blog listing (paginated)
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -29,11 +26,9 @@ router.get('/', async (req, res) => {
     const total = await BlogPost.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
 
-    // Auto-generate excerpt if missing
     posts.forEach(post => {
       if (!post.excerpt) {
-        const plainText = post.content.replace(/[#*`>\[\]()!]/g, '').substring(0, 200);
-        post.excerpt = plainText;
+        post.excerpt = stripHtml(post.content).substring(0, 200);
       }
     });
 
@@ -52,15 +47,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Single blog post
 router.get('/:slug', async (req, res) => {
   try {
     const post = await BlogPost.findOne({ slug: req.params.slug, isPublished: true });
     if (!post) return res.status(404).send('Post not found');
 
-    post.htmlContent = renderMarkdown(post.content);
+    post.htmlContent = DOMPurify.sanitize(post.content);
 
-    // Related posts (latest 3)
     const relatedPosts = await BlogPost.find({ _id: { $ne: post._id }, isPublished: true })
       .sort({ publishedAt: -1 })
       .limit(3)

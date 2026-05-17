@@ -1,4 +1,8 @@
 const express = require('express');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs').promises;
+const path = require('path');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const BlogPost = require('../models/BlogPost');
@@ -6,6 +10,40 @@ const BlogPost = require('../models/BlogPost');
 const router = express.Router();
 
 router.use(auth, roleCheck('admin'));
+
+// Configure Cloudinary (should already be configured in server.js, but ensure it's ready)
+// If Cloudinary is not already configured globally, uncomment the following lines:
+// cloudinary.config({
+//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//   api_key: process.env.CLOUDINARY_API_KEY,
+//   api_secret: process.env.CLOUDINARY_API_SECRET
+// });
+
+// Multer memory storage for image uploads
+const multerMemory = multer({ storage: multer.memoryStorage() });
+
+// ========== IMAGE UPLOAD (for Quill editor) ==========
+router.post('/upload-image', multerMemory.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    // Upload to Cloudinary as image
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'studyglade/blog_images', resource_type: 'image' },
+        (error, uploadResult) => {
+          if (error) reject(error);
+          else resolve(uploadResult);
+        }
+      ).end(req.file.buffer);
+    });
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error('Image upload error:', err);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
 
 // ========== Server‑rendered pages ==========
 // List all posts (HTML)

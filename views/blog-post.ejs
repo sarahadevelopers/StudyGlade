@@ -4,10 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= post.title %> | StudyGlade Blog</title>
-  <meta name="description" content="<%= post.excerpt || post.content.substring(0, 160).replace(/<[^>]*>/g, '') %>">
+  <!-- Helper: strip HTML tags for meta description -->
+  <% 
+    let metaDescription = post.excerpt;
+    if (!metaDescription && post.content) {
+      metaDescription = post.content.replace(/<[^>]*>/g, '').substring(0, 160);
+    }
+  %>
+  <meta name="description" content="<%= metaDescription %>">
   <link rel="canonical" href="https://studyglade.com/blog/<%= post.slug %>">
   <meta property="og:title" content="<%= post.title %>">
-  <meta property="og:description" content="<%= post.excerpt || post.content.substring(0, 160).replace(/<[^>]*>/g, '') %>">
+  <meta property="og:description" content="<%= metaDescription %>">
   <meta property="og:image" content="<%= post.featuredImage || 'https://studyglade.com/og-logo.png' %>">
   <meta property="og:url" content="https://studyglade.com/blog/<%= post.slug %>">
   <meta property="og:type" content="article">
@@ -22,7 +29,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "<%= post.title.replace(/"/g, '\\"') %>",
-    "description": "<%= (post.excerpt || post.content.substring(0, 160)).replace(/"/g, '\\"').replace(/<[^>]*>/g, '') %>",
+    "description": "<%= metaDescription.replace(/"/g, '\\"') %>",
     "author": { "@type": "Person", "name": "<%= post.author || 'StudyGlade Team' %>" },
     "datePublished": "<%= post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString() %>",
     "dateModified": "<%= post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date().toISOString() %>",
@@ -101,8 +108,9 @@
             <i class="far fa-user"></i> <%= post.author || 'StudyGlade Team' %>
           </div>
         </div>
+        <!-- ✅ IMPORTANT: Use sanitized HTML content -->
         <div class="blog-post-content">
-          <%- post.content %>
+          <%- post.htmlContent %>
         </div>
 
         <!-- Call to Action -->
@@ -111,7 +119,7 @@
           <p style="margin-top: 0.5rem;">🔍 Explore our <a href="/subjects">subject library</a> or browse <a href="/document-library.html">study documents</a>.</p>
         </div>
 
-        <!-- Optional: Related Posts (you can add if you create a related posts function) -->
+        <!-- Optional: Related Posts -->
         <% if (relatedPosts && relatedPosts.length) { %>
           <h3>Related Articles</h3>
           <ul class="related-list">
