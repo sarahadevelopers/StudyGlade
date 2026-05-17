@@ -1,4 +1,11 @@
- 
+ :root {
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --border-grey: #e2e8f0;
+  --text-navy: #1e293b;
+  --slate: #64748b;
+  --brand-blue: #2563eb;
+  --error: #ef4444;
+}
  * {
       margin: 0;
       padding: 0;
@@ -345,4 +352,8 @@
 }
 .notification-sound-toggle.muted {
   opacity: 0.4;
+}
+
+.nav-links {
+  position: relative;
 }
