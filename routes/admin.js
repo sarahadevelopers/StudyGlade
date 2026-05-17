@@ -252,22 +252,52 @@ router.put('/documents/:id/approve', async (req, res) => {
   }
 });
 
+// Update document metadata (title, price, description, subject, level, type)
 router.put('/documents/:id', async (req, res) => {
   try {
     const { title, price, description, subject, level, type } = req.body;
     const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ error: 'Document not found' });
-    if (title) doc.title = title;
-    if (price) doc.price = price;
-    if (description) doc.description = description;
-    if (subject) doc.subject = subject;
-    if (level) doc.level = level;
-    if (type) doc.type = type;
+
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Update only the fields that are provided
+    if (title !== undefined) doc.title = title;
+    if (price !== undefined) {
+      const numPrice = parseFloat(price);
+      if (isNaN(numPrice) || numPrice < 0) {
+        return res.status(400).json({ error: 'Price must be a non‑negative number' });
+      }
+      doc.price = numPrice;
+    }
+    if (description !== undefined) doc.description = description;
+    if (subject !== undefined) doc.subject = subject;
+    if (level !== undefined) doc.level = level;
+    if (type !== undefined) doc.type = type;
+
     await doc.save();
-    // ✅ Ping Google after content update (title, price, etc.)
+
+    // Notify Google about the content update (for SEO)
     await pingGoogleSitemap();
-    res.json({ message: 'Document updated' });
+
+    res.json({ message: 'Document updated successfully', document: doc });
   } catch (err) {
+    console.error('Error updating document:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// Update document preview text (SEO & smart search)
+router.put('/:id/preview', async (req, res) => {
+  try {
+    const { previewText } = req.body;
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    doc.previewText = previewText;
+    await doc.save();
+    res.json({ message: 'Preview updated' });
+  } catch (err) {
+    console.error('Preview update error:', err);
     res.status(500).json({ error: err.message });
   }
 });
