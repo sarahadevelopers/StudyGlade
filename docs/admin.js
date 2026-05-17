@@ -362,36 +362,79 @@ async function setTutorLevel(userId, currentLevel) {
 window.setTutorLevel = setTutorLevel;
 
 // ----- All Questions Section -----
-async function loadAllQuestions() {
+let currentQuestionPage = 1;
+let totalQuestionPages = 1;
+
+async function loadAllQuestions(page = 1) {
   try {
-    const response = await apiFetch('/admin/questions');
- const questions = response.questions || [];
+    const limit = 20;
+    const response = await apiFetch(`/admin/questions?page=${page}&limit=${limit}`);
+    const questions = response.questions || [];
+    const pagination = response.pagination || { page: 1, pages: 1, total: 0 };
+
+    currentQuestionPage = pagination.page;
+    totalQuestionPages = pagination.pages;
+
     const container = document.getElementById('questionsList');
     if (!questions.length) {
       container.innerHTML = '<div class="card">No questions found.</div>';
       return;
     }
-    container.innerHTML = `
+
+    let html = `
       <table class="data-table" id="questionsTable">
         <thead>
           <tr><th>Title</th><th>Student</th><th>Tutor</th><th>Budget</th><th>Status</th><th>Deadline</th><th>Actions</th></tr>
         </thead>
         <tbody>
-          ${questions.map(q => `
-            <tr>
-              <td>${escapeHtml(q.title)}</td>
-              <td>${escapeHtml(q.studentId?.fullName || '—')}</td>
-              <td>${escapeHtml(q.tutorId?.fullName || '—')}</td>
-              <td>$${q.budget}</td>
-              <td><span class="badge ${q.status === 'completed' ? 'badge-approved' : q.status === 'pending' ? 'badge-pending' : 'badge-rejected'}">${q.status}</span></td>
-              <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
-              <td><button class="btn-sm btn-primary" onclick="viewFullQuestion('${q._id}')">View Full</button></td>
-            </tr>
-          `).join('')}
+    `;
+
+    for (const q of questions) {
+      html += `
+        <tr>
+          <td>${escapeHtml(q.title)}</td>
+          <td>${escapeHtml(q.studentId?.fullName || '—')}</td>
+          <td>${escapeHtml(q.tutorId?.fullName || '—')}</td>
+          <td>$${q.budget}</td>
+          <td><span class="badge ${q.status === 'completed' ? 'badge-approved' : q.status === 'pending' ? 'badge-pending' : 'badge-rejected'}">${q.status}</span></td>
+          <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
+          <td><button class="btn-sm btn-primary view-question-btn" data-id="${q._id}">View Full</button></td>
+        </tr>
+      `;
+    }
+
+    html += `
         </tbody>
       </table>
     `;
-  } catch (err) { console.error(err); }
+
+    // Pagination controls
+    if (totalQuestionPages > 1) {
+      html += `
+        <div class="pagination" style="margin-top: 1rem; text-align: center;">
+          ${currentQuestionPage > 1 ? `<button class="btn-sm btn-secondary" onclick="loadAllQuestions(${currentQuestionPage - 1})">← Previous</button>` : ''}
+          <span>Page ${currentQuestionPage} of ${totalQuestionPages}</span>
+          ${currentQuestionPage < totalQuestionPages ? `<button class="btn-sm btn-secondary" onclick="loadAllQuestions(${currentQuestionPage + 1})">Next →</button>` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    // Attach event listeners for View Full buttons
+    document.querySelectorAll('#questionsTable .view-question-btn').forEach(btn => {
+      btn.removeEventListener('click', handleViewFullQuestion);
+      btn.addEventListener('click', handleViewFullQuestion);
+    });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('questionsList').innerHTML = '<div class="card">Error loading questions.</div>';
+  }
+}
+
+function handleViewFullQuestion(e) {
+  const questionId = e.currentTarget.getAttribute('data-id');
+  viewFullQuestion(questionId);
 }
 
 // ----- Document Approval (shows ALL documents with Edit/Preview buttons) -----

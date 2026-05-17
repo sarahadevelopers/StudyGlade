@@ -221,13 +221,31 @@ router.put('/users/:id/suspend', async (req, res) => {
 // ========== QUESTIONS ==========
 router.get('/questions', async (req, res) => {
   try {
-    const questions = await Question.find().populate('studentId tutorId', 'fullName email');
-    res.json({ questions });   // ✅ sends object with 'questions' key
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const questions = await Question.find()
+      .populate('studentId tutorId', 'fullName email')
+      .sort({ createdAt: -1 })   // newest first
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Question.countDocuments();
+
+    res.json({
+      questions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // ========== DOCUMENTS ==========
 router.get('/documents', async (req, res) => {
   try {
@@ -746,17 +764,29 @@ router.put('/tutors/:id/level', async (req, res) => {
   }
 });
 
-router.get('/questions/:id/full', async (req, res) => {
+router.get('/questions', async (req, res) => {
   try {
-    const question = await Question.findById(req.params.id)
-      .populate('studentId', 'fullName email')
-      .populate('tutorId', 'fullName email');
-    if (!question) return res.status(404).json({ error: 'Question not found' });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    const comments = await Comment.find({ questionId: question._id })
-      .populate('userId', 'fullName email')
-      .sort({ createdAt: 1 });
-    res.json({ question, comments });
+    const questions = await Question.find()
+      .populate('studentId tutorId', 'fullName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Question.countDocuments();
+
+    res.json({
+      questions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
