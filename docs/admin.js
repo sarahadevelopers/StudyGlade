@@ -1276,14 +1276,27 @@ document.getElementById('editPreviewText')?.addEventListener('input', function()
 function initSidebar() {
   const menuItems = document.querySelectorAll('.sidebar-menu li');
   const sections = document.querySelectorAll('.section');
+  
   menuItems.forEach(item => {
     item.addEventListener('click', () => {
       const sectionId = item.getAttribute('data-section');
+      if (!sectionId) return;   // safety
+      
+      // Update active menu item
       menuItems.forEach(i => i.classList.remove('active'));
       item.classList.add('active');
+      
+      // Hide all sections, then show the selected one
       sections.forEach(s => s.classList.remove('active-section'));
-      document.getElementById(sectionId).classList.add('active-section');
-
+      const targetSection = document.getElementById(sectionId);
+      if (targetSection) {
+        targetSection.classList.add('active-section');
+      } else {
+        console.warn(`Section #${sectionId} not found in DOM`);
+        return;
+      }
+      
+      // Load section‑specific data
       if (sectionId === 'financial') {
         loadFinancialReport();
       } else if (sectionId === 'content-violations') {
