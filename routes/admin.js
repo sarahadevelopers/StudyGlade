@@ -231,8 +231,27 @@ router.get('/questions', async (req, res) => {
 // ========== DOCUMENTS ==========
 router.get('/documents', async (req, res) => {
   try {
-    const docs = await Document.find().populate('uploaderId', 'fullName email');
-    res.json({ documents: docs });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const docs = await Document.find()
+      .populate('uploaderId', 'fullName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Document.countDocuments();
+
+    res.json({
+      documents: docs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

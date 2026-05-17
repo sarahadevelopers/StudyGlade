@@ -395,40 +395,69 @@ async function loadAllQuestions() {
 }
 
 // ----- Document Approval (shows ALL documents with Edit/Preview buttons) -----
-async function loadDocuments() {
+let currentDocPage = 1;
+let totalDocPages = 1;
+
+async function loadDocuments(page = 1) {
   try {
-    const response = await apiFetch('/admin/documents');
+    const limit = 20;   // documents per page
+    const response = await apiFetch(`/admin/documents?page=${page}&limit=${limit}`);
     const docs = response.documents || [];
+    const pagination = response.pagination || { page: 1, pages: 1, total: 0 };
+
+    currentDocPage = pagination.page;
+    totalDocPages = pagination.pages;
+
     const container = document.getElementById('documentsList');
     if (!docs.length) {
       container.innerHTML = '<div class="card">No documents found.</div>';
       return;
     }
-    container.innerHTML = `
+
+    let html = `
       <table class="data-table" id="allDocumentsTable">
         <thead>
           <tr><th>Title</th><th>Uploader</th><th>Price</th><th>Status</th><th>Actions</th></tr>
         </thead>
         <tbody>
-          ${docs.map(d => `
-            <tr>
-              <td>${escapeHtml(d.title)}</td>
-              <td>${escapeHtml(d.uploaderId?.fullName || 'Unknown')}</td>
-              <td>${formatMoney(d.price)}</td>
-              <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
-              <td>
-                <button class="btn-sm btn-primary edit-doc-btn" data-id="${d._id}" data-title="${encodeURIComponent(d.title)}" data-price="${d.price}" data-description="${encodeURIComponent(d.description || '')}">Edit</button>
-                <button class="btn-sm btn-secondary preview-doc-btn" data-id="${d._id}" data-preview="${encodeURIComponent(d.previewText || '')}">Edit Preview</button>
-                ${!d.isApproved ? `<button class="btn-sm btn-success approve-doc-btn" data-id="${d._id}">Approve</button>` : ''}
-                <button class="btn-sm btn-danger delete-doc-btn" data-id="${d._id}">Delete</button>
-              </td>
-            </tr>
-          `).join('')}
+    `;
+
+    for (const d of docs) {
+      html += `
+        <tr>
+          <td>${escapeHtml(d.title)}</td>
+          <td>${escapeHtml(d.uploaderId?.fullName || 'Unknown')}</td>
+          <td>${formatMoney(d.price)}</td>
+          <td><span style="color:${d.isApproved ? 'green' : 'orange'}">${d.isApproved ? 'Approved' : 'Pending'}</span></td>
+          <td>
+            <button class="btn-sm btn-primary edit-doc-btn" data-id="${d._id}" data-title="${encodeURIComponent(d.title)}" data-price="${d.price}" data-description="${encodeURIComponent(d.description || '')}">Edit</button>
+            <button class="btn-sm btn-secondary preview-doc-btn" data-id="${d._id}" data-preview="${encodeURIComponent(d.previewText || '')}">Edit Preview</button>
+            ${!d.isApproved ? `<button class="btn-sm btn-success approve-doc-btn" data-id="${d._id}">Approve</button>` : ''}
+            <button class="btn-sm btn-danger delete-doc-btn" data-id="${d._id}">Delete</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    html += `
         </tbody>
       </table>
     `;
 
-    // Attach event listeners (remove old ones first to avoid duplicates)
+    // Pagination controls
+    if (totalDocPages > 1) {
+      html += `
+        <div class="pagination" style="margin-top: 1rem; text-align: center;">
+          ${currentDocPage > 1 ? `<button class="btn-sm btn-secondary" onclick="loadDocuments(${currentDocPage - 1})">← Previous</button>` : ''}
+          <span>Page ${currentDocPage} of ${totalDocPages}</span>
+          ${currentDocPage < totalDocPages ? `<button class="btn-sm btn-secondary" onclick="loadDocuments(${currentDocPage + 1})">Next →</button>` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    // Re-attach event listeners for dynamic buttons
     document.querySelectorAll('#allDocumentsTable .edit-doc-btn').forEach(btn => {
       btn.removeEventListener('click', handleEditDocument);
       btn.addEventListener('click', handleEditDocument);
@@ -445,7 +474,10 @@ async function loadDocuments() {
       btn.removeEventListener('click', handleDeleteDocument);
       btn.addEventListener('click', handleDeleteDocument);
     });
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Error loading documents:', err);
+    document.getElementById('documentsList').innerHTML = '<div class="card error">Failed to load documents.</div>';
+  }
 }
 
 // Helper handlers
