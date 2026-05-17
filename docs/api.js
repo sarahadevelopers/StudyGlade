@@ -45,83 +45,91 @@ window.API_BASE = '/api';
   }
 
   // Expose the core API fetch function globally
-  window.apiFetch = async function(endpoint, options = {}) {
-    const method = options.method || 'GET';
-    let headers = { 'Content-Type': 'application/json', ...options.headers };
-    
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-      const token = await getCsrfToken();
-      if (token) headers['X-CSRF-Token'] = token;
-    }
-    
-    const makeRequest = async () => {
-      return await fetch(`${window.API_BASE}${endpoint}`, {
-        ...options,
-        credentials: 'include',
-        headers
-      });
-    };
+ window.apiFetch = async function(endpoint, options = {}) {
+  const method = options.method || 'GET';
+  // Start with headers from options only – no default Content-Type
+  let headers = { ...options.headers };
+  
+  // Only add default Content-Type for methods that can have a body,
+  // and only if the caller didn't already set it (e.g., for file uploads)
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  // Add CSRF token for non‑GET requests
+  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    const token = await getCsrfToken();
+    if (token) headers['X-CSRF-Token'] = token;
+  }
+  
+  const makeRequest = async () => {
+    return await fetch(`${window.API_BASE}${endpoint}`, {
+      ...options,
+      credentials: 'include',
+      headers
+    });
+  };
 
-    // Retry logic for network failures (e.g., ERR_CONNECTION_CLOSED)
-    let res;
+  // Retry logic for network failures (e.g., ERR_CONNECTION_CLOSED)
+  let res;
+  try {
+    res = await makeRequest();
+  } catch (err) {
+    // Network error (connection closed, DNS failure, etc.)
+    console.warn(`Network error for ${endpoint}, retrying once...`, err);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     try {
       res = await makeRequest();
-    } catch (err) {
-      // Network error (connection closed, DNS failure, etc.)
-      console.warn(`Network error for ${endpoint}, retrying once...`, err);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      try {
-        res = await makeRequest();
-      } catch (retryErr) {
-        // Still failing – rethrow
-        throw retryErr;
-      }
+    } catch (retryErr) {
+      // Still failing – rethrow
+      throw retryErr;
     }
+  }
 
-    // If 401 and not already refreshing, try to refresh token once
-    if (res.status === 401 && !isRefreshing) {
-      isRefreshing = true;
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
-        // Retry original request with new token
-        res = await makeRequest();
-        isRefreshing = false;
-        if (res.status === 401) {
-          // Still 401 after refresh – force logout
-          localStorage.clear();
-          window.showToast('Session expired. Please log in again.', 'error');
-          window.location.href = 'login.html';
-          throw new Error('Session expired');
-        }
-        return handleResponse(res);
-      } else {
-        isRefreshing = false;
+  // If 401 and not already refreshing, try to refresh token once
+  if (res.status === 401 && !isRefreshing) {
+    isRefreshing = true;
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      // Retry original request with new token
+      res = await makeRequest();
+      isRefreshing = false;
+      if (res.status === 401) {
+        // Still 401 after refresh – force logout
         localStorage.clear();
         window.showToast('Session expired. Please log in again.', 'error');
         window.location.href = 'login.html';
         throw new Error('Session expired');
       }
+      return handleResponse(res);
+    } else {
+      isRefreshing = false;
+      localStorage.clear();
+      window.showToast('Session expired. Please log in again.', 'error');
+      window.location.href = 'login.html';
+      throw new Error('Session expired');
     }
+  }
 
-    if (res.status === 403) {
-      csrfToken = null;
-      const token = await getCsrfToken();
-      if (token) {
-        headers['X-CSRF-Token'] = token;
-        const retryRes = await fetch(`${window.API_BASE}${endpoint}`, {
-          ...options,
-          credentials: 'include',
-          headers
-        });
-        if (retryRes.ok) return handleResponse(retryRes);
-      }
-      const errorData = await retryRes?.json().catch(() => ({}));
-      window.showToast(errorData.error || 'Request forbidden (CSRF validation failed)', 'error');
-      throw new Error('CSRF validation failed');
+  if (res.status === 403) {
+    csrfToken = null;
+    const token = await getCsrfToken();
+    if (token) {
+      headers['X-CSRF-Token'] = token;
+      const retryRes = await fetch(`${window.API_BASE}${endpoint}`, {
+        ...options,
+        credentials: 'include',
+        headers
+      });
+      if (retryRes.ok) return handleResponse(retryRes);
     }
+    const errorData = await retryRes?.json().catch(() => ({}));
+    window.showToast(errorData.error || 'Request forbidden (CSRF validation failed)', 'error');
+    throw new Error('CSRF validation failed');
+  }
 
-    return handleResponse(res);
-  };
+  return handleResponse(res);
+};
 
   async function handleResponse(res) {
     const contentType = res.headers.get('content-type');

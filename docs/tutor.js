@@ -14,29 +14,8 @@ function formatMoney(amount) {
 }
 
 // ----- DUMMY QUESTION POOL (100+ templates) -----
-const DUMMY_QUESTIONS_POOL = [
-  { title: "How does photosynthesis work? Explain in detail.", subject: "Biology", budget: 25 },
-  { title: "Solve the quadratic equation: 2x² - 5x + 3 = 0", subject: "Math", budget: 18 },
-  { title: "Write a Python function to reverse a linked list.", subject: "Programming", budget: 30 },
-  { title: "Discuss the causes of World War I.", subject: "History", budget: 22 },
-  { title: "Explain the concept of supply and demand with examples.", subject: "Economics", budget: 20 },
-  { title: "What is the difference between DNA and RNA?", subject: "Biology", budget: 15 },
-  { title: "Calculate the definite integral of x^2 from 0 to 3.", subject: "Calculus", budget: 21 },
-  { title: "Write a short essay on the importance of recycling.", subject: "English", budget: 14 },
-  { title: "Describe the main features of a Java class.", subject: "Programming", budget: 19 },
-  { title: "Explain the Bohr model of the atom.", subject: "Chemistry", budget: 23 },
-  { title: "What are the main causes of the Great Depression?", subject: "History", budget: 24 },
-  { title: "How does a bill become a law in the US?", subject: "Political Science", budget: 20 },
-  { title: "Solve the equation: 3(2x - 5) = 4x + 7", subject: "Math", budget: 12 },
-  { title: "Write a recursive function to compute Fibonacci numbers in Python.", subject: "Programming", budget: 28 },
-  { title: "Explain the concept of comparative advantage in economics.", subject: "Economics", budget: 26 },
-  { title: "Describe the structure and function of the human heart.", subject: "Biology", budget: 27 },
-  { title: "What are the three laws of motion?", subject: "Physics", budget: 16 },
-  { title: "Discuss the impact of social media on modern communication.", subject: "Sociology", budget: 22 },
-  { title: "Write a simple HTML/CSS webpage layout.", subject: "Web Development", budget: 19 },
-  { title: "Explain the process of cellular respiration.", subject: "Biology", budget: 25 },
-  // ... add more up to 100 items; only a few shown for brevity
-];
+// ----- DUMMY QUESTION POOL (now with optional fileUrl) -----
+
 // For a real deployment, you should expand this to at least 100 unique entries.
 // You can generate them programmatically or manually add more.
 
@@ -169,52 +148,29 @@ async function loadTutorDashboard() {
 // ----- Load Available Questions (with pagination + dummy injection) -----
 async function loadAvailableQuestions(page = 1) {
   try {
-    // 1. Fetch real questions from the server
     const res = await fetch(`${window.API_BASE}/questions/pending?page=${page}&limit=${PAGE_SIZE}`, { credentials: 'include' });
     if (!res.ok) throw new Error();
     const data = await res.json();
-    let realQuestions = data.questions || [];
+    const questions = data.questions || [];
     const totalReal = data.total;
-
-    // 2. Generate dummy questions (random subset of the pool, e.g., 10 per load)
-    const dummyCount = 10;                     // number of dummy questions to show
-    // Shuffle the pool and take first `dummyCount`
-    const shuffledPool = [...DUMMY_QUESTIONS_POOL];
-    for (let i = shuffledPool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
-    }
-    const dummyQuestions = shuffledPool.slice(0, dummyCount).map((d, idx) => ({
-      _id: `dummy_${Date.now()}_${idx}`,
-      title: d.title,
-      subject: d.subject,
-      budget: d.budget,
-      createdAt: new Date().toISOString(),
-      isDummy: true
-    }));
-
-    // 3. Combine real + dummy (real first, then dummy)
-    const allQuestions = [...realQuestions, ...dummyQuestions];
 
     const container = document.getElementById('availableQuestionsList');
     if (!container) return;
-    if (allQuestions.length === 0) {
+    if (questions.length === 0) {
       container.innerHTML = '<div class="available-item">No questions available</div>';
       document.getElementById('paginationControls').innerHTML = '';
       return;
     }
 
     let html = '';
-    allQuestions.forEach(q => {
-      const isDummy = q.isDummy === true;
-      // Optional: add a small "Demo" badge for dummy questions
-      const demoBadge = isDummy ? '<span style="margin-left: 8px; background:#e0e7ff; color:#1e40af; font-size:0.7rem; padding:2px 6px; border-radius:12px;">Demo</span>' : '';
+    questions.forEach(q => {
+      const isDemo = q.isDemo === true;
       html += `
-        <div class="available-item" data-id="${q._id}" data-dummy="${isDummy}">
+        <div class="available-item" data-id="${q._id}" data-demo="${isDemo}">
           <div class="available-header">
             <div>
               <div class="assignment-title">
-                <i class="fas fa-file-alt" style="margin-right: 6px;"></i> ${escapeHtml(q.title)} ${demoBadge}
+                <i class="fas fa-file-alt" style="margin-right: 6px;"></i> ${escapeHtml(q.title)}
               </div>
               <div class="assignment-meta">${escapeHtml(q.subject || 'General')} • Budget: ${formatMoney(q.budget)} • Posted: ${new Date(q.createdAt).toLocaleDateString()}</div>
             </div>
@@ -222,8 +178,8 @@ async function loadAvailableQuestions(page = 1) {
           </div>
           <div class="bid-group">
             <input type="number" id="bid-${q._id}" placeholder="Bid amount" min="${q.budget}" step="1" class="bid-input">
-            <button class="btn-sm btn-primary-sm" onclick="placeBid('${q._id}', ${isDummy})">Place Bid</button>
-            <button class="btn-sm btn-outline-sm" onclick="acceptQuestion('${q._id}', ${isDummy})">Accept at ${formatMoney(q.budget)}</button>
+            <button class="btn-sm btn-primary-sm" onclick="placeBid('${q._id}', ${isDemo})">Place Bid</button>
+            <button class="btn-sm btn-outline-sm" onclick="acceptQuestion('${q._id}', ${isDemo})">Accept at ${formatMoney(q.budget)}</button>
             <button class="btn-sm btn-outline-sm" onclick="previewQuestion('${q._id}')">Preview</button>
             <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Question</button>
           </div>
@@ -232,7 +188,6 @@ async function loadAvailableQuestions(page = 1) {
     });
     container.innerHTML = html;
 
-    // 4. Update pagination (only based on real questions)
     totalAvailablePages = Math.ceil(totalReal / PAGE_SIZE);
     currentAvailablePage = page;
     const paginationDiv = document.getElementById('paginationControls');
@@ -257,10 +212,10 @@ window.changeAvailablePage = (delta) => {
 };
 
 // ----- Place Bid (now with dummy handling) -----
-async function placeBid(questionId, isDummy = false) {
-  if (isDummy) {
+async function placeBid(questionId, isDemo = false) {
+  if (isDemo) {
     showToast('Bid placed (demo) – this is a practice question', 'success');
-    // Disable the bid controls for this dummy item
+    // Disable the bid controls for this demo item
     const container = document.querySelector(`.available-item[data-id="${questionId}"]`);
     if (container) {
       container.style.opacity = '0.6';
@@ -314,8 +269,8 @@ async function placeBid(questionId, isDummy = false) {
   }
 }
 
-async function acceptQuestion(questionId, isDummy = false) {
-  if (isDummy) {
+async function acceptQuestion(questionId, isDemo = false) {
+  if (isDemo) {
     showToast('This is a demo question – no real assignment', 'info');
     return;
   }

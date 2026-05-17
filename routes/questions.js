@@ -18,6 +18,25 @@ const { emitToUser, getIO } = require('../utils/sockets');   // 👈 new import
 const router = express.Router();
 const multerMemory = multer({ storage: multer.memoryStorage() });
 
+// ---------- Kenyan time helpers for demo questions ----------
+function getNairobiHour() {
+  const now = new Date();
+  const nairobiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' }));
+  return nairobiTime.getHours();
+}
+
+function getDemoCount() {
+  const hour = getNairobiHour();
+  // Peak: 11pm (23) to 3am (3) – 4-6 questions
+  if (hour >= 23 || hour < 3) return Math.floor(Math.random() * 3) + 4; // 4-6
+  // Evening: 7pm (19) to 10pm (22) – 2-3 questions
+  if (hour >= 19 && hour <= 22) return Math.floor(Math.random() * 2) + 2; // 2-3
+  // Afternoon quiet (12pm-6pm) – rarely 0-1
+  if (hour >= 12 && hour <= 18) return Math.random() < 0.3 ? 1 : 0;
+  // Other times (morning, early night) – occasionally 1
+  return Math.random() < 0.6 ? 1 : 0;
+}
+
 // ---------- generate signed URL for Cloudinary files ----------
 function getSignedUrl(publicUrl, resourceType = 'image', expiresInSeconds = 300) {
   if (!publicUrl) return null;
@@ -137,14 +156,37 @@ router.get('/pending',
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
-      const questions = await Question.find({ status: 'pending' })
+
+      // 1. Real pending questions (students' questions)
+      const realFilter = { status: 'pending', isDemo: false };
+      const realQuestions = await Question.find(realFilter)
         .populate('studentId', 'fullName avatar gender')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
-      const total = await Question.countDocuments({ status: 'pending' });
-      res.json({ questions, total, page, limit });
+      const totalReal = await Question.countDocuments(realFilter);
+
+      let allQuestions = [...realQuestions];
+
+      // 2. Add demo questions for tutors (only if there are any)
+      const demoCount = getDemoCount();
+      if (demoCount > 0) {
+        const demoQuestions = await Question.aggregate([
+          { $match: { isDemo: true, status: 'pending' } },
+          { $sample: { size: demoCount } }
+        ]);
+        allQuestions = [...allQuestions, ...demoQuestions];
+      }
+
+      res.json({
+        questions: allQuestions,
+        total: totalReal,   // pagination based only on real questions
+        page,
+        limit,
+        pages: Math.ceil(totalReal / limit)
+      });
     } catch (err) {
+      console.error('Error in /pending:', err);
       res.status(500).json({ error: err.message });
     }
   }
@@ -259,21 +301,20 @@ router.put('/:id/complete',
   handleValidationErrors,
   async (req, res) => {
     try {
+      // 👇 changed from const to let to allow reassignment
       let question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
 
-      // If answerFile missing, create a placeholder file
+      // 👇 retry logic: if answerFile missing, wait 500ms and refresh
       if (!question.answerFile) {
-        console.log(`[COMPLETE] answerFile missing for question ${question._id}, creating placeholder.`);
-        // Create a placeholder PDF via Cloudinary (or use a static file)
-        // Here we use a default placeholder URL (you can upload a placeholder PDF to Cloudinary)
-        const placeholderUrl = 'https://res.cloudinary.com/df0fmqomw/raw/upload/v1/studyglade/answers/placeholder.pdf';
-        question.answerFile = placeholderUrl;
-        question.answerFileName = 'placeholder.pdf';
-        question.answerUploadedAt = new Date();
-        await question.save();
-        console.log(`[COMPLETE] Placeholder answerFile set to ${placeholderUrl}`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const refreshed = await Question.findById(req.params.id);
+        if (refreshed && refreshed.answerFile) {
+          question = refreshed;
+        } else {
+          return res.status(400).json({ error: 'Please upload the answer file first' });
+        }
       }
 
       question.status = 'completed';
@@ -342,6 +383,18 @@ router.post('/:id/bid',
       const { amount, message } = req.body;
       const question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
+
+      // ✅ Demo question: fake success – no real bid, just pretend
+      if (question.isDemo) {
+        console.log(`🎭 Demo bid: tutor ${req.userId} pretended to bid $${amount} on demo question ${question._id}`);
+        return res.status(201).json({ 
+          message: 'Bid placed successfully!', 
+          demo: true,
+          bid: { amount, message: message || '' }
+        });
+      }
+
+      // ---------- Real bid logic (unchanged) ----------
       if (question.status !== 'pending') return res.status(400).json({ error: 'Question is no longer pending' });
 
       const existingBid = await Bid.findOne({ questionId: question._id, tutorId: req.userId });
@@ -363,7 +416,6 @@ router.post('/:id/bid',
         link: `/question-details.html?id=${question._id}`
       });
 
-      // Send email to student about new bid
       const student = await User.findById(question.studentId);
       sendEmailWithTemplate(student.email, 'New Bid on Your Question', 'bid-placed.ejs', {
         studentName: student.fullName,
@@ -375,7 +427,6 @@ router.post('/:id/bid',
         questionId: question._id
       }).catch(err => console.error('Failed to send bid email:', err));
 
-      // ✅ Socket: notify student of new bid
       const io = getIO(req);
       emitToUser(io, question.studentId, 'bid_placed', {
         questionId: question._id,

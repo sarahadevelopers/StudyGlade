@@ -12,10 +12,11 @@ const questionSchema = new mongoose.Schema({
   files: [String],
   school: String,
   course: String,
-  status: { 
-    type: String, 
-    enum: ['pending', 'assigned', 'completed', 'cancelled'], 
-    default: 'pending' 
+  isDemo: { type: Boolean, default: false },          // ✅ new field for demo questions
+  status: {
+    type: String,
+    enum: ['pending', 'assigned', 'completed', 'cancelled'],
+    default: 'pending'
   },
   // Budget suggestion
   suggestedBudget: { type: Number, default: 0 },
@@ -35,7 +36,7 @@ const questionSchema = new mongoose.Schema({
   additionalFundsRequest: {
     amount: { type: Number },
     reason: { type: String },
-    status: { type: String, enum: ['pending', 'approved', 'rejected'] }, // no default
+    status: { type: String, enum: ['pending', 'approved', 'rejected'] },
     requestedAt: Date,
     studentResponseAt: Date
   },
@@ -43,5 +44,8 @@ const questionSchema = new mongoose.Schema({
   cancellationReason: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
+
+// ✅ Index for faster filtering of demo questions (used in $sample queries)
+questionSchema.index({ isDemo: 1 });
 
 module.exports = mongoose.model('Question', questionSchema);
