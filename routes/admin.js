@@ -634,7 +634,7 @@ router.get('/reports/top-documents', async (req, res) => {
 router.get('/announcements', async (req, res) => {
   try {
     const announcements = await Announcement.find().sort({ createdAt: -1 });
-    res.json(announcements);
+    res.json({ announcements });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
