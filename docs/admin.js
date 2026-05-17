@@ -689,16 +689,27 @@ window.closeAnnouncementModal = closeAnnouncementModal;
 
 async function loadBlogPosts(page = 1) {
   const container = document.getElementById('blogList');
-  if (!container) return;
+  if (!container) {
+    console.error('❌ Blog container #blogList not found');
+    return;
+  }
 
   // Show loading state
   container.innerHTML = '<div class="loading-spinner">Loading blog posts...</div>';
 
   try {
     const limit = 10;
-    const response = await apiFetch(`/admin/blog/posts?page=${page}&limit=${limit}`);
+    const url = `/admin/blog/posts?page=${page}&limit=${limit}`;
+    console.log('📡 Fetching blog posts:', url);
+    
+    const response = await apiFetch(url);
+    console.log('✅ API response received:', response);
+    
+    // Destructure response – expected shape: { posts, pagination }
     const { posts, pagination } = response;
+    console.log(`📝 Posts: ${posts?.length || 0} posts, Pagination:`, pagination);
 
+    // No posts case
     if (!posts || posts.length === 0) {
       container.innerHTML = `
         <div class="card">
@@ -708,6 +719,7 @@ async function loadBlogPosts(page = 1) {
       return;
     }
 
+    // Build the table HTML
     let html = `
       <table class="data-table" id="blogTable">
         <thead>
@@ -734,6 +746,7 @@ async function loadBlogPosts(page = 1) {
 
     html += `</tbody></table>`;
 
+    // Pagination controls
     if (pagination && pagination.pages > 1) {
       html += `
         <div class="pagination" style="margin-top: 1rem; text-align: center;">
@@ -745,14 +758,24 @@ async function loadBlogPosts(page = 1) {
     }
 
     container.innerHTML = html;
+    console.log('🎉 Blog posts rendered successfully');
   } catch (err) {
-    console.error('Error loading blog posts:', err);
-    container.innerHTML = '<div class="card error">Failed to load blog posts. Please try again later.</div>';
+    console.error('❌ Error loading blog posts:', err);
+    container.innerHTML = `<div class="card error">Failed to load blog posts: ${escapeHtml(err.message)}</div>`;
   }
 }
 
 // Add delete function (already referenced)
-
+async function deleteBlogPost(postId) {
+  if (!confirm('Delete this blog post permanently?')) return;
+  try {
+    await apiFetch(`/admin/blog/${postId}`, { method: 'DELETE' });
+    loadBlogPosts(); // reload current page
+  } catch (err) {
+    alert(err.message);
+  }
+}
+window.deleteBlogPost = deleteBlogPost;
 
 // ----- User Dashboard Modal -----
 async function showUserDashboard(userId) {
@@ -1254,6 +1277,8 @@ function initSidebar() {
       } else if (sectionId === 'content-violations') {
         loadViolationsSummary();
         loadViolations();
+      } else if (sectionId === 'blog') {
+        loadBlogPosts();
       }
     });
   });

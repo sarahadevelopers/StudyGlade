@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(auth, roleCheck('admin'));
 
 // ========== JSON API for admin dashboard ==========
-// GET /admin/blog/posts?page=1&limit=10
+// IMPORTANT: This route must come BEFORE any parameterized routes (e.g., /:id/edit)
 router.get('/posts', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -110,11 +110,10 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete post (also supports JSON for frontend calls)
+// Delete post (supports both JSON (fetch) and HTML (redirect))
 router.delete('/:id', async (req, res) => {
   try {
     await BlogPost.findByIdAndDelete(req.params.id);
-    // If the request expects JSON (e.g., from fetch), respond with JSON
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
       res.json({ message: 'Post deleted successfully' });
     } else {
