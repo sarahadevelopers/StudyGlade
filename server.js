@@ -299,6 +299,16 @@ app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
     if (!document) return res.status(404).send('Document not found');
+
+    // Fetch related documents (same subject, exclude current, limit 5)
+    const relatedDocuments = await Document.find({
+      _id: { $ne: document._id },
+      subject: document.subject,
+      isApproved: true
+    })
+    .select('title slug price')
+    .limit(5);
+
     const token = req.cookies.accessToken;
     let user = null;
     if (token) {
@@ -308,7 +318,7 @@ app.get('/document/:slug', async (req, res) => {
         user = await User.findById(decoded.id).select('-password');
       } catch (err) {}
     }
-    res.render('document', { document, user });
+    res.render('document', { document, user, relatedDocuments });
   } catch (err) {
     console.error('Error in /document/:slug:', err);
     res.status(500).send('Server error');
