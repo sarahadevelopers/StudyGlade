@@ -199,6 +199,7 @@ const mockupQuestion = document.querySelector('.mockup-question');
 const mockupTutorName = document.querySelector('.mockup-tutor strong');
 const mockupResponse = document.querySelector('.mockup-response');
 const mockupRating = document.querySelector('.mockup-rating');
+const mockupNumber = document.querySelector('.mockup-number');
 
 function rotateMockupContent() {
   if (!mockupQuestion || !mockupTutorName || !mockupResponse || !mockupRating) return;

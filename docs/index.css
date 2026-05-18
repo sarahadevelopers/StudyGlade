@@ -710,8 +710,12 @@ h2 {
   font-weight: 600;
 }
 
+.mockup-number{
+  color:#38BDF8
+}
+
 .mockup-response {
-  color: var(--slate);
+  color: #38BDF8;
   background: var(--ice-blue);
   padding: 0.3rem 0.8rem;
   border-radius: 30px;
