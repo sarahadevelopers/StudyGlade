@@ -68,16 +68,13 @@ async function loadDocuments(reset = true) {
       const isPending = user && !doc.isApproved && doc.uploaderId === user.id;
       const pendingBadge = isPending ? '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:20px; font-size:0.7rem; margin-left:8px; white-space:nowrap;">⏳ Pending</span>' : '';
 
-      // ----- Description truncation logic -----
+      // Description truncation
       const fullDesc = doc.description || '';
-      const descLimit = 120; // characters
+      const descLimit = 120;
       const isLongDesc = fullDesc.length > descLimit;
       const truncatedDesc = isLongDesc ? fullDesc.substring(0, descLimit) + '…' : fullDesc;
       const descId = `desc-${doc._id}`;
-      const moreBtnId = `more-btn-${doc._id}`;
-      const lessBtnId = `less-btn-${doc._id}`;
 
-      // Build description HTML with optional "see more" button
       let descriptionHtml = `
         <div class="document-description" id="${descId}">
           <span class="desc-short">${escapeHtml(truncatedDesc)}</span>
@@ -90,7 +87,7 @@ async function loadDocuments(reset = true) {
         `;
       }
 
-      // Build the full card
+      // Build the card – unlock button now links to the preview page
       card.innerHTML = `
         <div class="card-top">
           <div class="document-title">
@@ -106,30 +103,24 @@ async function loadDocuments(reset = true) {
         <div class="card-bottom">
           <div class="document-price">${formatMoney(doc.price)}</div>
           <div class="document-downloads">📥 ${doc.downloads || 0} purchases</div>
-          <div class="smart-preview-group" style="margin-bottom: 0.75rem;">
-            <input type="text" class="smart-search" data-doc-id="${doc._id}" placeholder="Ask a question about this document..." style="width: 100%; padding: 0.4rem 0.6rem; border-radius: 40px; border: 1px solid #ccc; font-size: 0.8rem;">
-            <button class="btn-sm btn-smart-preview" data-doc-id="${doc._id}" style="margin-top: 0.3rem; width: 100%; background: #6c757d;">🔍 Smart Preview</button>
-            <div class="smart-preview-result" data-doc-id="${doc._id}" style="margin-top: 0.5rem; font-size: 0.8rem; background: #f8f9fa; padding: 0.5rem; border-radius: 12px; display: none;"></div>
+          <div class="smart-preview-group">
+            <input type="text" class="smart-search" data-doc-id="${doc._id}" placeholder="Ask a question about this document...">
+            <button class="btn-smart-preview" data-doc-id="${doc._id}">🔍 Smart Preview</button>
+            <div class="smart-preview-result" data-doc-id="${doc._id}"></div>
           </div>
-          <div>
+          <div class="card-actions">
             <a href="${previewUrl}" class="btn-sm btn-outline" target="_blank">Preview</a>
-            ${user ? `<button class="btn-sm btn-primary btn-unlock" data-id="${doc._id}" data-price="${doc.price}">Unlock</button>` : ''}
+            <a href="${previewUrl}" class="btn-sm btn-primary">Unlock</a>
           </div>
         </div>
       `;
       grid.appendChild(card);
     });
 
-    // Attach event listeners for "See more" buttons
+    // Attach "See more" event listeners
     document.querySelectorAll('.see-more-btn').forEach(btn => {
       btn.removeEventListener('click', seeMoreHandler);
       btn.addEventListener('click', seeMoreHandler);
-    });
-
-    // Attach unlock event listeners
-    document.querySelectorAll('.btn-unlock').forEach(btn => {
-      btn.removeEventListener('click', unlockHandler);
-      btn.addEventListener('click', unlockHandler);
     });
 
     // Attach smart preview event listeners
@@ -138,7 +129,7 @@ async function loadDocuments(reset = true) {
       btn.addEventListener('click', smartPreviewHandler);
     });
 
-    // Add load more button if more pages
+    // Load more button
     const loadMoreContainer = document.getElementById('loadMoreContainer');
     if (hasMore) {
       loadMoreContainer.innerHTML = `<button id="loadMoreBtn" class="btn btn-outline load-more-btn">Load More</button>`;
@@ -215,32 +206,6 @@ async function smartPreviewHandler(e) {
     resultDiv.innerHTML = '<span style="color:#dc2626;">Network error. Try again.</span>';
   } finally {
     btn.disabled = false;
-  }
-}
-
-// ----- Unlock document handler -----
-async function unlockHandler(e) {
-  const btn = e.currentTarget;
-  const docId = btn.getAttribute('data-id');
-  const price = parseFloat(btn.getAttribute('data-price'));
-  if (!confirm(`Unlock this document for ${formatMoney(price)}? Amount will be deducted from your wallet.`)) return;
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Unlocking...';
-  try {
-    const result = await apiFetch(`/documents/${docId}/unlock`, { method: 'POST' });
-    showToast('Document unlocked! Download will start shortly.', 'success');
-    window.open(result.fileUrl, '_blank');
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user) {
-      const freshUser = await apiFetch('/auth/me');
-      localStorage.setItem('user', JSON.stringify(freshUser));
-    }
-    location.reload();
-  } catch (err) {
-    showToast(err.message, 'error');
-    btn.disabled = false;
-    btn.innerHTML = 'Unlock';
   }
 }
 
