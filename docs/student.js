@@ -766,3 +766,11 @@ if (window.studentDashboardLoaded) {
   window.toggleUserMenu = toggleUserMenu;
   window.logoutUser = logoutUser;
 }
+
+
+  // Dynamic copyright year (2015 - current)
+const yearSpan = document.getElementById('currentYear');
+if (yearSpan) {
+  yearSpan.textContent = new Date().getFullYear();
+}
+
