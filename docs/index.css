@@ -206,7 +206,7 @@ h2 {
 .trust-number {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--text-navy);
+  color: #2563EB;
 }
 .trust-label {
   color: var(--slate);
@@ -225,11 +225,11 @@ h2 {
   margin-top: 2rem;
 }
 .chip {
-  background: var(--ice-blue);
+  background: #2563EB;
   padding: 0.6rem 1.2rem;
   border-radius: 18px;
   text-decoration: none;
-  color: var(--royal-blue);
+  color: aliceblue;
   font-weight: 500;
   transition: transform 0.2s, background 0.2s;
 }
@@ -527,7 +527,7 @@ h2 {
   justify-content: center;           /* ensure inner content is centered */
   position: relative;
   isolation: isolate;
-  background-image: url('images/studyglade-students.webp');
+  background-image: url('images/studyglade-happy-students.webp');
   background-size: cover;
   background-position: center 30%;
   background-repeat: no-repeat;
@@ -712,7 +712,7 @@ h2 {
 }
 
 .product-mockup {
-  background: rgba(255,255,255,0.96);
+  background: rgba(255, 255, 255, 0.646);
   backdrop-filter: blur(2px);
   border-radius: 40px;
   padding: 1.8rem;
@@ -880,4 +880,178 @@ h2 {
     font-size: 1rem;
   }
 }
+/* ========== PRODUCT MOCKUP – TRANSPARENT GLASS PREMIUM ========== */
+/* Product Mockup – Smaller, Transparent, One‑Line Tutor */
+.product-mockup {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  border-radius: 40px;          /* slightly smaller radius */
+  padding: 1.2rem 1.5rem;       /* reduced padding */
+  box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15), 
+              0 0 0 1px rgba(255,255,255,0.5) inset,
+              0 0 0 2px rgba(255,255,255,0.1);
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1), 
+              box-shadow 0.3s ease,
+              background 0.3s ease;
+  animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 380px;             /* restrict width – roughly half of previous ~700px */
+  margin: 0 auto;               /* center within its container */
+  width: 100%;
+}
 
+.product-mockup:hover {
+  transform: translateY(-4px) scale(1.01);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 30px 50px -15px rgba(0,0,0,0.2), 
+              0 0 0 1px rgba(255,255,255,0.6) inset,
+              0 0 0 2px rgba(255,255,255,0.2);
+}
+
+/* Header – smaller, cleaner */
+.mockup-header {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.8rem;
+  color:#2563EB;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0.8;
+}
+
+/* Question text – reduced font size */
+.mockup-question {
+  font-weight: 700;
+  font-size: 1rem;              /* reduced from 1.3rem */
+  line-height: 1.4;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1.5px solid rgba(226,232,240,0.8);
+  color: var(--text-navy);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.product-mockup:hover .mockup-question {
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
+}
+
+/* Tutor section – now one line */
+.mockup-tutor {
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(4px);
+  padding: 0.6rem 0.8rem;
+  border-radius: 28px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: nowrap;            /* prevents wrapping */
+  position: relative;
+  overflow: hidden;
+  border: 0.5px solid rgba(255,255,255,0.4);
+  white-space: nowrap;          /* force one line */
+}
+
+/* Shine effect (optional) */
+.mockup-tutor::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(115deg, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.3) 30%, 
+    rgba(255,255,255,0) 60%);
+  transform: rotate(25deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.product-mockup:hover .mockup-tutor::after {
+  left: 120%;
+}
+
+/* Tick */
+.tick {
+  background: var(--success);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* Tutor name + role on same line */
+.mockup-tutor strong {
+  font-size: 0.9rem;
+  color: var(--text-navy);
+  margin-right: 0.4rem;
+}
+
+.mockup-tutor .tutor-role,
+.mockup-tutor span:not(.tick) {
+  font-size: 0.8rem;
+  color: var(--slate);
+  white-space: nowrap;
+}
+
+/* Remove any line break */
+.mockup-tutor br {
+  display: none;
+}
+
+/* Details row – smaller */
+.mockup-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mockup-rating {
+  color: #f5b042;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.mockup-response {
+  color: var(--slate);
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(2px);
+  padding: 0.2rem 0.8rem;
+  border-radius: 30px;
+  font-weight: 500;
+  font-size: 0.7rem;
+  transition: background 0.2s;
+}
+
+.product-mockup:hover .mockup-response {
+  background: rgba(255,255,255,0.9);
+}
+
+/* Responsive: on very small screens, ensure card doesn't overflow */
+@media (max-width: 640px) {
+  .product-mockup {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  .mockup-question {
+    font-size: 0.9rem;
+  }
+  .mockup-tutor {
+    white-space: normal;        /* allow wrap if needed */
+    flex-wrap: wrap;
+  }
+}
