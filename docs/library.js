@@ -48,30 +48,51 @@ async function loadDocuments(reset = true) {
     if (currentFilters.maxPrice) params.append('maxPrice', currentFilters.maxPrice);
     if (currentFilters.sortBy) params.append('sort', currentFilters.sortBy);
 
-    // ✅ CHANGED: use the dedicated library endpoint
-    // ✅ CORRECT - Uses the correct path for the API endpoint
-const url = `/documents/library?${params.toString()}`;
+    const url = `/documents/library?${params.toString()}`;
     const data = await apiFetch(url);
-    
+
     const docs = data.documents || [];
     const pagination = data.pagination;
-    
+
     hasMore = currentPage < pagination.pages;
-    
+
     const grid = document.getElementById('documentsGrid');
     const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
-    
+
     docs.forEach(doc => {
       const card = document.createElement('div');
       card.className = 'document-card';
-      
+
       const previewUrl = doc.slug ? `/document/${doc.slug}` : `/api/documents/preview/${doc._id}`;
-      
+
       const isPending = user && !doc.isApproved && doc.uploaderId === user.id;
       const pendingBadge = isPending ? '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:20px; font-size:0.7rem; margin-left:8px; white-space:nowrap;">⏳ Pending</span>' : '';
-      
+
+      // ----- Description truncation logic -----
+      const fullDesc = doc.description || '';
+      const descLimit = 120; // characters
+      const isLongDesc = fullDesc.length > descLimit;
+      const truncatedDesc = isLongDesc ? fullDesc.substring(0, descLimit) + '…' : fullDesc;
+      const descId = `desc-${doc._id}`;
+      const moreBtnId = `more-btn-${doc._id}`;
+      const lessBtnId = `less-btn-${doc._id}`;
+
+      // Build description HTML with optional "see more" button
+      let descriptionHtml = `
+        <div class="document-description" id="${descId}">
+          <span class="desc-short">${escapeHtml(truncatedDesc)}</span>
+          ${isLongDesc ? `<span class="desc-full" style="display:none;">${escapeHtml(fullDesc)}</span>` : ''}
+        </div>
+      `;
+      if (isLongDesc) {
+        descriptionHtml += `
+          <button class="see-more-btn" data-desc-id="${descId}">See more</button>
+        `;
+      }
+
+      // Build the full card
       card.innerHTML = `
-        <div>
+        <div class="card-top">
           <div class="document-title">
             ${escapeHtml(doc.title)}
             ${pendingBadge}
@@ -80,10 +101,11 @@ const url = `/documents/library?${params.toString()}`;
             ${escapeHtml(doc.subject)} • ${escapeHtml(doc.level)} • ${escapeHtml(doc.type)}<br>
             Uploaded by ${escapeHtml(doc.uploaderName)} • ${new Date(doc.createdAt).toLocaleDateString()}
           </div>
+          ${descriptionHtml}
+        </div>
+        <div class="card-bottom">
           <div class="document-price">${formatMoney(doc.price)}</div>
           <div class="document-downloads">📥 ${doc.downloads || 0} purchases</div>
-        </div>
-        <div style="margin-top: 0.75rem;">
           <div class="smart-preview-group" style="margin-bottom: 0.75rem;">
             <input type="text" class="smart-search" data-doc-id="${doc._id}" placeholder="Ask a question about this document..." style="width: 100%; padding: 0.4rem 0.6rem; border-radius: 40px; border: 1px solid #ccc; font-size: 0.8rem;">
             <button class="btn-sm btn-smart-preview" data-doc-id="${doc._id}" style="margin-top: 0.3rem; width: 100%; background: #6c757d;">🔍 Smart Preview</button>
@@ -97,19 +119,25 @@ const url = `/documents/library?${params.toString()}`;
       `;
       grid.appendChild(card);
     });
-    
+
+    // Attach event listeners for "See more" buttons
+    document.querySelectorAll('.see-more-btn').forEach(btn => {
+      btn.removeEventListener('click', seeMoreHandler);
+      btn.addEventListener('click', seeMoreHandler);
+    });
+
     // Attach unlock event listeners
     document.querySelectorAll('.btn-unlock').forEach(btn => {
       btn.removeEventListener('click', unlockHandler);
       btn.addEventListener('click', unlockHandler);
     });
-    
+
     // Attach smart preview event listeners
     document.querySelectorAll('.btn-smart-preview').forEach(btn => {
       btn.removeEventListener('click', smartPreviewHandler);
       btn.addEventListener('click', smartPreviewHandler);
     });
-    
+
     // Add load more button if more pages
     const loadMoreContainer = document.getElementById('loadMoreContainer');
     if (hasMore) {
@@ -121,13 +149,34 @@ const url = `/documents/library?${params.toString()}`;
     } else {
       loadMoreContainer.innerHTML = '';
     }
-    
+
   } catch (err) {
     console.error('Error loading documents:', err);
     showToast('Failed to load documents', 'error');
   } finally {
     isLoading = false;
     document.getElementById('loadingMessage').style.display = 'none';
+  }
+}
+
+// ----- "See more" handler -----
+function seeMoreHandler(e) {
+  const btn = e.currentTarget;
+  const descId = btn.getAttribute('data-desc-id');
+  const descDiv = document.getElementById(descId);
+  if (!descDiv) return;
+  const shortSpan = descDiv.querySelector('.desc-short');
+  const fullSpan = descDiv.querySelector('.desc-full');
+  if (!fullSpan) return;
+
+  if (fullSpan.style.display === 'none') {
+    shortSpan.style.display = 'none';
+    fullSpan.style.display = 'inline';
+    btn.textContent = 'See less';
+  } else {
+    shortSpan.style.display = 'inline';
+    fullSpan.style.display = 'none';
+    btn.textContent = 'See more';
   }
 }
 
@@ -138,17 +187,17 @@ async function smartPreviewHandler(e) {
   const searchInput = document.querySelector(`.smart-search[data-doc-id="${docId}"]`);
   const query = searchInput?.value.trim();
   const resultDiv = document.querySelector(`.smart-preview-result[data-doc-id="${docId}"]`);
-  
+
   if (!query) {
     resultDiv.style.display = 'block';
     resultDiv.innerHTML = '<span style="color:#f59e0b;">Please enter a question first</span>';
     return;
   }
-  
+
   resultDiv.style.display = 'block';
   resultDiv.innerHTML = '<span class="spinner"></span> Finding relevant section...';
   btn.disabled = true;
-  
+
   try {
     const response = await fetch(`${window.API_BASE}/documents/smart-preview/${docId}`, {
       method: 'POST',
@@ -175,12 +224,11 @@ async function unlockHandler(e) {
   const docId = btn.getAttribute('data-id');
   const price = parseFloat(btn.getAttribute('data-price'));
   if (!confirm(`Unlock this document for ${formatMoney(price)}? Amount will be deducted from your wallet.`)) return;
-  
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Unlocking...';
   try {
-   // ✅ Correct (only the path after /api)
-const result = await apiFetch(`/documents/${docId}/unlock`, { method: 'POST' });
+    const result = await apiFetch(`/documents/${docId}/unlock`, { method: 'POST' });
     showToast('Document unlocked! Download will start shortly.', 'success');
     window.open(result.fileUrl, '_blank');
     const user = JSON.parse(localStorage.getItem('user'));
