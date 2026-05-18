@@ -16,25 +16,33 @@ const generateDemoQuestions = (studentId) => {
   ];
   
   const demoQuestions = [];
+  const now = new Date(); // current date and time (will be the same for all questions in this run)
+  
   for (let i = 0; i < 120; i++) {
     const template = templates[i % templates.length];
     const subject = subjects[i % subjects.length];
     const budget = Math.floor(Math.random() * (template.maxBudget - template.minBudget + 1)) + template.minBudget;
+    
+    // Set createdAt to today, deadline to 3 days from today
+    const createdAt = new Date(now);
+    const deadline = new Date(now);
+    deadline.setDate(deadline.getDate() + 3);
+    
     demoQuestions.push({
       title: `${template.title} (${i+1})`,
       subject,
       budget,
       description: `This is a practice question. ${template.title} Please provide a detailed answer.`,
-      studentId,          // ✅ assign the real user ID
+      studentId,          // admin's ID (or any real user ID)
       isDemo: true,
       status: 'pending',
-      createdAt: new Date(),
+      createdAt: createdAt,
+      deadline: deadline,
       updatedAt: new Date()
     });
   }
   return demoQuestions;
 };
-
 async function seedDemoQuestions() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);

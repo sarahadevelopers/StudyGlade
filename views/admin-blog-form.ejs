@@ -89,10 +89,10 @@
     }
   });
 
-  // ✅ Load existing content safely using JSON.stringify
-  const existingContent = <%- post && post.content ? JSON.stringify(post.content) : 'null' %>;
-  if (existingContent) {
-    quill.root.innerHTML = existingContent;
+  // Load existing content from hidden textarea (safe, no parsing issues)
+  const existingContent = document.getElementById('existingContent');
+  if (existingContent && existingContent.value) {
+    quill.root.innerHTML = existingContent.value;
   }
 
   // Custom image upload handler

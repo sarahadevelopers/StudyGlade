@@ -7,8 +7,8 @@ async function cleanPlaceholders() {
     const db = mongoose.connection.db;
     const result = await db.collection('questions').updateMany(
       {
-        answerFile: { $regex: /placeholder\.pdf$/i },
-        status: 'assigned'
+        status: 'assigned',
+        answerFile: { $regex: /placeholder\.pdf$/i }
       },
       {
         $set: {

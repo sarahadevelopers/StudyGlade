@@ -875,7 +875,23 @@ router.put('/tutors/:id/level', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Get full question details for admin view (including comments)
+router.get('/questions/:id/full', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id)
+      .populate('studentId', 'fullName email')
+      .populate('tutorId', 'fullName email');
+    if (!question) return res.status(404).json({ error: 'Question not found' });
 
+    const comments = await Comment.find({ questionId: question._id })
+      .populate('userId', 'fullName email')
+      .sort({ createdAt: 1 });
+    res.json({ question, comments });
+  } catch (err) {
+    console.error('Error fetching full question:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
