@@ -866,6 +866,11 @@ setInterval(async () => {
   }
 }, 30000);
 
+const yearSpan = document.getElementById('currentYear');
+if (yearSpan) {
+  yearSpan.textContent = new Date().getFullYear();
+}
+
 // ----- Event listeners -----
 document.addEventListener('DOMContentLoaded', () => {
   loadTutorDashboard();
