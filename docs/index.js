@@ -242,3 +242,17 @@ mockupCard.addEventListener('mouseenter', stopRotation);
 mockupCard.addEventListener('mouseleave', startRotation);
 
 startRotation();
+
+// Dynamic copyright year (2015 - current)
+const yearSpan = document.getElementById('currentYear');
+if (yearSpan) {
+  yearSpan.textContent = new Date().getFullYear();
+}
+
+// Back to Top button functionality
+const backToTopBtn = document.getElementById('backToTopBtn');
+if (backToTopBtn) {
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
