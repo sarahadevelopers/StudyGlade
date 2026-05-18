@@ -527,7 +527,7 @@ h2 {
   justify-content: center;           /* ensure inner content is centered */
   position: relative;
   isolation: isolate;
-  background-image: url('/images/studyglade-students.webp');
+  background-image: url('../images/studyglade-students.webp');
   background-size: cover;
   background-position: center 30%;
   background-repeat: no-repeat;
