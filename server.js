@@ -344,29 +344,42 @@ app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
 // ========== 14. DYNAMIC SITEMAP ==========
+// ========== 14. DYNAMIC SITEMAP (FIXED) ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
+    
+    // Helper function to slugify subject names (must be defined before use)
+    const slugify = (str) => {
+      if (!str) return '';
+      return str.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+    };
+
     let urls = '';
 
+    // ---- Documents ----
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
     documents.forEach(doc => {
       urls += `
         <url>
           <loc>${baseUrl}/document/${doc.slug}</loc>
-          <lastmod>${doc.updatedAt.toISOString()}</lastmod>
+          <lastmod>${doc.updatedAt ? doc.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
           <changefreq>monthly</changefreq>
           <priority>0.7</priority>
         </url>
       `;
     });
 
+    // ---- Subjects from Documents and Questions ----
     const docSubjects = await Document.distinct('subject', { isApproved: true });
     const questionCategories = await Question.distinct('category', { status: 'completed' });
     const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
-    const slugify = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    
     allSubjects.forEach(sub => {
       const slug = slugify(sub);
+      if (!slug) return;
       urls += `
         <url>
           <loc>${baseUrl}/subjects/${slug}</loc>
@@ -375,16 +388,19 @@ app.get('/sitemap.xml', async (req, res) => {
         </url>
       `;
     });
+
+    // Subject index page
     urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
     urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
+    // ---- Completed Questions ----
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
     if (completedQuestions && completedQuestions.length) {
       completedQuestions.forEach(q => {
         urls += `
           <url>
             <loc>${baseUrl}/question/${q._id}</loc>
-            <lastmod>${q.updatedAt.toISOString()}</lastmod>
+            <lastmod>${q.updatedAt ? q.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
             <changefreq>monthly</changefreq>
             <priority>0.6</priority>
           </url>
@@ -392,26 +408,29 @@ app.get('/sitemap.xml', async (req, res) => {
       });
     }
 
+    // ---- Tutor listing ----
     urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
+    // ---- Individual tutor profiles ----
     const tutors = await User.find({ role: 'tutor', isApproved: true }).select('_id updatedAt');
     tutors.forEach(t => {
       urls += `
         <url>
           <loc>${baseUrl}/tutor/${t._id}</loc>
-          <lastmod>${t.updatedAt.toISOString()}</lastmod>
+          <lastmod>${t.updatedAt ? t.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
           <changefreq>monthly</changefreq>
           <priority>0.6</priority>
         </url>
       `;
     });
 
+    // ---- Blog posts ----
     const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
     blogPosts.forEach(post => {
       urls += `
         <url>
           <loc>${baseUrl}/blog/${post.slug}</loc>
-          <lastmod>${post.updatedAt.toISOString()}</lastmod>
+          <lastmod>${post.updatedAt ? post.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
           <changefreq>weekly</changefreq>
           <priority>0.6</priority>
         </url>
@@ -419,6 +438,30 @@ app.get('/sitemap.xml', async (req, res) => {
     });
     urls += `<url><loc>${baseUrl}/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
+    // ---- Important static pages (optional but good) ----
+    const staticPages = [
+      { path: '/', priority: '1.0', changefreq: 'daily' },
+      { path: '/subjects', priority: '0.9', changefreq: 'daily' },
+      { path: '/pricing', priority: '0.8', changefreq: 'weekly' },
+      { path: '/tutors', priority: '0.9', changefreq: 'daily' },
+      { path: '/login.html', priority: '0.7', changefreq: 'monthly' },
+      { path: '/register.html', priority: '0.8', changefreq: 'monthly' },
+      { path: '/document-library.html', priority: '0.8', changefreq: 'daily' },
+      { path: '/find-tutors.html', priority: '0.8', changefreq: 'daily' },
+      { path: '/post-question.html', priority: '0.9', changefreq: 'daily' }
+    ];
+    staticPages.forEach(page => {
+      urls += `
+        <url>
+          <loc>${baseUrl}${page.path}</loc>
+          <lastmod>${new Date().toISOString()}</lastmod>
+          <changefreq>${page.changefreq}</changefreq>
+          <priority>${page.priority}</priority>
+        </url>
+      `;
+    });
+
+    // Send XML response
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
