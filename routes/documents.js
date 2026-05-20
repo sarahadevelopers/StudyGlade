@@ -36,27 +36,52 @@ function getResourceType(mimetype) {
 }
 
 // Helper: extract preview text from PDF/DOCX/TXT
+// Helper: extract preview text from PDF/DOCX/TXT with cleaning and fallback
 async function extractPreviewText(filePath, originalName) {
   try {
     const ext = originalName.split('.').pop().toLowerCase();
+    let rawText = '';
+
     if (ext === 'pdf') {
       const pdfParse = require('pdf-parse');
       const dataBuffer = await fs.readFile(filePath);
       const data = await pdfParse(dataBuffer);
-      return data.text.substring(0, 500) + '...';
+      rawText = data.text;
     } else if (ext === 'docx') {
       const mammoth = require('mammoth');
       const result = await mammoth.extractRawText({ path: filePath });
-      return result.value.substring(0, 500) + '...';
+      rawText = result.value;
+    } else if (ext === 'txt') {
+      rawText = await fs.readFile(filePath, 'utf8');
     } else {
-      const content = await fs.readFile(filePath, 'utf8');
-      return content.replace(/<[^>]*>/g, '').substring(0, 500) + '...';
+      // For unsupported types, return a generic message
+      return 'Preview not available. Unlock to access the full document.';
     }
+
+    // Remove non‑printable characters (ASCII control codes 0-31, 127-159)
+    const cleanText = rawText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    // Check if the cleaned text is readable (contains at least some letters/words)
+    const readableChars = (cleanText.match(/[a-zA-Z0-9\s]/g) || []).length;
+    if (cleanText.trim().length < 50 || readableChars < cleanText.length * 0.5) {
+      console.warn(`Preview text for ${originalName} seems unreadable (${readableChars}/${cleanText.length} readable chars). Using fallback.`);
+      return 'Preview not available. Unlock to see the full document.';
+    }
+
+    // Truncate to 500 characters
+    return cleanText.substring(0, 500) + (cleanText.length > 500 ? '...' : '');
   } catch (err) {
     console.error('Preview extraction error:', err);
-    return 'Preview not available.';
+    return 'Preview not available. Unlock to access the complete document.';
   }
 }
+
+let previewText = await extractPreviewText(req.file.path, req.file.originalname);
+
+// Final safeguard – if the preview is still too short or mostly non‑alphanumeric, replace it
+if (!previewText || previewText.length < 20 || previewText.replace(/[a-zA-Z0-9\s.,!?]/g, '').length > previewText.length * 0.5) {
+  previewText = 'Preview not available. Unlock to see the full document.';
+} 
 
 // ========== TEST ENDPOINTS ==========
 router.get('/test', (req, res) => {
