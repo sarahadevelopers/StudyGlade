@@ -451,27 +451,112 @@
     opacity: 0.7;
     margin: 0;
   }
+
+  /* ---------- Premium Navbar (glass-morphism) ---------- */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  padding: 0.75rem 0;
+}
+.navbar .container {
+  width: min(1200px, 92%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-navy);
+  text-decoration: none;
+}
+.logo i {
+  color: var(--brand-blue);
+  font-size: 1.6rem;
+}
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+.nav-links a {
+  text-decoration: none;
+  font-weight: 500;
+  color: var(--text-navy);
+  transition: color 0.2s;
+}
+.nav-links a:hover {
+  color: var(--brand-blue);
+}
+.nav-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.btn-outline-white {
+  background: transparent;
+  border: 1px solid var(--brand-blue);
+  color: var(--brand-blue);
+  padding: 0.4rem 1.2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.btn-outline-white:hover {
+  background: var(--brand-blue);
+  color: white;
+}
+.btn-primary {
+  background: var(--grad-primary);
+  color: white;
+  padding: 0.4rem 1.2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0,91,255,0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,91,255,0.25);
+}
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  /* optional mobile menu – you can keep your existing mobile logic */
+}
 </style>
 </head>
 <body>
   <header>
-    <nav class="navbar">
-      <div class="container">
-        <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
-        <div class="nav-links">
-          <a href="/">Home</a>
-          <a href="/document-library.html">Library</a>
-          <a href="/subjects">Subjects</a>
-          <a href="/blog" class="active">Blog</a>
-          <a href="/pricing">Pricing</a>
-        </div>
-        <div class="nav-buttons">
-          <a href="/login.html" class="btn btn-outline-white">Login</a>
-          <a href="/register.html" class="btn btn-primary">Sign Up</a>
-        </div>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/document-library.html">Library</a>
+        <a href="/subjects">Subjects</a>
+        <a href="/blog" class="active">Blog</a>
+        <a href="/pricing">Pricing</a>
       </div>
-    </nav>
-  </header>
+      <div class="nav-buttons">
+        <a href="/login.html" class="btn-outline-white">Login</a>
+        <a href="/register.html" class="btn-primary">Sign Up</a>
+      </div>
+    </div>
+  </nav>
+</header>
 
   <main>
     <div class="container">
