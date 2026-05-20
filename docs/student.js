@@ -185,87 +185,111 @@ if (window.studentDashboardLoaded) {
   }
 
   // ---------- Create a single table row ----------
-  function createQuestionRow(q, isCompleted) {
-    const safeTitle = escapeHtml(q.title);
-    let subject = 'General';
-    if (q.subcategory && q.subcategory !== 'Other') {
-      subject = escapeHtml(q.subcategory);
-    } else if (q.category && q.category !== 'Other') {
-      subject = escapeHtml(q.category);
-    } else if (q.subject) {
-      subject = escapeHtml(q.subject);
-    }
-    const budget = `$${q.budget}`;
-    const tutor = q.tutorId || null;
-    const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
-    const tutorRating = tutor?.tutorProfile?.rating ? tutor.tutorProfile.rating.toFixed(1) : '0.0';
-    let tutorAvatar = tutor?.avatar;
-    if (!tutorAvatar) {
-      const id = Math.floor(Math.random() * 100);
-      if (tutor?.gender === 'female') tutorAvatar = `https://randomuser.me/api/portraits/women/${id}.jpg`;
-      else if (tutor?.gender === 'male') tutorAvatar = `https://randomuser.me/api/portraits/men/${id}.jpg`;
-      else tutorAvatar = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
-    }
+function createQuestionRow(q, isCompleted) {
+  const safeTitle = escapeHtml(q.title);
+  let subject = 'General';
+  if (q.subcategory && q.subcategory !== 'Other') {
+    subject = escapeHtml(q.subcategory);
+  } else if (q.category && q.category !== 'Other') {
+    subject = escapeHtml(q.category);
+  } else if (q.subject) {
+    subject = escapeHtml(q.subject);
+  }
+  const budget = `$${q.budget}`;
+  const tutor = q.tutorId || null;
+  const tutorName = tutor ? escapeHtml(tutor.fullName) : 'Not assigned';
+  const tutorRating = tutor?.tutorProfile?.rating ? tutor.tutorProfile.rating.toFixed(1) : '0.0';
+  let tutorAvatar = tutor?.avatar;
+  if (!tutorAvatar) {
+    const id = Math.floor(Math.random() * 100);
+    if (tutor?.gender === 'female') tutorAvatar = `https://randomuser.me/api/portraits/women/${id}.jpg`;
+    else if (tutor?.gender === 'male') tutorAvatar = `https://randomuser.me/api/portraits/men/${id}.jpg`;
+    else tutorAvatar = `https://randomuser.me/api/portraits/lego/${id}.jpg`;
+  }
 
-    let statusText = '', statusClass = '';
-    if (q.status === 'pending') {
-      statusText = 'Awaiting Response';
-      statusClass = 'status-awaiting';
-    } else if (q.status === 'assigned') {
-      statusText = 'Assigned';
-      statusClass = 'status-progress';
-    } else if (q.status === 'in_progress') {
-      statusText = 'In Progress';
-      statusClass = 'status-progress';
-    } else if (q.status === 'overdue') {
-      statusText = 'Overdue';
-      statusClass = 'status-overdue';
-    } else if (q.status === 'completed') {
-      statusText = 'Completed';
-      statusClass = 'status-completed';
+  let statusText = '', statusClass = '';
+  if (q.status === 'pending') {
+    statusText = 'Awaiting Response';
+    statusClass = 'status-awaiting';
+  } else if (q.status === 'assigned') {
+    statusText = 'Assigned';
+    statusClass = 'status-progress';
+  } else if (q.status === 'in_progress') {
+    statusText = 'In Progress';
+    statusClass = 'status-progress';
+  } else if (q.status === 'overdue') {
+    statusText = 'Overdue';
+    statusClass = 'status-overdue';
+  } else if (q.status === 'completed') {
+    statusText = 'Completed';
+    statusClass = 'status-completed';
+  } else {
+    statusText = escapeHtml(q.status);
+    statusClass = 'status-awaiting';
+  }
+
+  const tutorHtml = `
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+      <div>
+        <div><strong>${tutorName}</strong></div>
+        <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
+      </div>
+    </div>
+  `;
+
+  if (!isCompleted) {
+    const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
+    return `<tr>
+      <td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+      <td>${tutorHtml}</td>
+      <td>${subject}</td>
+      <td>${budget}</td>
+      <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+      <td>${actionBtn}</td>
+    </tr>`;
+  } else {
+    // ----- Answer files (multiple or single) -----
+    let answerButtons = '';
+    if (q.answerFiles && q.answerFiles.length > 0) {
+      answerButtons = `<div class="answer-files" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
+      q.answerFiles.forEach((fileUrl, idx) => {
+        const fileName = q.answerFileNames?.[idx] || `file_${idx+1}`;
+        answerButtons += `<a href="${fileUrl}" target="_blank" class="btn-sm btn-outline-sm" style="margin-right:0;">📎 ${escapeHtml(fileName)}</a>`;
+      });
+      answerButtons += `</div>`;
+    } else if (q.answerFile) {
+      answerButtons = `<a href="${q.answerFile}" target="_blank" class="btn-sm btn-outline-sm">📎 ${escapeHtml(q.answerFileName || 'Download Answer')}</a>`;
     } else {
-      statusText = escapeHtml(q.status);
-      statusClass = 'status-awaiting';
+      answerButtons = '<span class="disabled">No answer</span>';
     }
 
-    const tutorHtml = `
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <img src="${tutorAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-        <div>
-          <div><strong>${tutorName}</strong></div>
-          <div style="font-size: 0.7rem; color: #F59E0B;"><i class="fas fa-star"></i> ${tutorRating}</div>
-        </div>
+    const rateBtn = `<button class="btn-sm" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
+    const viewAnswerBtn = `<button class="btn-sm btn-primary-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">👁️ View Answer</button>`;
+
+    // Wrap all action buttons in a flex container to keep them inline
+    const actionButtons = `
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+        ${viewAnswerBtn}
+        ${answerButtons}
+        ${rateBtn}
       </div>
     `;
 
-    if (!isCompleted) {
-      const actionBtn = `<button class="btn-sm" onclick="window.location.href='question-details.html?id=${q._id}'">View Details</button>`;
-      return `<tr><td><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td>${tutorHtml}</td><td>${subject}</td><td>${budget}</td><td><span class="status-badge ${statusClass}">${statusText}</span></td><td>${actionBtn}</td></tr>`;
-    } else {
-      // Handle answer files (multiple or single)
-      let answerButtons = '';
-      if (q.answerFiles && q.answerFiles.length > 0) {
-        // Multiple files – display all as download links
-        answerButtons = `<div class="answer-files" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
-        q.answerFiles.forEach((fileUrl, idx) => {
-          const fileName = q.answerFileNames?.[idx] || `file_${idx+1}`;
-          answerButtons += `<a href="${fileUrl}" target="_blank" class="btn-sm btn-outline-sm" style="margin-right:0;">📎 ${escapeHtml(fileName)}</a>`;
-        });
-        answerButtons += `</div>`;
-      } else if (q.answerFile) {
-        // Single file (legacy)
-        answerButtons = `<a href="${q.answerFile}" target="_blank" class="btn-sm btn-outline-sm">📎 ${escapeHtml(q.answerFileName || 'Download Answer')}</a>`;
-      } else {
-        answerButtons = '<span class="disabled">No answer</span>';
-      }
+    const ratingStars = q.rating && q.rating.score
+      ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
+      : 'Not rated';
 
-      const rateBtn = `<button class="btn-sm" style="margin-left:0.5rem;" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
-      const ratingStars = q.rating && q.rating.score
-        ? `<span style="color: #F59E0B;">${'★'.repeat(q.rating.score)}${'☆'.repeat(5 - q.rating.score)}</span>`
-        : 'Not rated';
-      return `<tr><td style="vertical-align: top;"><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td><td style="vertical-align: top;">${subject}</td><td style="vertical-align: top;">${tutorHtml}</td><td style="vertical-align: top;">${budget}</td><td style="vertical-align: top;">${ratingStars}</td><td style="vertical-align: top;">${answerButtons}<br>${rateBtn}</td></tr>`;
-    }
+    return `<tr>
+      <td style="vertical-align: top;"><i class="fas fa-file-alt" style="margin-right: 8px; color: #005BFF;"></i> ${safeTitle}</td>
+      <td style="vertical-align: top;">${subject}</td>
+      <td style="vertical-align: top;">${tutorHtml}</td>
+      <td style="vertical-align: top;">${budget}</td>
+      <td style="vertical-align: top;">${ratingStars}</td>
+      <td style="vertical-align: top;">${actionButtons}</td>
+    </tr>`;
   }
+}
 
   // ---------- RATING MODAL ----------
   let currentRatingQuestionId = null;

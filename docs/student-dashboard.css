@@ -1040,3 +1040,21 @@ button[onclick="closeTransactionModal()"]:hover {
   font-size: 0.7rem;
   color: #939393;
 }
+/* Prevent button stacking in completed questions table */
+#completedQuestions td:last-child {
+  white-space: normal;      /* allow wrapping if needed, but keep inline */
+}
+#completedQuestions .btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;      /* prevent text from breaking inside button */
+}
+/* For very small screens, allow buttons to wrap */
+@media (max-width: 640px) {
+  #completedQuestions td:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
