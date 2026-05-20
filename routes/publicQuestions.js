@@ -4,7 +4,6 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// Redirect when no question ID is provided
 router.get('/', (req, res) => {
   res.redirect('/document-library.html');
 });
@@ -21,9 +20,17 @@ router.get('/:id', async (req, res) => {
       return res.status(404).send('Question not available');
     }
 
+    // Create safe date copies (fallback to current date if missing)
+    const safeCreatedAt = question.createdAt instanceof Date ? question.createdAt : new Date();
+    const safeUpdatedAt = question.updatedAt instanceof Date ? question.updatedAt : new Date();
+
     // Render public question page
     res.render('public-question', {
-      question,
+      question: {
+        ...question.toObject(),
+        createdAt: safeCreatedAt,
+        updatedAt: safeUpdatedAt
+      },
       title: question.title,
       description: question.description,
       subject: question.category || question.subject || 'General',
@@ -34,8 +41,8 @@ router.get('/:id', async (req, res) => {
       tutorRating: question.tutorId?.tutorProfile?.rating,
       answerText: question.answerFile ? 'Answer file available (login required to download)' : 'No answer yet',
       answerFileUrl: question.answerFile ? `/api/questions/${question._id}/download-answer` : null,
-      createdAt: question.createdAt,
-      completedAt: question.updatedAt
+      createdAt: safeCreatedAt,
+      completedAt: safeUpdatedAt
     });
   } catch (err) {
     console.error(err);

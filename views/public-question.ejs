@@ -30,7 +30,7 @@
       "text": "<%= question.description ? question.description.replace(/"/g, '\\"').substring(0, 500) : '' %>",
       "upvoteCount": 0,
       "answerCount": 1,
-      "dateCreated": "<%= (question.createdAt || question.updatedAt || new Date()).toISOString() %>",
+      "dateCreated": "<%= (question.updatedAt || question.createdAt || new Date()).toISOString() %>",
       "author": { "@type": "Person", "name": "Student" },
       "acceptedAnswer": {
         "@type": "Answer",
