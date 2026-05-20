@@ -893,6 +893,18 @@ router.get('/questions/:id/full', async (req, res) => {
   }
 });
 
+// Delete a question (admin only)
+router.delete('/questions/:id', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    await question.deleteOne();
+    res.json({ message: 'Question deleted successfully' });
+  } catch (err) {
+    console.error('Delete question error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ========== COMPREHENSIVE FINANCIAL REPORT ==========
 // Helper function to fetch financial data (used by both JSON and PDF endpoints)

@@ -352,6 +352,9 @@ async function setTutorLevel(userId, currentLevel) {
 window.setTutorLevel = setTutorLevel;
 
 // ----- All Questions Section -----
+
+
+// ----- All Questions Section (with delete button) -----
 let currentQuestionPage = 1;
 let totalQuestionPages = 1;
 
@@ -388,7 +391,10 @@ async function loadAllQuestions(page = 1) {
           <td>$${q.budget}</td>
           <td><span class="badge ${q.status === 'completed' ? 'badge-approved' : q.status === 'pending' ? 'badge-pending' : 'badge-rejected'}">${q.status}</span></td>
           <td>${q.deadline ? new Date(q.deadline).toLocaleDateString() : '—'}</td>
-          <td><button class="btn-sm btn-primary view-question-btn" data-id="${q._id}">View Full</button></td>
+          <td>
+            <button class="btn-sm btn-primary view-question-btn" data-id="${q._id}">View Full</button>
+            <button class="btn-sm btn-danger delete-question-btn" data-id="${q._id}">Delete</button>
+           </td>
         </tr>
       `;
     }
@@ -416,9 +422,32 @@ async function loadAllQuestions(page = 1) {
       btn.removeEventListener('click', handleViewFullQuestion);
       btn.addEventListener('click', handleViewFullQuestion);
     });
+    // Attach event listeners for Delete buttons
+    document.querySelectorAll('#questionsTable .delete-question-btn').forEach(btn => {
+      btn.removeEventListener('click', handleDeleteQuestion);
+      btn.addEventListener('click', handleDeleteQuestion);
+    });
   } catch (err) {
     console.error(err);
     document.getElementById('questionsList').innerHTML = '<div class="card">Error loading questions.</div>';
+  }
+}
+
+function handleViewFullQuestion(e) {
+  const questionId = e.currentTarget.getAttribute('data-id');
+  viewFullQuestion(questionId);
+}
+
+async function handleDeleteQuestion(e) {
+  const questionId = e.currentTarget.getAttribute('data-id');
+  if (!confirm('Are you sure you want to delete this question permanently? This action cannot be undone.')) return;
+  try {
+    await apiFetch(`/admin/questions/${questionId}`, { method: 'DELETE' });
+    showToast('Question deleted successfully', 'success');
+    // Refresh the current page of questions
+    loadAllQuestions(currentQuestionPage);
+  } catch (err) {
+    showToast(err.message, 'error');
   }
 }
 
