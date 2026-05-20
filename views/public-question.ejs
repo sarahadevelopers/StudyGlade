@@ -479,6 +479,13 @@
       margin: 0;
     }
   </style>
+   <% 
+    // Server-side slugify function (available during EJS rendering)
+    function slugify(str) {
+      if (!str) return '';
+      return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+  %>
 </head>
 <body>
 
@@ -585,18 +592,16 @@
   </div>
 </footer>
 
-<script>
-  const yearSpan = document.getElementById('currentYear');
-  if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-  const backToTopBtn = document.getElementById('backToTopBtn');
-  if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-  function slugify(str) {
-    if (!str) return '';
-    return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  }
-</script>
+  <script>
+    // Client-side JavaScript (no EJS tags inside)
+    const yearSpan = document.getElementById('currentYear');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    const backToTopBtn = document.getElementById('backToTopBtn');
+    if (backToTopBtn) backToTopBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+
 </body>
 </html>
