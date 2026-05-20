@@ -1,59 +1,23 @@
-import dotenv from 'dotenv';
-dotenv.config();
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const cron = require('node-cron');
+const cookieParser = require('cookie-parser');
+const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
+const crypto = require('crypto');
+const axios = require('axios');
+const methodOverride = require('method-override');
+const rateLimit = require('express-rate-limit');
+const http = require('http');
+const socketIo = require('socket.io');
 
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import cron from 'node-cron';
-import cookieParser from 'cookie-parser';
-import path from 'path';
-import multer from 'multer';
-import fs from 'fs';
-import crypto from 'crypto';
-import axios from 'axios';
-import methodOverride from 'method-override';
-import rateLimit from 'express-rate-limit';
-import http from 'http';
-import socketIo from 'socket.io';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-// Middleware
-import { generateToken, doubleCsrfProtection } from './middleware/csrf.js';
-import { sendEmailWithTemplate } from './utils/email.js';
-import auth from './middleware/auth.js';
-import roleCheck from './middleware/roleCheck.js';
-
-// Routes
-import authRoutes from './routes/auth.js';
-import questionRoutes from './routes/questions.js';
-import documentRoutes from './routes/documents.js';
-import walletRoutes from './routes/wallet.js';
-import adminRoutes from './routes/admin.js';
-import commentRoutes from './routes/comments.js';
-import notificationRoutes from './routes/notifications.js';
-import subjectRoutes from './routes/subjects.js';
-import publicQuestionRoutes from './routes/publicQuestions.js';
-import tutorRoutes from './routes/tutor.js';
-import questionsArchiveRoutes from './routes/questionsArchive.js';
-import adminBlogRoutes from './routes/adminBlog.js';
-import blogRoutes from './routes/blog.js';
-
-// Models
-import Bid from './models/Bid.js';
-import Question from './models/Question.js';
-import Transaction from './models/Transaction.js';
-import User from './models/User.js';
-import Document from './models/Document.js';
-import BlogPost from './models/BlogPost.js';
-import ContentFilterLog from './models/ContentFilterLog.js';
-
-// Utils
-import updateTutorLevels from './utils/updateTutorLevels.js';
-
-// __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
+const { sendEmailWithTemplate } = require('./utils/email');
+const auth = require('./middleware/auth');
+const roleCheck = require('./middleware/roleCheck');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -106,9 +70,32 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
-export { upload };
+module.exports.upload = upload;
 
-// ========== 3. PAYSTACK WEBHOOK ==========
+// ========== 3. REQUIRE ROUTES & MODELS ==========
+const authRoutes = require('./routes/auth');
+const questionRoutes = require('./routes/questions');
+const documentRoutes = require('./routes/documents');
+const walletRoutes = require('./routes/wallet');
+const adminRoutes = require('./routes/admin');
+const commentRoutes = require('./routes/comments');
+const notificationRoutes = require('./routes/notifications');
+const subjectRoutes = require('./routes/subjects');
+const publicQuestionRoutes = require('./routes/publicQuestions');
+const tutorRoutes = require('./routes/tutor');
+const questionsArchiveRoutes = require('./routes/questionsArchive');
+const adminBlogRoutes = require('./routes/adminBlog');
+const blogRoutes = require('./routes/blog');
+
+const Bid = require('./models/Bid');
+const Question = require('./models/Question');
+const Transaction = require('./models/Transaction');
+const User = require('./models/User');
+const Document = require('./models/Document');
+const BlogPost = require('./models/BlogPost');
+const ContentFilterLog = require('./models/ContentFilterLog');
+
+// ========== 4. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
@@ -158,7 +145,7 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ========== 4. CORS ==========
+// ========== 5. CORS ==========
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
@@ -177,7 +164,7 @@ app.use(cors({
   credentials: true
 }));
 
-// ========== 5. SOCKET.IO SETUP ==========
+// ========== 6. SOCKET.IO SETUP ==========
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -192,7 +179,7 @@ io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Authentication error'));
-    const jwt = await import('jsonwebtoken');
+    const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return next(new Error('User not found'));
@@ -212,7 +199,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// ========== 6. STANDARD MIDDLEWARE ==========
+// ========== 7. STANDARD MIDDLEWARE ==========
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -246,16 +233,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== 7. EJS SETUP ==========
+// ========== 8. EJS SETUP ==========
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ========== 8. DATABASE CONNECTION ==========
+// ========== 9. DATABASE CONNECTION ==========
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 9. GLOBAL API RATE LIMITER ==========
+// ========== 10. GLOBAL API RATE LIMITER ==========
 const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -265,7 +252,7 @@ const globalApiLimiter = rateLimit({
 });
 app.use('/api/', globalApiLimiter);
 
-// ========== 10. API ROUTES ==========
+// ========== 11. API ROUTES ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -277,54 +264,31 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 11. DEDICATED JSON ENDPOINT FOR ADMIN BLOG POSTS ==========
+// ========== 12. DEDICATED JSON ENDPOINT FOR ADMIN BLOG POSTS ==========
 app.get('/api/admin/blog/posts', auth, roleCheck('admin'), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
-    const posts = await BlogPost.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
+    const posts = await BlogPost.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
     const total = await BlogPost.countDocuments();
-
-    res.json({
-      posts,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
+    res.json({ posts, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ========== 12. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 13. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
     if (!document) return res.status(404).send('Document not found');
-
-    const relatedDocuments = await Document.find({
-      _id: { $ne: document._id },
-      subject: document.subject,
-      isApproved: true
-    })
-    .select('title slug price')
-    .limit(5);
-
+    const relatedDocuments = await Document.find({ _id: { $ne: document._id }, subject: document.subject, isApproved: true }).select('title slug price').limit(5);
     const token = req.cookies.accessToken;
     let user = null;
     if (token) {
       try {
-        const jwt = await import('jsonwebtoken');
+        const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         user = await User.findById(decoded.id).select('-password');
       } catch (err) {}
@@ -338,12 +302,9 @@ app.get('/document/:slug', async (req, res) => {
 
 app.get('/api/csrf-token', (req, res) => {
   try {
-    console.log('CSRF token requested');
     const token = generateToken(req, res);
-    console.log('Token generated successfully');
     res.json({ csrfToken: token });
   } catch (err) {
-    console.error('❌ CSRF token generation failed:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -353,145 +314,53 @@ app.use('/question', publicQuestionRoutes);
 app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
-// ========== 13. DYNAMIC SITEMAP ==========
+// ========== 14. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
-    const slugify = (str) => {
-      if (!str) return '';
-      return str.toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    };
-
+    const slugify = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     let urls = '';
-
-    // Documents
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
-    documents.forEach(doc => {
-      urls += `
-        <url>
-          <loc>${baseUrl}/document/${doc.slug}</loc>
-          <lastmod>${doc.updatedAt ? doc.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-        </url>
-      `;
-    });
-
-    // Subjects
+    documents.forEach(doc => urls += `<url><loc>${baseUrl}/document/${doc.slug}</loc><lastmod>${doc.updatedAt?.toISOString() || new Date().toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`);
     const docSubjects = await Document.distinct('subject', { isApproved: true });
     const questionCategories = await Question.distinct('category', { status: 'completed' });
     const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
-    allSubjects.forEach(sub => {
-      const slug = slugify(sub);
-      if (!slug) return;
-      urls += `
-        <url>
-          <loc>${baseUrl}/subjects/${slug}</loc>
-          <changefreq>weekly</changefreq>
-          <priority>0.8</priority>
-        </url>
-      `;
-    });
-
-    urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
-    urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
-
-    // Completed questions
+    allSubjects.forEach(sub => { const slug = slugify(sub); if (slug) urls += `<url><loc>${baseUrl}/subjects/${slug}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`; });
+    urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url><url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
-    completedQuestions.forEach(q => {
-      urls += `
-        <url>
-          <loc>${baseUrl}/question/${q._id}</loc>
-          <lastmod>${q.updatedAt ? q.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.6</priority>
-        </url>
-      `;
-    });
-
+    completedQuestions.forEach(q => urls += `<url><loc>${baseUrl}/question/${q._id}</loc><lastmod>${q.updatedAt?.toISOString() || new Date().toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`);
     urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
-
     const tutors = await User.find({ role: 'tutor', isApproved: true }).select('_id updatedAt');
-    tutors.forEach(t => {
-      urls += `
-        <url>
-          <loc>${baseUrl}/tutor/${t._id}</loc>
-          <lastmod>${t.updatedAt ? t.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.6</priority>
-        </url>
-      `;
-    });
-
+    tutors.forEach(t => urls += `<url><loc>${baseUrl}/tutor/${t._id}</loc><lastmod>${t.updatedAt?.toISOString() || new Date().toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`);
     const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
-    blogPosts.forEach(post => {
-      urls += `
-        <url>
-          <loc>${baseUrl}/blog/${post.slug}</loc>
-          <lastmod>${post.updatedAt ? post.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
-          <changefreq>weekly</changefreq>
-          <priority>0.6</priority>
-        </url>
-      `;
-    });
+    blogPosts.forEach(post => urls += `<url><loc>${baseUrl}/blog/${post.slug}</loc><lastmod>${post.updatedAt?.toISOString() || new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
     urls += `<url><loc>${baseUrl}/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
-
-    // Static pages
-    const staticPages = [
-      { path: '/', priority: '1.0', changefreq: 'daily' },
-      { path: '/subjects', priority: '0.9', changefreq: 'daily' },
-      { path: '/pricing', priority: '0.8', changefreq: 'weekly' },
-      { path: '/tutors', priority: '0.9', changefreq: 'daily' },
-      { path: '/login.html', priority: '0.7', changefreq: 'monthly' },
-      { path: '/register.html', priority: '0.8', changefreq: 'monthly' },
-      { path: '/document-library.html', priority: '0.8', changefreq: 'daily' },
-      { path: '/find-tutors.html', priority: '0.8', changefreq: 'daily' },
-      { path: '/post-question.html', priority: '0.9', changefreq: 'daily' }
-    ];
-    staticPages.forEach(page => {
-      urls += `
-        <url>
-          <loc>${baseUrl}${page.path}</loc>
-          <lastmod>${new Date().toISOString()}</lastmod>
-          <changefreq>${page.changefreq}</changefreq>
-          <priority>${page.priority}</priority>
-        </url>
-      `;
-    });
-
+    const staticPages = [{ path:'/', priority:'1.0' },{ path:'/subjects', priority:'0.9' },{ path:'/pricing', priority:'0.8' },{ path:'/tutors', priority:'0.9' },{ path:'/login.html', priority:'0.7' },{ path:'/register.html', priority:'0.8' },{ path:'/document-library.html', priority:'0.8' },{ path:'/find-tutors.html', priority:'0.8' },{ path:'/post-question.html', priority:'0.9' }];
+    staticPages.forEach(page => urls += `<url><loc>${baseUrl}${page.path}</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>${page.changefreq||'daily'}</changefreq><priority>${page.priority}</priority></url>`);
     res.header('Content-Type', 'application/xml');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${urls}
-</urlset>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
   } catch (err) {
-    console.error('Sitemap generation error:', err);
+    console.error('Sitemap error:', err);
     res.status(500).send('Error generating sitemap');
   }
 });
 
-// ========== 14. STATIC FRONTEND ==========
+// ========== 15. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 15. CATCH-ALL ==========
+// ========== 16. CATCH-ALL ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 16. CRON JOBS ==========
+// ========== 17. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    const oldQuestions = await Question.find({
-      status: 'pending',
-      createdAt: { $lt: sixHoursAgo },
-      budgetSuggestionSent: { $ne: true }
-    });
+    const sixHoursAgo = new Date(Date.now() - 6*60*60*1000);
+    const oldQuestions = await Question.find({ status:'pending', createdAt:{ $lt: sixHoursAgo }, budgetSuggestionSent:{ $ne: true } });
     for (const question of oldQuestions) {
-      const lowestBid = await Bid.findOne({ questionId: question._id }).sort({ amount: 1 });
+      const lowestBid = await Bid.findOne({ questionId: question._id }).sort({ amount:1 });
       if (lowestBid && lowestBid.amount > question.budget) {
         question.suggestedBudget = lowestBid.amount;
         question.suggestedTutorId = lowestBid.tutorId;
@@ -503,71 +372,32 @@ cron.schedule('0 * * * *', async () => {
         await question.save();
       }
     }
-  } catch (err) {
-    console.error('Cron job error:', err);
-  }
+  } catch (err) { console.error('Cron job error:', err); }
 });
 
-cron.schedule('0 0 * * *', async () => {
+const updateTutorLevels = require('./utils/updateTutorLevels');
+cron.schedule('0 0 * * *', () => {
   console.log('Running tutor level update...');
-  await updateTutorLevels();
+  updateTutorLevels().catch(console.error);
 });
 
-// Daily email report of content violations (8 AM)
 cron.schedule('0 8 * * *', async () => {
   console.log('Running content violation daily report...');
   try {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const violations = await ContentFilterLog.find({ timestamp: { $gte: yesterday } })
-      .populate('userId', 'fullName email role')
-      .sort({ timestamp: -1 })
-      .limit(20);
-
-    if (violations.length === 0) {
-      console.log('No content violations in the last 24 hours.');
-      return;
-    }
-
-    const admins = await User.find({ role: 'admin' }).select('email fullName');
+    const yesterday = new Date(Date.now() - 24*60*60*1000);
+    const violations = await ContentFilterLog.find({ timestamp:{ $gte: yesterday } }).populate('userId','fullName email role').sort({ timestamp:-1 }).limit(20);
+    if (violations.length === 0) return;
+    const admins = await User.find({ role:'admin' }).select('email fullName');
     if (admins.length === 0) return;
-
-    const rows = violations.map(v => `
-      <tr>
-        <td>${v.userId?.fullName || 'Deleted'}</td>
-        <td>${v.userId?.email || 'N/A'}</td>
-        <td>${v.userRole}</td>
-        <td>${v.action}</td>
-        <td>${v.detectedPattern}</td>
-        <td>${(v.blockedText || '').substring(0, 60)}</td>
-        <td>${new Date(v.timestamp).toLocaleString()}</td>
-      </tr>
-    `).join('');
-
-    const reportHtml = `
-      <h2>Content Violation Report (last 24h)</h2>
-      <p>Total violations: ${violations.length}</p>
-      <table border="1" cellpadding="5" style="border-collapse: collapse; width:100%;">
-        <thead>
-          <tr><th>User</th><th>Email</th><th>Role</th><th>Action</th><th>Pattern</th><th>Blocked Text</th><th>Timestamp</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <p><a href="https://studyglade.com/admin-dashboard.html?section=content-violations">View full log in admin dashboard</a></p>
-    `;
-
+    const rows = violations.map(v => `<tr><td>${v.userId?.fullName||'Deleted'}</td><td>${v.userId?.email||'N/A'}</td><td>${v.userRole}</td><td>${v.action}</td><td>${v.detectedPattern}</td><td>${(v.blockedText||'').substring(0,60)}</td><td>${new Date(v.timestamp).toLocaleString()}</td></tr>`).join('');
+    const reportHtml = `<h2>Content Violation Report</h2><p>Total: ${violations.length}</p><table border="1">${rows}</table><p><a href="https://studyglade.com/admin-dashboard.html?section=content-violations">View full log</a></p>`;
     for (const admin of admins) {
-      await sendEmailWithTemplate(admin.email, 'Content Violation Alert – StudyGlade', 'admin-alert.ejs', {
-        adminName: admin.fullName,
-        violationsCount: violations.length,
-        reportHtml: reportHtml
-      }).catch(err => console.error(`Failed to send violation email to ${admin.email}:`, err));
+      await sendEmailWithTemplate(admin.email, 'Content Violation Alert – StudyGlade', 'admin-alert.ejs', { adminName: admin.fullName, violationsCount: violations.length, reportHtml }).catch(err => console.error(`Failed to send email to ${admin.email}:`, err));
     }
-  } catch (err) {
-    console.error('Content violation cron error:', err);
-  }
+  } catch (err) { console.error('Content violation cron error:', err); }
 });
 
-// ========== 17. GLOBAL ERROR HANDLER ==========
+// ========== 18. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -576,6 +406,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 18. START SERVER ==========
+// ========== 19. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
