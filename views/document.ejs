@@ -15,7 +15,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="<%= document.previewImageUrl || 'https://studyglade.com/og-logo.png' %>">
   
-  <!-- Structured Data: CreativeWork (already) + BreadcrumbList + WebPage -->
+  <!-- Structured Data: CreativeWork + BreadcrumbList + WebPage -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -51,8 +51,34 @@
   </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <link rel="icon" type="image/png" href="images/studyglade-pen-favicon.png" sizes="32x32">
+  
+  <!-- Premium CSS (matching homepage design system) -->
   <style>
-    /* your existing CSS – unchanged */
+    /* ---------- Color Variables ---------- */
+    :root {
+      --navy: #061B49;
+      --deep-blue: #0B2E75;
+      --brand-blue: #005BFF;
+      --royal-blue: #2563EB;
+      --sky-blue: #38BDF8;
+      --ice-blue: #EFF6FF;
+      --pale-blue: #DBEAFE;
+      --white: #FFFFFF;
+      --text-navy: #0F172A;
+      --slate: #64748B;
+      --border-grey: #E2E8F0;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      --shadow-sm: 0 4px 10px -2px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.02);
+      --shadow-md: 0 10px 20px -5px rgba(0,0,0,0.08);
+      --grad-primary: linear-gradient(135deg, #005BFF 0%, #2563EB 60%, #38BDF8 100%);
+    }
+
+    /* Global reset */
     * {
       margin: 0;
       padding: 0;
@@ -60,14 +86,116 @@
     }
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
-      min-height: 100vh;
-      padding: 2rem 1rem;
+      background: var(--ice-blue);
+      color: var(--text-navy);
+      line-height: 1.5;
     }
-    .container {
-      max-width: 1280px;
+
+    /* Glass‑morphism navbar */
+    .navbar {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+      padding: 0.75rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .navbar .container {
+      width: min(1200px, 92%);
       margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-navy);
+      text-decoration: none;
+    }
+    .logo i {
+      color: var(--brand-blue);
+      font-size: 1.6rem;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+    .nav-links a {
+      text-decoration: none;
+      font-weight: 500;
+      color: var(--text-navy);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--brand-blue);
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn-outline-white {
+      background: transparent;
+      border: 1px solid var(--brand-blue);
+      color: var(--brand-blue);
+      padding: 0.4rem 1.2rem;
+      border-radius: 40px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-outline-white:hover {
+      background: var(--brand-blue);
+      color: white;
+    }
+    .btn-primary {
+      background: var(--grad-primary);
+      color: white;
+      padding: 0.4rem 1.2rem;
+      border-radius: 40px;
+      text-decoration: none;
+      font-weight: 500;
+      box-shadow: 0 4px 10px rgba(0,91,255,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,91,255,0.25);
+    }
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    /* Main container */
+    main .container {
+      width: min(1200px, 92%);
+      margin: 2rem auto;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      color: var(--slate);
+    }
+    .breadcrumb a {
+      text-decoration: none;
+      color: var(--brand-blue);
+    }
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    /* Premium document grid */
     .document-grid {
       display: grid;
       grid-template-columns: 1fr 380px;
@@ -79,10 +207,12 @@
         gap: 1.5rem;
       }
     }
+
+    /* Main card */
     .card {
-      background: #ffffff;
+      background: var(--white);
       border-radius: 32px;
-      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.02);
+      box-shadow: var(--shadow-md);
       overflow: hidden;
       transition: transform 0.2s ease;
     }
@@ -93,13 +223,13 @@
       position: sticky;
       top: 2rem;
     }
+
     h1 {
       font-size: 2rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 1rem;
-      line-height: 1.2;
-      color: #0a0c10;
+      color: var(--text-navy);
     }
     .badge-group {
       display: flex;
@@ -108,15 +238,15 @@
       margin-bottom: 1.5rem;
     }
     .badge {
-      background: #eef2ff;
-      color: #1e40af;
+      background: var(--pale-blue);
+      color: var(--brand-blue);
       padding: 0.25rem 0.75rem;
       border-radius: 40px;
       font-size: 0.75rem;
       font-weight: 500;
     }
     .description {
-      color: #334155;
+      color: var(--slate);
       line-height: 1.5;
       margin-bottom: 1.5rem;
       font-size: 1rem;
@@ -124,14 +254,13 @@
     .preview-img {
       width: 100%;
       border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       margin: 1.5rem 0;
-      border: 1px solid #e9edf2;
+      border: 1px solid var(--border-grey);
       display: block;
     }
     .preview-section {
       margin-top: 1.5rem;
-      border-top: 1px solid #eef2f6;
+      border-top: 1px solid var(--border-grey);
       padding-top: 1.5rem;
     }
     .preview-label {
@@ -139,43 +268,38 @@
       font-size: 0.9rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #5b6e8c;
+      color: var(--slate);
       margin-bottom: 1rem;
     }
     .preview-content {
-      background: #fafcff;
+      background: var(--ice-blue);
       border-radius: 24px;
       padding: 1.5rem;
-      border: 1px solid #eef2f8;
+      border: 1px solid var(--border-grey);
       line-height: 1.6;
-      color: #1e293b;
+      color: var(--text-navy);
       font-size: 0.95rem;
       position: relative;
-    }
-    .teaser {
-      display: inline;
     }
     .blurred-text {
       filter: blur(5px);
       user-select: none;
-      transition: filter 0.2s;
     }
     .preview-overlay {
       margin-top: 1rem;
       padding: 1rem;
-      background: linear-gradient(135deg, #f1f5f9, #e9eef3);
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(4px);
       border-radius: 20px;
       text-align: center;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-grey);
     }
     .preview-overlay p {
-      font-size: 0.9rem;
-      color: #1e293b;
       margin-bottom: 0.75rem;
     }
     .btn-small {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
+      background: var(--white);
+      border: 1px solid var(--border-grey);
       padding: 0.5rem 1rem;
       border-radius: 40px;
       font-weight: 500;
@@ -186,9 +310,11 @@
       display: inline-block;
     }
     .btn-small:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
+      background: var(--pale-blue);
+      border-color: var(--brand-blue);
     }
+
+    /* Smart preview */
     .smart-input-group {
       margin-top: 1rem;
       display: flex;
@@ -199,21 +325,28 @@
       width: 100%;
       padding: 0.6rem 1rem;
       border-radius: 60px;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--border-grey);
       font-family: inherit;
       font-size: 0.85rem;
     }
+    .smart-input:focus {
+      outline: none;
+      border-color: var(--brand-blue);
+      box-shadow: 0 0 0 2px rgba(0,91,255,0.1);
+    }
     .smart-result {
       margin-top: 0.75rem;
-      background: #f1f5f9;
+      background: var(--pale-blue);
       border-radius: 20px;
       padding: 0.75rem;
       font-size: 0.85rem;
       display: none;
-      border-left: 3px solid #3b82f6;
+      border-left: 3px solid var(--brand-blue);
     }
+
+    /* Price box */
     .price-box {
-      background: #f8fafc;
+      background: var(--ice-blue);
       border-radius: 24px;
       padding: 1rem 1.5rem;
       margin-bottom: 1.5rem;
@@ -223,23 +356,25 @@
       font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #5b6e8c;
+      color: var(--slate);
     }
     .price-value {
       font-size: 2.8rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-navy);
       line-height: 1.2;
     }
     .price-value span {
       font-size: 1rem;
       font-weight: 500;
-      color: #475569;
+      color: var(--slate);
     }
-    .btn-primary {
+
+    /* CTA buttons */
+    .btn-primary-lg {
       display: block;
       width: 100%;
-      background: #3b82f6;
+      background: var(--grad-primary);
       color: white;
       border: none;
       padding: 1rem;
@@ -247,23 +382,22 @@
       font-size: 1rem;
       border-radius: 60px;
       cursor: pointer;
-      transition: all 0.2s;
       text-align: center;
       text-decoration: none;
       margin-bottom: 1rem;
-      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+      box-shadow: 0 2px 8px rgba(0,91,255,0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn-primary:hover {
-      background: #2563eb;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+    .btn-primary-lg:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,91,255,0.3);
     }
-    .btn-outline {
+    .btn-outline-lg {
       display: block;
       width: 100%;
       background: transparent;
-      border: 1px solid #cbd5e1;
-      color: #1e293b;
+      border: 1px solid var(--border-grey);
+      color: var(--text-navy);
       padding: 0.8rem;
       border-radius: 60px;
       text-align: center;
@@ -271,17 +405,18 @@
       font-weight: 500;
       transition: all 0.2s;
     }
-    .btn-outline:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
+    .btn-outline-lg:hover {
+      background: var(--pale-blue);
+      border-color: var(--brand-blue);
     }
+
     .trust-badges {
       display: flex;
       justify-content: center;
       gap: 1rem;
       margin-top: 1rem;
       font-size: 0.7rem;
-      color: #5b6e8c;
+      color: var(--slate);
     }
     .trust-badges span {
       display: inline-flex;
@@ -297,43 +432,20 @@
       margin: 1rem 0;
       border: 0;
       height: 1px;
-      background: linear-gradient(to right, #e2e8f0, transparent);
+      background: linear-gradient(to right, var(--border-grey), transparent);
     }
     .site-footer {
       text-align: center;
       margin-top: 3rem;
       font-size: 0.75rem;
-      color: #6c7a91;
+      color: var(--slate);
     }
-    .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(0,0,0,0.2);
-      border-top-color: #3b82f6;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-      margin-right: 0.3rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    /* Breadcrumb styles */
-    .breadcrumb {
-      margin-bottom: 1.5rem;
-      font-size: 0.8rem;
-      color: #5b6e8c;
-    }
-    .breadcrumb a {
-      text-decoration: none;
-      color: #3b82f6;
-    }
-    .breadcrumb a:hover {
-      text-decoration: underline;
-    }
+
+    /* Related documents */
     .related-docs {
       margin-top: 2rem;
       padding-top: 1rem;
-      border-top: 1px solid #eef2f6;
+      border-top: 1px solid var(--border-grey);
     }
     .related-docs h3 {
       font-size: 1.2rem;
@@ -345,309 +457,349 @@
       gap: 0.5rem;
     }
     .related-list a {
-      background: #f1f5f9;
+      background: var(--pale-blue);
       padding: 0.2rem 0.8rem;
       border-radius: 40px;
       text-decoration: none;
       font-size: 0.8rem;
-      color: #1e40af;
+      color: var(--brand-blue);
+      transition: all 0.2s;
     }
-    /* ========== FOOTER ========== */
-.premium-footer {
-  background-color: #1E293B;
-  color: #F1F5F9;
-  padding: 4rem 5% 2rem;
-  font-family: 'Jost', 'Inter', sans-serif;
-  margin-top: 3rem;
-  position: relative;
-}
-.premium-footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #38BDF8, #38BDF8, transparent);
-}
-.footer-container {
-  max-width: 1300px;
-  margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3rem;
-}
-.footer-brand {
-  flex: 1.5;
-  min-width: 260px;
-}
-.footer-logo-wrapper { margin-bottom: 1rem; }
-.footer-logo {
-  display: inline-flex;
-  align-items: baseline;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: aliceblue;
-  text-decoration: none;
-  letter-spacing: -0.5px;
-}
-.footer-logo i.fa-pen-fancy {
-  font-size: 1.8rem;
-  margin-left: 4px;
-  transform: rotate(12deg);
-  color: #38BDF8;
-  transition: transform 0.2s;
-}
-.footer-logo:hover i.fa-pen-fancy { transform: rotate(12deg) scale(1.05); }
-.brand-description {
-  line-height: 1.5;
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  color: #94A3B8;
-}
-.newsletter-box {
-  margin: 1.5rem 0 1.8rem;
-  max-width: 320px;
-}
-.newsletter-box h5 {
-  color: aliceblue;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.5px;
-}
-.newsletter-form {
-  display: flex;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 0.2rem;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.newsletter-form:focus-within {
-  border-color: #38BDF8;
-  box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
-}
-.newsletter-form input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 0.6rem 1rem;
-  color: aliceblue;
-  font-size: 0.85rem;
-  outline: none;
-}
-.newsletter-form input::placeholder { color: rgba(255,255,255,0.4); }
-.newsletter-form button {
-  background: #38BDF8;
-  color: #050A18;
-  border: none;
-  padding: 0.4rem 1.2rem;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.newsletter-form button:hover { transform: scale(1.02); filter: brightness(1.1); }
-.newsletter-note {
-  font-size: 0.7rem;
-  margin-top: 0.5rem;
-  opacity: 0.5;
-}
-.social-links {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.social-links a {
-  width: 36px;
-  height: 36px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: aliceblue;
-  font-size: 1rem;
-  transition: all 0.25s;
-  text-decoration: none;
-}
-.social-links a:hover {
-  background: #38BDF8;
-  transform: translateY(-3px);
-  color: #050A18;
-}
-.footer-links-grid {
-  flex: 4;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 2rem;
-}
-.link-column h4 {
-  color: #38BDF8;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 1.2rem;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  position: relative;
-  display: inline-block;
-}
-.link-column h4::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  width: 28px;
-  height: 2px;
-  background: #38BDF8;
-  border-radius: 2px;
-}
-.link-column ul { list-style: none; padding: 0; margin: 0; }
-.link-column ul li { margin-bottom: 0.7rem; }
-.link-column ul li a {
-  text-decoration: none;
-  color: #94A3B8;
-  font-size: 0.85rem;
-  transition: all 0.2s ease;
-  display: inline-block;
-}
-.link-column ul li a:hover {
-  color: #38BDF8;
-  transform: translateX(4px);
-}
-.footer-bottom {
-  margin-top: 3rem;
-  padding-top: 1.8rem;
-  border-top: 1px solid #38BDF8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.footer-bottom p {
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin: 0;
-}
+    .related-list a:hover {
+      background: var(--brand-blue);
+      color: white;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--brand-blue);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.3rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ========== FOOTER (EXACTLY AS PROVIDED – UNCHANGED) ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 4rem 5% 2rem;
+      font-family: 'Jost', 'Inter', sans-serif;
+      margin-top: 3rem;
+      position: relative;
+    }
+    .premium-footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38BDF8, #38BDF8, transparent);
+    }
+    .footer-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3rem;
+    }
+    .footer-brand {
+      flex: 1.5;
+      min-width: 260px;
+    }
+    .footer-logo-wrapper { margin-bottom: 1rem; }
+    .footer-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: aliceblue;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+    .footer-logo i.fa-pen-fancy {
+      font-size: 1.8rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+      transition: transform 0.2s;
+    }
+    .footer-logo:hover i.fa-pen-fancy { transform: rotate(12deg) scale(1.05); }
+    .brand-description {
+      line-height: 1.5;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      color: #94A3B8;
+    }
+    .newsletter-box {
+      margin: 1.5rem 0 1.8rem;
+      max-width: 320px;
+    }
+    .newsletter-box h5 {
+      color: aliceblue;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    .newsletter-form {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 0.2rem;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .newsletter-form:focus-within {
+      border-color: #38BDF8;
+      box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
+    }
+    .newsletter-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0.6rem 1rem;
+      color: aliceblue;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .newsletter-form input::placeholder { color: rgba(255,255,255,0.4); }
+    .newsletter-form button {
+      background: #38BDF8;
+      color: #050A18;
+      border: none;
+      padding: 0.4rem 1.2rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .newsletter-form button:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .newsletter-note {
+      font-size: 0.7rem;
+      margin-top: 0.5rem;
+      opacity: 0.5;
+    }
+    .social-links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .social-links a {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: aliceblue;
+      font-size: 1rem;
+      transition: all 0.25s;
+      text-decoration: none;
+    }
+    .social-links a:hover {
+      background: #38BDF8;
+      transform: translateY(-3px);
+      color: #050A18;
+    }
+    .footer-links-grid {
+      flex: 4;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 2rem;
+    }
+    .link-column h4 {
+      color: #38BDF8;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      position: relative;
+      display: inline-block;
+    }
+    .link-column h4::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 28px;
+      height: 2px;
+      background: #38BDF8;
+      border-radius: 2px;
+    }
+    .link-column ul { list-style: none; padding: 0; margin: 0; }
+    .link-column ul li { margin-bottom: 0.7rem; }
+    .link-column ul li a {
+      text-decoration: none;
+      color: #94A3B8;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      display: inline-block;
+    }
+    .link-column ul li a:hover {
+      color: #38BDF8;
+      transform: translateX(4px);
+    }
+    .footer-bottom {
+      margin-top: 3rem;
+      padding-top: 1.8rem;
+      border-top: 1px solid #38BDF8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-bottom p {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin: 0;
+    }
   </style>
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  
-  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
-<link rel="icon" type="image/png" href="images/studyglade-pen-favicon.png" sizes="32x32">
 </head>
 <body>
-<div class="container">
-  <!-- Breadcrumb (UI) -->
-  <div class="breadcrumb">
-    <a href="/">Home</a> › 
-    <a href="/document-library.html">Document Library</a> › 
-    <span><%= document.title %></span>
-  </div>
 
-  <div class="document-grid">
-    <!-- LEFT COLUMN: Preview content -->
-    <div class="card">
-      <div class="card-content">
-        <h1><%= document.title %></h1>
-        <div class="badge-group">
-          <span class="badge"><%= document.subject %></span>
-          <span class="badge"><%= document.level %></span>
-          <span class="badge"><%= document.type %></span>
-        </div>
-        <p class="description"><%= document.description || 'No description provided.' %></p>
-
-        <% if (document.previewImageUrl) { %>
-          <img class="preview-img" src="<%= document.previewImageUrl %>" alt="Document preview image" loading="lazy">
-        <% } %>
-
-        <div class="preview-section">
-          <div class="preview-label">📄 Preview (what's inside)</div>
-          <div class="preview-content">
-            <% 
-              const fullText = document.previewText || 'Preview not available.';
-              const teaserLength = 180;
-              const teaser = fullText.substring(0, teaserLength);
-              const remainder = fullText.substring(teaserLength);
-              const showBlur = remainder.length > 0;
-            %>
-            <div class="teaser">
-              <%= teaser %>
-              <% if (showBlur) { %>
-                <span class="blurred-text"><%= remainder %></span>
-              <% } %>
-            </div>
-            <% if (showBlur) { %>
-              <div class="preview-overlay">
-                <% if (!user) { %>
-                  <p>✨ Unlock the full document to read all <strong><%= fullText.length %></strong> characters, plus the complete file.</p>
-                  <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-small">Sign up to unlock</a>
-                  <a href="/login?returnTo=/document/<%= document.slug %>" style="display:inline-block; margin-left:0.5rem; font-size:0.8rem;">Log in</a>
-                <% } else { %>
-                  <p>🔒 The full preview is hidden. Unlock to access the complete document.</p>
-                  <button id="unlockFromPreviewBtn" class="btn-small">Unlock full document</button>
-                <% } %>
-              </div>
-            <% } %>
-          </div>
-        </div>
-
-        <!-- Smart Preview section -->
-        <div class="smart-input-group">
-          <label style="font-size:0.8rem; font-weight:500;">🔎 Ask a question about this document</label>
-          <input type="text" id="smartQuery" class="smart-input" placeholder="e.g., What is the formula for quadratic equations?">
-          <button id="smartPreviewBtn" class="btn-small" style="background:#eef2ff; border-color:#cbd5e1;">Get answer from document</button>
-          <div id="smartPreviewResult" class="smart-result"></div>
-        </div>
-
-        <!-- Related documents (same subject) – optional but good for SEO -->
-        <% if (relatedDocuments && relatedDocuments.length) { %>
-          <div class="related-docs">
-            <h3>Related Documents</h3>
-            <div class="related-list">
-              <% relatedDocuments.forEach(doc => { %>
-                <a href="/document/<%= doc.slug %>"><%= doc.title %></a>
-              <% }) %>
-            </div>
-          </div>
-        <% } %>
+<!-- Premium Navbar -->
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/document-library.html">Library</a>
+        <a href="/subjects">Subjects</a>
+        <a href="/pricing">Pricing</a>
+      </div>
+      <div class="nav-buttons">
+        <a href="/login.html" class="btn-outline-white">Login</a>
+        <a href="/register.html" class="btn-primary">Sign Up</a>
       </div>
     </div>
+  </nav>
+</header>
 
-    <!-- RIGHT COLUMN: Purchase / CTA -->
-    <div class="sidebar-card">
+<main>
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a href="/">Home</a> › 
+      <a href="/document-library.html">Document Library</a> › 
+      <span><%= document.title %></span>
+    </div>
+
+    <div class="document-grid">
+      <!-- LEFT COLUMN: Preview content -->
       <div class="card">
         <div class="card-content">
-          <div class="price-box">
-            <div class="price-label">One‑time purchase</div>
-            <div class="price-value">$<%= document.price.toFixed(2) %><span> USD</span></div>
+          <h1><%= document.title %></h1>
+          <div class="badge-group">
+            <span class="badge"><%= document.subject %></span>
+            <span class="badge"><%= document.level %></span>
+            <span class="badge"><%= document.type %></span>
           </div>
-          
-          <% if (!user) { %>
-            <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-primary">🔓 Unlock & Download</a>
-            <a href="/login?returnTo=/document/<%= document.slug %>" class="btn-outline">Already have an account? Log in</a>
-          <% } else { %>
-            <button id="unlockBtn" class="btn-primary">🔓 Unlock for $<%= document.price.toFixed(2) %></button>
-            <div id="message" class="message"></div>
+          <p class="description"><%= document.description || 'No description provided.' %></p>
+
+          <% if (document.previewImageUrl) { %>
+            <img class="preview-img" src="<%= document.previewImageUrl %>" alt="Document preview image" loading="lazy">
           <% } %>
-          
-          <div class="trust-badges">
-            <span>✅ Instant access</span>
-            <span>💳 Secure payment</span>
-            <span>🔄 7‑day refund policy</span>
+
+          <div class="preview-section">
+            <div class="preview-label">📄 Preview (what's inside)</div>
+            <div class="preview-content">
+              <% 
+                const fullText = document.previewText || 'Preview not available.';
+                const teaserLength = 180;
+                const teaser = fullText.substring(0, teaserLength);
+                const remainder = fullText.substring(teaserLength);
+                const showBlur = remainder.length > 0;
+              %>
+              <div class="teaser">
+                <%= teaser %>
+                <% if (showBlur) { %>
+                  <span class="blurred-text"><%= remainder %></span>
+                <% } %>
+              </div>
+              <% if (showBlur) { %>
+                <div class="preview-overlay">
+                  <% if (!user) { %>
+                    <p>✨ Unlock the full document to read all <strong><%= fullText.length %></strong> characters, plus the complete file.</p>
+                    <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-small">Sign up to unlock</a>
+                    <a href="/login?returnTo=/document/<%= document.slug %>" class="btn-small" style="margin-left:0.5rem;">Log in</a>
+                  <% } else { %>
+                    <p>🔒 The full preview is hidden. Unlock to access the complete document.</p>
+                    <button id="unlockFromPreviewBtn" class="btn-small">Unlock full document</button>
+                  <% } %>
+                </div>
+              <% } %>
+            </div>
           </div>
-          <hr>
-          <div style="font-size:0.75rem; color:#5b6e8c; text-align:center;">
-            By unlocking, you agree to our <a href="/terms">Terms of Use</a>.<br>
-            Tutor earns 65% of each sale.
+
+          <!-- Smart Preview -->
+          <div class="smart-input-group">
+            <label style="font-size:0.8rem; font-weight:500;">🔎 Ask a question about this document</label>
+            <input type="text" id="smartQuery" class="smart-input" placeholder="e.g., What is the formula for quadratic equations?">
+            <button id="smartPreviewBtn" class="btn-small" style="background:var(--pale-blue);">Get answer from document</button>
+            <div id="smartPreviewResult" class="smart-result"></div>
+          </div>
+
+          <!-- Related documents -->
+          <% if (relatedDocuments && relatedDocuments.length) { %>
+            <div class="related-docs">
+              <h3>Related Documents</h3>
+              <div class="related-list">
+                <% relatedDocuments.forEach(doc => { %>
+                  <a href="/document/<%= doc.slug %>"><%= doc.title %></a>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Purchase / CTA -->
+      <div class="sidebar-card">
+        <div class="card">
+          <div class="card-content">
+            <div class="price-box">
+              <div class="price-label">One‑time purchase</div>
+              <div class="price-value">$<%= document.price.toFixed(2) %><span> USD</span></div>
+            </div>
+            
+            <% if (!user) { %>
+              <a href="/register?returnTo=/document/<%= document.slug %>" class="btn-primary-lg">🔓 Unlock & Download</a>
+              <a href="/login?returnTo=/document/<%= document.slug %>" class="btn-outline-lg">Already have an account? Log in</a>
+            <% } else { %>
+              <button id="unlockBtn" class="btn-primary-lg">🔓 Unlock for $<%= document.price.toFixed(2) %></button>
+              <div id="message" class="message"></div>
+            <% } %>
+            
+            <div class="trust-badges">
+              <span>✅ Instant access</span>
+              <span>💳 Secure payment</span>
+              <span>🔄 7‑day refund policy</span>
+            </div>
+            <hr>
+            <div style="font-size:0.75rem; color:var(--slate); text-align:center;">
+              By unlocking, you agree to our <a href="/terms">Terms of Use</a>.<br>
+              Tutor earns 65% of each sale.
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
- <footer class="premium-footer">
+</main>
+
+<footer class="premium-footer">
   <div class="footer-container">
     <div class="footer-brand">
       <div class="footer-logo-wrapper"><a href="/" class="footer-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a></div>
@@ -666,8 +818,8 @@
         <li><a href="document-library.html">Academic Tools</a></li>
         <li><a href="document-library.html">Free Resources</a></li>
         <li><a href="document-library.html"><strong>All Solved Questions</strong></a></li>
-        <li><a href="document-library.html"><strong>All Subjects</strong></a></li>       <!-- ✅ NEW -->
-        <li><a href="tutor-dashboard.html"><strong>All Tutors</strong></a></li>           <!-- ✅ NEW -->
+        <li><a href="document-library.html"><strong>All Subjects</strong></a></li>
+        <li><a href="tutor-dashboard.html"><strong>All Tutors</strong></a></li>
       </ul></div>
       <div class="link-column"><h4>Support</h4><ul><li><a href="terms.html">Help Centre</a></li><li><a href="contact.html">Contact Us</a></li><li><a href="terms.html">Live Chat</a></li><li><a href="terms.html">How It Works</a></li><li><a href="terms.html">Tutor Support</a></li><li><a href="terms.html">Feedback</a></li></ul></div>
       <div class="link-column"><h4>Legal</h4><ul><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="terms.html">Refund Policy</a></li><li><a href="terms.html">Cookie Policy</a></li><li><a href="terms.html">Honor Code</a></li></ul></div>
@@ -675,23 +827,20 @@
     </div>
   </div>
   <div class="footer-bottom">
-  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved.</p>
-  <button class="back-to-top" id="backToTopBtn" style="background-color: #38BDF8; color: aliceblue;">
-    <i class="fas fa-arrow-up"></i> Top
-  </button>
-</div>
+    <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved.</p>
+    <button class="back-to-top" id="backToTopBtn" style="background-color: #38BDF8; color: aliceblue;">
+      <i class="fas fa-arrow-up"></i> Top
+    </button>
+  </div>
 </footer>
-</div>
 
 <script>
-  // Helper: escape HTML
-
   function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
   }
 
-  // Smart Preview logic (same as before)
+  // Smart Preview logic
   document.addEventListener('DOMContentLoaded', function() {
     const smartBtn = document.getElementById('smartPreviewBtn');
     const smartQuery = document.getElementById('smartQuery');
@@ -755,11 +904,10 @@
       });
     }
   });
-    // Dynamic copyright year (2015 - current)
-const yearSpan = document.getElementById('currentYear');
-if (yearSpan) {
-  yearSpan.textContent = new Date().getFullYear();
-}
+
+  // Dynamic copyright year
+  const yearSpan = document.getElementById('currentYear');
+  if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 </script>
 
 <% if (user) { %>
