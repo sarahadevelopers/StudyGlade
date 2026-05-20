@@ -249,29 +249,14 @@ function createQuestionRow(q, isCompleted) {
       <td>${actionBtn}</td>
     </tr>`;
   } else {
-    // ----- Answer files (multiple or single) -----
-    let answerButtons = '';
-    if (q.answerFiles && q.answerFiles.length > 0) {
-      answerButtons = `<div class="answer-files" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
-      q.answerFiles.forEach((fileUrl, idx) => {
-        const fileName = q.answerFileNames?.[idx] || `file_${idx+1}`;
-        answerButtons += `<a href="${fileUrl}" target="_blank" class="btn-sm btn-outline-sm" style="margin-right:0;">📎 ${escapeHtml(fileName)}</a>`;
-      });
-      answerButtons += `</div>`;
-    } else if (q.answerFile) {
-      answerButtons = `<a href="${q.answerFile}" target="_blank" class="btn-sm btn-outline-sm">📎 ${escapeHtml(q.answerFileName || 'Download Answer')}</a>`;
-    } else {
-      answerButtons = '<span class="disabled">No answer</span>';
-    }
-
+    // Completed questions: only View Answer and Rate/Change Rating buttons
     const rateBtn = `<button class="btn-sm" onclick="showRatingModal('${q._id}', '${tutorName}')">${q.rating && q.rating.score ? 'Change Rating' : 'Rate Tutor'}</button>`;
     const viewAnswerBtn = `<button class="btn-sm btn-primary-sm" onclick="window.location.href='answer-details.html?id=${q._id}'">👁️ View Answer</button>`;
 
-    // Wrap all action buttons in a flex container to keep them inline
+    // Both buttons side by side
     const actionButtons = `
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
         ${viewAnswerBtn}
-        ${answerButtons}
         ${rateBtn}
       </div>
     `;
