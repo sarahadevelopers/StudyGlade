@@ -1,23 +1,59 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const cron = require('node-cron');
-const cookieParser = require('cookie-parser');
-const path = require('path');
-const multer = require('multer');
-const fs = require('fs');
-const crypto = require('crypto');
-const axios = require('axios');
-const methodOverride = require('method-override');
-const rateLimit = require('express-rate-limit');
-const http = require('http');
-const socketIo = require('socket.io');
+import dotenv from 'dotenv';
+dotenv.config();
 
-const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
-const { sendEmailWithTemplate } = require('./utils/email');
-const auth = require('./middleware/auth');
-const roleCheck = require('./middleware/roleCheck');
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import cron from 'node-cron';
+import cookieParser from 'cookie-parser';
+import path from 'path';
+import multer from 'multer';
+import fs from 'fs';
+import crypto from 'crypto';
+import axios from 'axios';
+import methodOverride from 'method-override';
+import rateLimit from 'express-rate-limit';
+import http from 'http';
+import socketIo from 'socket.io';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Middleware
+import { generateToken, doubleCsrfProtection } from './middleware/csrf.js';
+import { sendEmailWithTemplate } from './utils/email.js';
+import auth from './middleware/auth.js';
+import roleCheck from './middleware/roleCheck.js';
+
+// Routes
+import authRoutes from './routes/auth.js';
+import questionRoutes from './routes/questions.js';
+import documentRoutes from './routes/documents.js';
+import walletRoutes from './routes/wallet.js';
+import adminRoutes from './routes/admin.js';
+import commentRoutes from './routes/comments.js';
+import notificationRoutes from './routes/notifications.js';
+import subjectRoutes from './routes/subjects.js';
+import publicQuestionRoutes from './routes/publicQuestions.js';
+import tutorRoutes from './routes/tutor.js';
+import questionsArchiveRoutes from './routes/questionsArchive.js';
+import adminBlogRoutes from './routes/adminBlog.js';
+import blogRoutes from './routes/blog.js';
+
+// Models
+import Bid from './models/Bid.js';
+import Question from './models/Question.js';
+import Transaction from './models/Transaction.js';
+import User from './models/User.js';
+import Document from './models/Document.js';
+import BlogPost from './models/BlogPost.js';
+import ContentFilterLog from './models/ContentFilterLog.js';
+
+// Utils
+import updateTutorLevels from './utils/updateTutorLevels.js';
+
+// __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 app.set('trust proxy', 1);
@@ -70,32 +106,9 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
-module.exports.upload = upload;
+export { upload };
 
-// ========== 3. REQUIRE ROUTES & MODELS ==========
-const authRoutes = require('./routes/auth');
-const questionRoutes = require('./routes/questions');
-const documentRoutes = require('./routes/documents');
-const walletRoutes = require('./routes/wallet');
-const adminRoutes = require('./routes/admin');
-const commentRoutes = require('./routes/comments');
-const notificationRoutes = require('./routes/notifications');
-const subjectRoutes = require('./routes/subjects');
-const publicQuestionRoutes = require('./routes/publicQuestions');  
-const tutorRoutes = require('./routes/tutor'); 
-const questionsArchiveRoutes = require('./routes/questionsArchive');
-const adminBlogRoutes = require('./routes/adminBlog');
-const blogRoutes = require('./routes/blog');
-
-const Bid = require('./models/Bid');
-const Question = require('./models/Question');
-const Transaction = require('./models/Transaction');
-const User = require('./models/User');
-const Document = require('./models/Document');
-const BlogPost = require('./models/BlogPost');
-const ContentFilterLog = require('./models/ContentFilterLog');
-
-// ========== 4. PAYSTACK WEBHOOK ==========
+// ========== 3. PAYSTACK WEBHOOK ==========
 app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
@@ -145,7 +158,7 @@ app.post('/api/wallet/paystack-webhook', express.raw({type: 'application/json'})
   res.sendStatus(200);
 });
 
-// ========== 5. CORS ==========
+// ========== 4. CORS ==========
 const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
@@ -164,7 +177,7 @@ app.use(cors({
   credentials: true
 }));
 
-// ========== 6. SOCKET.IO SETUP ==========
+// ========== 5. SOCKET.IO SETUP ==========
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -179,7 +192,7 @@ io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Authentication error'));
-    const jwt = require('jsonwebtoken');
+    const jwt = await import('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return next(new Error('User not found'));
@@ -199,7 +212,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// ========== 7. STANDARD MIDDLEWARE ==========
+// ========== 6. STANDARD MIDDLEWARE ==========
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -210,7 +223,7 @@ app.use('/api/auth', (req, res, next) => {
   if (req.path === '/reset-password') return next();
   if (req.path === '/register') return next();
   if (req.path === '/login') return next();
-  if (req.path === '/avatar') return next();   // ✅ Exclude avatar upload from CSRF
+  if (req.path === '/avatar') return next();
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
   return doubleCsrfProtection(req, res, next);
 });
@@ -233,16 +246,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== 8. EJS SETUP ==========
+// ========== 7. EJS SETUP ==========
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ========== 9. DATABASE CONNECTION ==========
+// ========== 8. DATABASE CONNECTION ==========
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
-// ========== 10. GLOBAL API RATE LIMITER ==========
+// ========== 9. GLOBAL API RATE LIMITER ==========
 const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -252,7 +265,7 @@ const globalApiLimiter = rateLimit({
 });
 app.use('/api/', globalApiLimiter);
 
-// ========== 11. API ROUTES ==========
+// ========== 10. API ROUTES ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/documents', documentRoutes);
@@ -264,8 +277,7 @@ app.use('/tutor', tutorRoutes);
 app.use('/questions', questionsArchiveRoutes);
 app.get('/health', (req, res) => res.send('OK'));
 
-// ========== 12. DEDICATED JSON ENDPOINT FOR ADMIN BLOG POSTS ==========
-// This endpoint is called by the frontend via apiFetch (which prepends /api)
+// ========== 11. DEDICATED JSON ENDPOINT FOR ADMIN BLOG POSTS ==========
 app.get('/api/admin/blog/posts', auth, roleCheck('admin'), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -294,13 +306,12 @@ app.get('/api/admin/blog/posts', auth, roleCheck('admin'), async (req, res) => {
   }
 });
 
-// ========== 13. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 12. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
     if (!document) return res.status(404).send('Document not found');
 
-    // Fetch related documents (same subject, exclude current, limit 5)
     const relatedDocuments = await Document.find({
       _id: { $ne: document._id },
       subject: document.subject,
@@ -313,7 +324,7 @@ app.get('/document/:slug', async (req, res) => {
     let user = null;
     if (token) {
       try {
-        const jwt = require('jsonwebtoken');
+        const jwt = await import('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         user = await User.findById(decoded.id).select('-password');
       } catch (err) {}
@@ -339,17 +350,13 @@ app.get('/api/csrf-token', (req, res) => {
 
 app.use('/subjects', subjectRoutes);
 app.use('/question', publicQuestionRoutes);
-
 app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
-// ========== 14. DYNAMIC SITEMAP ==========
-// ========== 14. DYNAMIC SITEMAP (FIXED) ==========
+// ========== 13. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
-    
-    // Helper function to slugify subject names (must be defined before use)
     const slugify = (str) => {
       if (!str) return '';
       return str.toLowerCase()
@@ -359,7 +366,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
     let urls = '';
 
-    // ---- Documents ----
+    // Documents
     const documents = await Document.find({ isApproved: true }).select('slug updatedAt');
     documents.forEach(doc => {
       urls += `
@@ -372,11 +379,10 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // ---- Subjects from Documents and Questions ----
+    // Subjects
     const docSubjects = await Document.distinct('subject', { isApproved: true });
     const questionCategories = await Question.distinct('category', { status: 'completed' });
     const allSubjects = [...new Set([...docSubjects, ...questionCategories])].filter(Boolean);
-    
     allSubjects.forEach(sub => {
       const slug = slugify(sub);
       if (!slug) return;
@@ -389,29 +395,24 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // Subject index page
     urls += `<url><loc>${baseUrl}/subjects</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
     urls += `<url><loc>${baseUrl}/questions</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // ---- Completed Questions ----
+    // Completed questions
     const completedQuestions = await Question.find({ status: 'completed' }).select('_id updatedAt');
-    if (completedQuestions && completedQuestions.length) {
-      completedQuestions.forEach(q => {
-        urls += `
-          <url>
-            <loc>${baseUrl}/question/${q._id}</loc>
-            <lastmod>${q.updatedAt ? q.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
-            <changefreq>monthly</changefreq>
-            <priority>0.6</priority>
-          </url>
-        `;
-      });
-    }
+    completedQuestions.forEach(q => {
+      urls += `
+        <url>
+          <loc>${baseUrl}/question/${q._id}</loc>
+          <lastmod>${q.updatedAt ? q.updatedAt.toISOString() : new Date().toISOString()}</lastmod>
+          <changefreq>monthly</changefreq>
+          <priority>0.6</priority>
+        </url>
+      `;
+    });
 
-    // ---- Tutor listing ----
     urls += `<url><loc>${baseUrl}/tutor/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // ---- Individual tutor profiles ----
     const tutors = await User.find({ role: 'tutor', isApproved: true }).select('_id updatedAt');
     tutors.forEach(t => {
       urls += `
@@ -424,7 +425,6 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // ---- Blog posts ----
     const blogPosts = await BlogPost.find({ isPublished: true }).select('slug updatedAt');
     blogPosts.forEach(post => {
       urls += `
@@ -438,7 +438,7 @@ app.get('/sitemap.xml', async (req, res) => {
     });
     urls += `<url><loc>${baseUrl}/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
 
-    // ---- Important static pages (optional but good) ----
+    // Static pages
     const staticPages = [
       { path: '/', priority: '1.0', changefreq: 'daily' },
       { path: '/subjects', priority: '0.9', changefreq: 'daily' },
@@ -461,7 +461,6 @@ app.get('/sitemap.xml', async (req, res) => {
       `;
     });
 
-    // Send XML response
     res.header('Content-Type', 'application/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -473,15 +472,15 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 15. STATIC FRONTEND ==========
+// ========== 14. STATIC FRONTEND ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 16. CATCH-ALL ==========
+// ========== 15. CATCH-ALL ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 17. CRON JOBS ==========
+// ========== 16. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -509,10 +508,9 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
-const updateTutorLevels = require('./utils/updateTutorLevels');
-cron.schedule('0 0 * * *', () => {
+cron.schedule('0 0 * * *', async () => {
   console.log('Running tutor level update...');
-  updateTutorLevels().catch(console.error);
+  await updateTutorLevels();
 });
 
 // Daily email report of content violations (8 AM)
@@ -553,7 +551,7 @@ cron.schedule('0 8 * * *', async () => {
           <tr><th>User</th><th>Email</th><th>Role</th><th>Action</th><th>Pattern</th><th>Blocked Text</th><th>Timestamp</th></tr>
         </thead>
         <tbody>${rows}</tbody>
-      </tr>
+      </table>
       <p><a href="https://studyglade.com/admin-dashboard.html?section=content-violations">View full log in admin dashboard</a></p>
     `;
 
@@ -569,7 +567,7 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-// ========== 18. GLOBAL ERROR HANDLER ==========
+// ========== 17. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -578,6 +576,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 19. START SERVER ==========
+// ========== 18. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

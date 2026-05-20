@@ -12,7 +12,7 @@ const Document = require('../models/Document');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { upload } = require('../server');
-const { emitToUser, getIO } = require('../utils/sockets');   // 👈 socket helper
+const { emitToUser, getIO } = require('../utils/sockets');
 const Notification = require('../models/Notification');
 
 console.log('✅ documents.js loaded (final version with validation + sockets)');
@@ -35,53 +35,48 @@ function getResourceType(mimetype) {
   return 'raw';
 }
 
-// Helper: extract preview text from PDF/DOCX/TXT
-// Helper: extract preview text from PDF/DOCX/TXT with cleaning and fallback
+// Generate a realistic dummy preview (about 500 chars) – this will be blurred
+function generateDummyPreview() {
+  const lorem = `This document contains valuable academic content. To protect the author's work, the full preview is hidden. Unlock to access the complete document including all chapters, examples, and detailed explanations. The content includes comprehensive research, step‑by‑step guides, and original analysis that will help you succeed in your studies. `;
+  return lorem.repeat(5).substring(0, 500) + '...';
+}
+
+// Helper: extract preview text from PDF/DOCX/TXT (with dynamic ESM imports)
 async function extractPreviewText(filePath, originalName) {
   try {
     const ext = originalName.split('.').pop().toLowerCase();
     let rawText = '';
 
     if (ext === 'pdf') {
-      const pdfParse = require('pdf-parse');
+      const pdfParse = await import('pdf-parse');
       const dataBuffer = await fs.readFile(filePath);
-      const data = await pdfParse(dataBuffer);
+      const data = await pdfParse.default(dataBuffer);
       rawText = data.text;
     } else if (ext === 'docx') {
-      const mammoth = require('mammoth');
+      const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ path: filePath });
       rawText = result.value;
     } else if (ext === 'txt') {
       rawText = await fs.readFile(filePath, 'utf8');
     } else {
-      // For unsupported types, return a generic message
-      return 'Preview not available. Unlock to access the full document.';
+      return generateDummyPreview();
     }
 
-    // Remove non‑printable characters (ASCII control codes 0-31, 127-159)
+    // Remove non‑printable control characters
     const cleanText = rawText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-    
-    // Check if the cleaned text is readable (contains at least some letters/words)
     const readableChars = (cleanText.match(/[a-zA-Z0-9\s]/g) || []).length;
-    if (cleanText.trim().length < 50 || readableChars < cleanText.length * 0.5) {
-      console.warn(`Preview text for ${originalName} seems unreadable (${readableChars}/${cleanText.length} readable chars). Using fallback.`);
-      return 'Preview not available. Unlock to see the full document.';
+
+    if (cleanText.trim().length < 20 || readableChars < cleanText.length * 0.3) {
+      console.warn(`Preview text for ${originalName} is unreadable (${readableChars}/${cleanText.length} chars). Using dummy preview.`);
+      return generateDummyPreview();
     }
 
-    // Truncate to 500 characters
     return cleanText.substring(0, 500) + (cleanText.length > 500 ? '...' : '');
   } catch (err) {
     console.error('Preview extraction error:', err);
-    return 'Preview not available. Unlock to access the complete document.';
+    return generateDummyPreview();
   }
 }
-
-let previewText = await extractPreviewText(req.file.path, req.file.originalname);
-
-// Final safeguard – if the preview is still too short or mostly non‑alphanumeric, replace it
-if (!previewText || previewText.length < 20 || previewText.replace(/[a-zA-Z0-9\s.,!?]/g, '').length > previewText.length * 0.5) {
-  previewText = 'Preview not available. Unlock to see the full document.';
-} 
 
 // ========== TEST ENDPOINTS ==========
 router.get('/test', (req, res) => {
@@ -91,7 +86,7 @@ router.get('/test2', (req, res) => {
   res.json({ message: 'test2 works' });
 });
 
-// ========== LIBRARY ENDPOINT (with validation for query params) ==========
+// ========== LIBRARY ENDPOINT ==========
 router.get('/library', 
   [
     query('subject').optional().trim().escape(),
@@ -174,7 +169,6 @@ router.get('/library',
   }
 );
 
-// ========== UPLOAD DOCUMENT ==========
 // ========== UPLOAD DOCUMENT (with admin notifications) ==========
 router.post('/upload', 
   auth,
@@ -200,7 +194,13 @@ router.post('/upload',
         folder: 'studyglade/documents',
         resource_type: resourceType
       });
-      const previewText = await extractPreviewText(req.file.path, req.file.originalname);
+      
+      let previewText = await extractPreviewText(req.file.path, req.file.originalname);
+      // ✅ Final safeguard: if preview is too short, replace with dummy
+      if (!previewText || previewText.length < 50) {
+        previewText = generateDummyPreview();
+      }
+      
       let previewImageUrl = '';
       if (req.file.mimetype === 'application/pdf') {
         const imgResult = await cloudinary.uploader.upload(req.file.path, {
@@ -230,8 +230,8 @@ router.post('/upload',
         previewText, previewImageUrl, slug
       });
 
-      // ✅ NEW: Notify all admins about new document upload (if not auto‑approved)
-      if (user.role !== 'admin') {  // only for tutor‑uploaded documents
+      // Notify admins (if not auto‑approved)
+      if (user.role !== 'admin') {
         try {
           const admins = await User.find({ role: 'admin' });
           const io = getIO(req);
@@ -253,7 +253,6 @@ router.post('/upload',
           console.log(`📢 Notified ${admins.length} admin(s) about new document upload`);
         } catch (notifErr) {
           console.error('Failed to notify admins about document upload:', notifErr);
-          // Do not block the upload
         }
       }
 
@@ -265,23 +264,22 @@ router.post('/upload',
   }
 );
 
-// ========== UNLOCK DOCUMENT (with socket events) ==========
+// ========== UNLOCK DOCUMENT ==========
 router.post('/:id/unlock',
   auth,
   validateObjectId('id'),
   handleValidationErrors,
   async (req, res) => {
+    // ... (keep your existing unlock logic, unchanged)
     try {
       const doc = await Document.findById(req.params.id);
       if (!doc) return res.status(404).json({ error: 'Document not found' });
       const user = await User.findById(req.userId);
       if (user.walletBalance < doc.price) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
-      // Deduct from buyer
       user.walletBalance -= doc.price;
       await user.save();
 
-      // Pay seller 65%
       const seller = await User.findById(doc.uploaderId);
       const sellerEarnings = doc.price * 0.65;
       seller.walletBalance += sellerEarnings;
@@ -293,7 +291,6 @@ router.post('/:id/unlock',
       doc.downloads += 1;
       await doc.save();
 
-      // Record transactions
       await Transaction.create({
         userId: req.userId, type: 'unlock_document', amount: -doc.price,
         description: `Unlocked: ${doc.title}`, referenceId: doc._id
@@ -303,7 +300,6 @@ router.post('/:id/unlock',
         description: `Document sale: ${doc.title}`, referenceId: doc._id
       });
 
-      // Fire-and-forget emails
       sendEmailWithTemplate(user.email, 'Document Unlocked – StudyGlade', 'document-unlocked.ejs', {
         studentName: user.fullName,
         documentTitle: doc.title,
@@ -317,9 +313,7 @@ router.post('/:id/unlock',
         reason: `Document sale: ${doc.title}`
       }).catch(err => console.error('Failed to send tutor payment email:', err));
 
-      // ✅ Socket events
       const io = getIO(req);
-      
       emitToUser(io, req.userId, 'wallet_update', {
         newBalance: user.walletBalance,
         transaction: { amount: -doc.price, type: 'unlock_document' }
@@ -330,7 +324,6 @@ router.post('/:id/unlock',
         fileUrl: doc.fileUrl,
         price: doc.price
       });
-
       emitToUser(io, doc.uploaderId, 'wallet_update', {
         newBalance: seller.walletBalance,
         transaction: { amount: sellerEarnings, type: 'document_sale' }
@@ -349,7 +342,6 @@ router.post('/:id/unlock',
     }
   }
 );
-
 // ========== PREVIEW (SEO) – FULL HTML PAGE ==========
 router.get('/preview/:id', 
   param('id').isMongoId().withMessage('Invalid document ID'),
@@ -585,6 +577,7 @@ router.post('/smart-preview/:id',
 );
 
 // ========== ADMIN: UPDATE PREVIEW TEXT ==========
+// ========== ADMIN: UPDATE PREVIEW TEXT ==========
 router.put('/:id/preview',
   auth,
   roleCheck('admin'),
@@ -602,5 +595,4 @@ router.put('/:id/preview',
     }
   }
 );
-
 module.exports = router;
