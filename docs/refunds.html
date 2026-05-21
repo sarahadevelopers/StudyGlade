@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutor Payment Policy | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .policy-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .policy-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .policy-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .policy-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .contact-info a {
+      color: #005BFF;
+      text-decoration: none;
+    }
+    .binding-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .policy-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .policy-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .policy-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .policy-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .policy-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .policy-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .policy-toc ul {
+        columns: 1;
+      }
+    }
+
+    .policy-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .policy-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .policy-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .policy-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .policy-section ul, .policy-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .policy-section li {
+      margin-bottom: 0.4rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .policy-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .policy-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="policy-container">
+    <div class="policy-header">
+      <h1>Tutor Payment Policy</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+      <div class="contact-info">
+        <span><i class="fas fa-envelope"></i> <a href="mailto:info@studyglade.com">info@studyglade.com</a></span>
+        <span><i class="fas fa-envelope-open-text"></i> <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a></span>
+        <span><i class="fas fa-globe"></i> <a href="https://studyglade.com" target="_blank">www.studyglade.com</a></span>
+      </div>
+    </div>
+
+    <div class="binding-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+
+    <!-- Table of Contents (1.1 to 1.20) -->
+    <div class="policy-toc">
+      <h3><i class="fas fa-list-ul"></i> Contents</h3>
+      <ul>
+        <li><a href="#sec1.1">1.1 Purpose of the Tutor Payments Policy</a></li>
+        <li><a href="#sec1.2">1.2 Standard Tutor Share</a></li>
+        <li><a href="#sec1.3">1.3 When Tutor Earnings Are Created</a></li>
+        <li><a href="#sec1.4">1.4 Official Delivery Requirement</a></li>
+        <li><a href="#sec1.5">1.5 Pending Earnings</a></li>
+        <li><a href="#sec1.6">1.6 Available Earnings</a></li>
+        <li><a href="#sec1.7">1.7 Held Earnings</a></li>
+        <li><a href="#sec1.8">1.8 Refunds and Tutor Earnings</a></li>
+        <li><a href="#sec1.9">1.9 Chargebacks</a></li>
+        <li><a href="#sec1.10">1.10 Withdrawal Requests</a></li>
+        <li><a href="#sec1.11">1.11 Withdrawal Processing</a></li>
+        <li><a href="#sec1.12">1.12 Payment Misconduct</a></li>
+        <li><a href="#sec1.13">1.13 Tutor Payment Support</a></li>
+        <li><a href="#sec1.14">1.14 Tutor Payment Status Definitions</a></li>
+        <li><a href="#sec1.15">1.15 Quality-Related Payment Holds</a></li>
+        <li><a href="#sec1.16">1.16 Conduct-Related Payment Holds</a></li>
+        <li><a href="#sec1.17">1.17 Tutor Withdrawal Methods</a></li>
+        <li><a href="#sec1.18">1.18 Withdrawal Errors</a></li>
+        <li><a href="#sec1.19">1.19 Tutor Taxes</a></li>
+        <li><a href="#sec1.20">1.20 Tutor Payment Records</a></li>
+      </ul>
+    </div>
+
+    <!-- Sections 1.1 to 1.20 -->
+    <div id="sec1.1" class="policy-section">
+      <h2>1.1 Purpose of the Tutor Payments Policy</h2>
+      <p>This Tutor Payments Policy explains how approved tutors earn, when earnings become available, when earnings may be held, how withdrawals work, and how refunds, disputes, chargebacks, misconduct, and platform rules affect payment. The policy applies only to tutors approved by StudyGlade and to work assigned and delivered through StudyGlade.</p>
+    </div>
+
+    <div id="sec1.2" class="policy-section">
+      <h2>1.2 Standard Tutor Share</h2>
+      <p>Unless StudyGlade displays a different rate before the tutor accepts work, the standard tutor share is 76 percent of the eligible question amount, and StudyGlade’s platform share is 24 percent. For example, if the question amount is 100 United States dollars, the tutor share is 76 United States dollars and StudyGlade’s platform share is 24 United States dollars before any applicable refunds, chargebacks, provider fees, taxes, currency conversion, or adjustments.</p>
+      <p>The tutor share applies only to eligible work completed through StudyGlade. It does not apply to off‑platform work, fake sessions, fraudulent transactions, plagiarized submissions, or work that StudyGlade cannot verify through platform records.</p>
+    </div>
+
+    <div id="sec1.3" class="policy-section">
+      <h2>1.3 When Tutor Earnings Are Created</h2>
+      <p>Tutor earnings may be created when a student pays for a question, the tutor is assigned through StudyGlade, the tutor completes the work through the official question page, the answer is delivered, and the question reaches a status that qualifies for payment under StudyGlade rules.</p>
+      <p>Pending earnings are not withdrawable. Available earnings are eligible for withdrawal subject to verification and review. Held earnings are paused because of dispute, refund request, chargeback, fraud review, academic integrity review, plagiarism concern, account restriction, or other platform review.</p>
+    </div>
+
+    <div id="sec1.4" class="policy-section">
+      <h2>1.4 Official Delivery Requirement</h2>
+      <p>Tutors must deliver answers through the official StudyGlade question page, answer upload tool, or another approved StudyGlade delivery function. Work delivered through personal email, WhatsApp, Telegram, social media, external file links, private payment channels, or unapproved methods may be treated as not delivered for platform payment purposes.</p>
+      <p>The official delivery record protects both the tutor and student because it shows the uploaded file, timestamp, question link, status, and delivery history.</p>
+    </div>
+
+    <div id="sec1.5" class="policy-section">
+      <h2>1.5 Pending Earnings</h2>
+      <p>Earnings may remain pending while the student review period is open, the answer is being reviewed, payment confirmation is pending, a refund window is active, a dispute is open, a plagiarism concern exists, a chargeback risk exists, fraud review is active, or admin approval is needed. Pending earnings appear in the tutor dashboard but cannot be withdrawn.</p>
+    </div>
+
+    <div id="sec1.6" class="policy-section">
+      <h2>1.6 Available Earnings</h2>
+      <p>Available earnings are tutor earnings released for withdrawal. A tutor may request withdrawal only from available balance. StudyGlade may still review or reverse available earnings if later evidence shows fraud, chargeback, fake session, plagiarism, off‑platform payment, stolen payment activity, serious misconduct, or legal obligation.</p>
+    </div>
+
+    <div id="sec1.7" class="policy-section">
+      <h2>1.7 Held Earnings</h2>
+      <p>StudyGlade may hold tutor earnings where there is a student refund request, active dispute, plagiarism concern, late delivery review, poor‑quality answer complaint, incorrect answer claim, chargeback, suspicious payment, account review, off‑platform payment report, personal contact sharing, fake session concern, artificial intelligence misuse, academic integrity issue, or failure to cooperate with review.</p>
+      <p>A hold does not always mean the tutor has violated policy. It means StudyGlade needs to review the transaction before releasing funds.</p>
+    </div>
+
+    <div id="sec1.8" class="policy-section">
+      <h2>1.8 Refunds and Tutor Earnings</h2>
+      <p>If StudyGlade approves a student refund for tutor‑related work, StudyGlade may reverse, reduce, or hold the tutor’s earnings. The effect on tutor earnings depends on the evidence, reason for refund, tutor conduct, original instructions, answer quality, timing, and payment status.</p>
+      <p>Tutor earnings may be protected where the tutor delivered the agreed work through StudyGlade, followed instructions, used accurate sources, delivered on time, and the student’s complaint is unsupported or based on new requests outside the original scope.</p>
+    </div>
+
+    <div id="sec1.9" class="policy-section">
+      <h2>1.9 Chargebacks</h2>
+      <p>If a student files a chargeback through a bank, card provider, mobile money provider, or payment processor, StudyGlade may hold earnings linked to the transaction. StudyGlade may use platform records such as question posting, assignment, chat, delivery, wallet history, and support records to respond to the chargeback.</p>
+      <p>If the chargeback succeeds, related tutor earnings may be reversed. If the chargeback is rejected and no other issue exists, StudyGlade may release the earnings after risk clears.</p>
+    </div>
+
+    <div id="sec1.10" class="policy-section">
+      <h2>1.10 Withdrawal Requests</h2>
+      <p>Tutors may request withdrawal of available earnings using supported withdrawal methods. Available methods may include Mpesa, PayPal, Payoneer, bank transfer, or other approved options depending on country, platform setup, and payment provider availability.</p>
+      <p>Withdrawal requests may require verification. StudyGlade may delay or reject withdrawals where payout details are incomplete, the account is restricted, funds are held, payment provider review is active, fraud signals exist, chargeback risk exists, or legal compliance checks are required.</p>
+      <h3>(i) Payout Detail Verification</h3>
+      <p>A tutor requesting withdrawal must provide accurate payout details. StudyGlade may reject or delay a withdrawal where the payout name, account number, mobile money number, PayPal email, Payoneer details, bank details, or country information appears incomplete, inconsistent, unsupported, or unsafe.</p>
+      <h3>(ii) Withdrawal Review before Release</h3>
+      <p>A withdrawal request does not guarantee immediate payment. StudyGlade may review available balance, held earnings, refund risk, dispute history, chargeback alerts, suspicious payment activity, account status, and payout method before approving release. This review protects tutors, students, and StudyGlade from payment errors and fraud.</p>
+    </div>
+
+    <div id="sec1.11" class="policy-section">
+      <h2>1.11 Withdrawal Processing</h2>
+      <p>Withdrawals are processed through approved payment channels after review and approval. Processing may take several business days depending on the payment method, country, bank, mobile money provider, verification status, currency conversion, public holidays, payment provider delay, or compliance review.</p>
+      <p>Users are responsible for entering correct payout details. StudyGlade may assist with failed or returned withdrawals, but recovery may not be possible if funds are sent to incorrect details supplied by the user.</p>
+      <h3>(i) Provider Fees and Currency Conversion</h3>
+      <p>Withdrawal providers, banks, mobile money providers, card networks, or payment processors may apply transfer fees, receiving fees, exchange rates, conversion charges, or account‑level deductions. StudyGlade may display available information where practical, but third‑party fees and exchange rates may be controlled by the payment provider rather than StudyGlade.</p>
+      <h3>(ii) Withdrawal Holds after Approval</h3>
+      <p>A withdrawal marked as approved may still be delayed, returned, reversed, or placed under review if the payment provider rejects the transfer, payout details fail verification, account risk changes, chargeback activity appears, legal review is required, or suspicious activity is detected before final settlement.</p>
+    </div>
+
+    <div id="sec1.12" class="policy-section">
+      <h2>1.12 Payment Misconduct</h2>
+      <p>Tutors may lose earnings and account access for payment misconduct. Payment misconduct includes off‑platform payment requests, fake sessions, acting as both student and tutor, rating manipulation, stolen payment activity, refund manipulation, chargeback abuse, withdrawal fraud, and using related accounts to create artificial earnings.</p>
+      <p>StudyGlade may hold, reverse, or cancel earnings connected to misconduct and may suspend or close the tutor account.</p>
+    </div>
+
+    <div id="sec1.13" class="policy-section">
+      <h2>1.13 Tutor Payment Support</h2>
+      <p>Tutors with payment questions should contact StudyGlade through the tutor dashboard, support form, <a href="mailto:info@studyglade.com">info@studyglade.com</a>, or <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a>. The tutor should include account email, question reference, amount, date, payment status, and screenshots where available.</p>
+    </div>
+
+    <div id="sec1.14" class="policy-section">
+      <h2>1.14 Tutor Payment Status Definitions</h2>
+      <p>Pending means the earning is recorded but not released. Available means the earning is released for withdrawal. Held means the earning is paused for review. Withdrawn means the earning has been paid out or marked as processed. Reversed means the earning has been removed or adjusted due to refund, chargeback, correction, fraud, or policy breach.</p>
+      <p>Tutor dashboards display these statuses to reduce confusion and to prevent withdrawal of funds that are not yet eligible.</p>
+    </div>
+
+    <div id="sec1.15" class="policy-section">
+      <h2>1.15 Quality-Related Payment Holds</h2>
+      <p>StudyGlade may hold payment when a student reports that an answer is missing, incomplete, late, incorrect, plagiarized, not based on instructions, not based on uploaded files, submitted in the wrong format, or not delivered through StudyGlade.</p>
+      <p>The tutor may be asked to respond. StudyGlade reviews the original instructions, tutor submission, chat messages, file history, timeline, and other evidence before deciding whether to release, reduce, reverse, or hold earnings.</p>
+    </div>
+
+    <div id="sec1.16" class="policy-section">
+      <h2>1.16 Conduct-Related Payment Holds</h2>
+      <p>StudyGlade may hold payment when the tutor is accused of off‑platform payment solicitation, personal contact sharing, harassment, fake session activity, rating manipulation, academic misconduct, artificial intelligence misuse, source fabrication, identity misrepresentation, or refusal to cooperate with review.</p>
+      <p>Payment may remain held until StudyGlade completes review. Serious misconduct may lead to payment reversal and account closure.</p>
+    </div>
+
+    <div id="sec1.17" class="policy-section">
+      <h2>1.17 Tutor Withdrawal Methods</h2>
+      <p>Withdrawal methods may include Mpesa, PayPal, Payoneer, bank transfer, or other approved channels, depending on platform configuration and user location. Availability of a withdrawal method does not guarantee approval of every withdrawal request.</p>
+      <p>StudyGlade may require email confirmation, account verification, payout method verification, or additional review before approving withdrawal.</p>
+    </div>
+
+    <div id="sec1.18" class="policy-section">
+      <h2>1.18 Withdrawal Errors</h2>
+      <p>If a withdrawal fails because of incorrect details, provider rejection, unsupported currency, account restriction, verification issue, or payment provider delay, StudyGlade updates the withdrawal status and may return the amount to available balance after confirmation.</p>
+      <p>Users should check payout details carefully before submitting. StudyGlade cannot guarantee recovery of funds sent to incorrect details provided by a user.</p>
+    </div>
+
+    <div id="sec1.19" class="policy-section">
+      <h2>1.19 Tutor Taxes</h2>
+      <p>Tutors are responsible for their own taxes, filings, reporting, levies, or income obligations connected to StudyGlade earnings unless applicable law requires StudyGlade to withhold or report certain information. StudyGlade may request tax‑related information where required by law or payment provider rules.</p>
+      <p>StudyGlade does not provide tax advice.</p>
+    </div>
+
+    <div id="sec1.20" class="policy-section">
+      <h2>1.20 Tutor Payment Records</h2>
+      <p>StudyGlade keeps tutor payment records linked to questions, earnings, holds, releases, withdrawals, refunds, chargebacks, and admin decisions. Tutors may view their own payment records through the dashboard where available and may contact support for payment clarification. Payment records protect both tutors and StudyGlade because they show the basis of earnings, platform share, payment status, and any review action.</p>
+      <h3>(i) Payment Statement Requests</h3>
+      <p>A tutor may request clarification of tutor payment records by contacting StudyGlade with the account email, question reference, date, amount, and issue being queried. StudyGlade may provide a reasonable summary of the relevant payment status, subject to privacy, fraud prevention, and platform security limits.</p>
+      <h3>(ii) Records after Account Restriction</h3>
+      <p>If a tutor account is restricted, suspended, or closed, StudyGlade may continue to retain payment records connected to completed questions, refunds, disputes, chargebacks, tax obligations, fraud review, or legal compliance. Account restriction does not erase payment history or remove StudyGlade’s right to review past transactions.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a> | <a href="dispute.html">Dispute</a> | <a href="how-it-works.html">How It Works</a> | <a href="about.html">About</a> | <a href="refunds.html">Tutor Payment</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.policy-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

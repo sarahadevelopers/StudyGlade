@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .about-container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .about-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .about-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .about-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .contact-info a {
+      color: #005BFF;
+      text-decoration: none;
+    }
+    .binding-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .about-section {
+      margin-bottom: 2rem;
+    }
+    .about-section h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .about-section h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1.2rem 0 0.5rem;
+    }
+    .about-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .about-section ul {
+      margin: 0.8rem 0 1rem 1.8rem;
+      list-style: none;
+    }
+    .about-section li {
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+    }
+    .about-section li i {
+      color: #005BFF;
+      font-size: 1rem;
+      margin-top: 0.2rem;
+    }
+    .values-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    .value-card {
+      background: #F8FAFF;
+      border-radius: 20px;
+      padding: 1rem 1.2rem;
+      flex: 1 1 200px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .value-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+    }
+    .value-card i {
+      font-size: 1.8rem;
+      color: #005BFF;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+    }
+    .value-card h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .value-card p {
+      font-size: 0.85rem;
+      color: #5B6E8C;
+      margin-bottom: 0;
+    }
+    @media (max-width: 640px) {
+      .values-grid {
+        flex-direction: column;
+      }
+      .value-card {
+        flex: auto;
+      }
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .about-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .about-section h2 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="about-container">
+    <div class="about-header">
+      <h1>About Us</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+      <div class="contact-info">
+        <span><i class="fas fa-envelope"></i> <a href="mailto:info@studyglade.com">info@studyglade.com</a></span>
+        <span><i class="fas fa-envelope-open-text"></i> <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a></span>
+        <span><i class="fas fa-globe"></i> <a href="https://studyglade.com" target="_blank">www.studyglade.com</a></span>
+      </div>
+    </div>
+
+    <div class="binding-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+
+    <!-- About Us -->
+    <div class="about-section">
+      <h2>About Us</h2>
+      <p>StudyGlade is an online tutoring and educational support platform that connects students with qualified tutors and useful study resources. We help students find academic guidance, access study materials, communicate with tutors, and manage learning support through one secure and organized platform.</p>
+      <p>Our platform is built for students who need clear academic help and tutors who want a professional space to share their knowledge. Through StudyGlade, students can post questions, review tutor offers, communicate through the platform, access study documents, and receive support that helps them learn responsibly.</p>
+      <p>We also provide a structured digital library where students, tutors, and approved contributors can share, preview, purchase, and download study materials. Every part of the platform is designed to support secure access, fair transactions, academic integrity, and a smooth learning experience.</p>
+      <p>At StudyGlade, we believe education should be accessible, flexible, responsible, and rewarding. Whether you are a student seeking support or a tutor offering expertise, StudyGlade gives you the tools to learn, teach, grow, and succeed in a trusted online environment.</p>
+    </div>
+
+    <!-- Our Vision -->
+    <div class="about-section">
+      <h2>Our Vision</h2>
+      <p>To become a leading global learning platform that connects students and tutors through secure, innovative, and high‑quality academic support, helping learners achieve success at every level.</p>
+    </div>
+
+    <!-- Our Mission -->
+    <div class="about-section">
+      <h2>Our Mission</h2>
+      <p>Our mission is to provide a trusted, efficient, and accessible online learning environment where students receive personalized academic guidance from approved tutors, while tutors gain fair opportunities to grow professionally and share their expertise.</p>
+      <p>StudyGlade is committed to academic excellence, responsible learning, data protection, fair payments, secure communication, and the use of technology to make knowledge easier to access.</p>
+    </div>
+
+    <!-- Our Values (presented as cards for visual polish) -->
+    <div class="about-section">
+      <h2>Our Values</h2>
+      <div class="values-grid">
+        <div class="value-card">
+          <i class="fas fa-shield-alt"></i>
+          <h4>1. Integrity and Trust</h4>
+          <p>Honest, responsible, ethical learning. All activity is managed through secure, traceable systems to support fairness and accountability.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-star"></i>
+          <h4>2. Excellence and Quality</h4>
+          <p>Tutors are reviewed before approval, rated by students, and expected to provide clear, original, useful guidance. Study materials are accurate and relevant.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-globe-americas"></i>
+          <h4>3. Accessibility and Inclusivity</h4>
+          <p>Supports high school, undergraduate, master’s, doctoral, and professional levels. Welcomes tutors from diverse backgrounds.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-microchip"></i>
+          <h4>4. Innovation and Technology</h4>
+          <p>Dashboards, live chat, wallet records, document access, notifications, and organized workflows make learning support faster and easier.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-balance-scale"></i>
+          <h4>5. Accountability and Responsibility</h4>
+          <p>Users must use the platform ethically. Breaches may lead to warnings, content removal, account restrictions, payment holds, or dispute review.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-chart-line"></i>
+          <h4>6. Growth and Development</h4>
+          <p>Students gain academic guidance; tutors build profiles, earn ratings, complete assignments, and progress based on quality and reliability.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-users"></i>
+          <h4>7. Community and Collaboration</h4>
+          <p>Encourages professional communication, mentorship, constructive feedback, and shared understanding.</p>
+        </div>
+        <div class="value-card">
+          <i class="fas fa-tachometer-alt"></i>
+          <h4>8. Efficiency and Convenience</h4>
+          <p>Dashboards, organized tools, and streamlined workflows reduce delays and confusion for both students and tutors.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a> | <a href="dispute.html">Dispute</a> | <a href="how-it-works.html">How It Works</a> | <a href="about.html">About</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

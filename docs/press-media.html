@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GDPR | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .gdpr-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .gdpr-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .gdpr-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .gdpr-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .contact-info a {
+      color: #005BFF;
+      text-decoration: none;
+    }
+    .binding-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .gdpr-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .gdpr-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .gdpr-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .gdpr-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .gdpr-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .gdpr-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .gdpr-toc ul {
+        columns: 1;
+      }
+    }
+
+    .gdpr-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .gdpr-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .gdpr-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .gdpr-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .gdpr-section ul, .gdpr-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .gdpr-section li {
+      margin-bottom: 0.4rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .gdpr-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .gdpr-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="gdpr-container">
+    <div class="gdpr-header">
+      <h1>GDPR</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+      <div class="contact-info">
+        <span><i class="fas fa-envelope"></i> <a href="mailto:info@studyglade.com">info@studyglade.com</a></span>
+        <span><i class="fas fa-envelope-open-text"></i> <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a></span>
+        <span><i class="fas fa-globe"></i> <a href="https://studyglade.com" target="_blank">www.studyglade.com</a></span>
+      </div>
+    </div>
+
+    <div class="binding-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+
+    <!-- Table of Contents (1.1 to 1.18) -->
+    <div class="gdpr-toc">
+      <h3><i class="fas fa-list-ul"></i> Contents</h3>
+      <ul>
+        <li><a href="#sec1.1">1.1 GDPR Coverage</a></li>
+        <li><a href="#sec1.2">1.2 Controller and Processor Roles</a></li>
+        <li><a href="#sec1.3">1.3 Lawful Bases for Processing</a></li>
+        <li><a href="#sec1.4">1.4 Data Protection Principles</a></li>
+        <li><a href="#sec1.5">1.5 Special Category Data</a></li>
+        <li><a href="#sec1.6">1.6 GDPR User Rights</a></li>
+        <li><a href="#sec1.7">1.7 Automated Processing</a></li>
+        <li><a href="#sec1.8">1.8 International Transfers</a></li>
+        <li><a href="#sec1.9">1.9 Cookies and Consent</a></li>
+        <li><a href="#sec1.10">1.10 Data Breach Response</a></li>
+        <li><a href="#sec1.11">1.11 Contract Performance Examples</a></li>
+        <li><a href="#sec1.12">1.12 Legitimate Interest Examples</a></li>
+        <li><a href="#sec1.13">1.13 Consent-Based Processing</a></li>
+        <li><a href="#sec1.14">1.14 Right of Access</a></li>
+        <li><a href="#sec1.15">1.15 Right to Erasure</a></li>
+        <li><a href="#sec1.16">1.16 Right to Portability</a></li>
+        <li><a href="#sec1.17">1.17 Vendor and Sub-Processor Controls</a></li>
+        <li><a href="#sec1.18">1.18 Complaints</a></li>
+      </ul>
+    </div>
+
+    <!-- Sections 1.1 to 1.18 -->
+    <div id="sec1.1" class="gdpr-section">
+      <h2>1.1 GDPR Coverage</h2>
+      <p>This General Data Protection Regulation section applies where StudyGlade processes personal data of users who are protected by the General Data Protection Regulation, the United Kingdom General Data Protection Regulation, or similar data protection laws. It explains the lawful basis for processing, user rights, data protection principles, international transfers, automated processing, and privacy request handling.</p>
+      <p>Where this section applies, StudyGlade processes personal data fairly, lawfully, transparently, and for defined purposes. StudyGlade limits data collection to what is needed for platform services, account management, payments, support, safety, legal duties, and policy enforcement.</p>
+    </div>
+
+    <div id="sec1.2" class="gdpr-section">
+      <h2>1.2 Controller and Processor Roles</h2>
+      <p>StudyGlade acts as a data controller for most user account, platform, wallet, support, document marketplace, tutor application, dispute, refund, and policy enforcement data because StudyGlade determines why and how that data is used for platform operations.</p>
+      <p>StudyGlade may act as a processor in limited circumstances where another organization lawfully instructs StudyGlade to process data for a defined service. Where a processor relationship exists, a separate data processing agreement may apply.</p>
+    </div>
+
+    <div id="sec1.3" class="gdpr-section">
+      <h2>1.3 Lawful Bases for Processing</h2>
+      <p>StudyGlade processes personal data on several lawful bases. Contract performance applies when StudyGlade creates accounts, posts questions, assigns tutors, processes document unlocks, provides dashboards, manages wallet transactions, and delivers support services requested by users.</p>
+      <p>Legitimate interests apply where StudyGlade prevents fraud, protects accounts, improves platform performance, investigates disputes, monitors safety, reviews suspicious activity, keeps audit trails, handles academic integrity concerns, and maintains service security. Legal obligation applies where StudyGlade must keep accounting records, respond to lawful requests, process copyright notices, handle tax duties, or comply with applicable law. Consent applies where StudyGlade uses optional marketing, non-essential cookies, or other consent-based processing.</p>
+    </div>
+
+    <div id="sec1.4" class="gdpr-section">
+      <h2>1.4 Data Protection Principles</h2>
+      <p>StudyGlade applies data protection principles across the platform. Personal data is processed lawfully and transparently. Data is collected for clear purposes. Data collection is limited to what is relevant. Records should be accurate and updated where needed. Data is retained only as long as necessary. Access is restricted by role. Security controls protect against unauthorized access, loss, misuse, or disclosure.</p>
+    </div>
+
+    <div id="sec1.5" class="gdpr-section">
+      <h2>1.5 Special Category Data</h2>
+      <p>StudyGlade does not ask users to provide special category data for ordinary platform use. Users should not upload private medical details, sensitive identity information, religious information, political opinions, biometric data, or other sensitive personal information unless it is necessary for a specific support or legal request. Where sensitive data is accidentally submitted, StudyGlade may restrict access, remove it, or process it only as needed to address the issue.</p>
+    </div>
+
+    <div id="sec1.6" class="gdpr-section">
+      <h2>1.6 GDPR User Rights</h2>
+      <p>Users covered by GDPR may request access to personal data, correction of inaccurate data, deletion of eligible data, restriction of processing, objection to processing, portability of data, withdrawal of consent where processing is based on consent, and human review of certain automated decisions where applicable.</p>
+      <p>Requests may be submitted through StudyGlade support or by emailing info@studyglade.com or studyglade@gmail.com. StudyGlade may request verification before acting on a request. StudyGlade may refuse or limit a request where the law permits retention for payment records, dispute records, copyright complaints, fraud prevention, legal obligations, security records, or defense of claims.</p>
+      <h3>(i) Rights Are Not Absolute in Every Case</h3>
+      <p>GDPR rights are applied according to the law and the context of the request. StudyGlade may need to retain certain information even after a deletion, objection, or restriction request where the information is needed for payment records, legal claims, fraud prevention, dispute resolution, copyright review, tax compliance, platform security, or protection of another user’s rights.</p>
+      <h3>(ii) Requests Involving Other Users</h3>
+      <p>A privacy request may not be used to obtain another user’s private information. StudyGlade may remove, redact, summarize, or refuse disclosure of information that would reveal another student’s files, tutor application details, buyer payment information, seller payout records, internal admin notes, confidential fraud indicators, or private support records belonging to another person.</p>
+    </div>
+
+    <div id="sec1.7" class="gdpr-section">
+      <h2>1.7 Automated Processing</h2>
+      <p>StudyGlade may use automated systems to route users to dashboards, check wallet balances, display search results, recommend tutors or documents, identify suspicious activity, detect possible off-platform contact sharing, process notifications, manage status badges, and support artificial intelligence learning tools. Automated systems support platform operation and do not remove user responsibility for final use of services.</p>
+      <p>Major enforcement decisions such as permanent account closure, large payment reversal, final dispute outcome, copyright removal, or long-term payment hold may involve human review where fairness, evidence, and user rights require it.</p>
+    </div>
+
+    <div id="sec1.8" class="gdpr-section">
+      <h2>1.8 International Transfers</h2>
+      <p>StudyGlade may use service providers located in different countries for hosting, payment processing, storage, email delivery, analytics, artificial intelligence processing, and support. Where personal data is transferred internationally and data protection law requires safeguards, StudyGlade uses appropriate transfer mechanisms and provider controls to protect the data.</p>
+    </div>
+
+    <div id="sec1.9" class="gdpr-section">
+      <h2>1.9 Cookies and Consent</h2>
+      <p>StudyGlade may use essential cookies for login, session management, payment flow, wallet security, document unlocks, live chat, and security. StudyGlade may use optional cookies for preferences, analytics, performance, and marketing where allowed. Users may manage non-essential cookies through cookie settings where available.</p>
+      <p>Disabling some cookies may affect login, dashboard access, wallet functions, chat, notifications, search, document unlocks, and payment processes.</p>
+      <h3>(i) Essential and Optional Cookies</h3>
+      <p>Essential cookies support core platform functions such as login, account security, session management, wallet processing, payment confirmation, document unlocks, live chat, fraud prevention, and dashboard access. These cookies are needed for the platform to work. Optional cookies may support preferences, analytics, performance measurement, marketing, or user experience improvements where allowed by law.</p>
+      <h3>(ii) Cookie Choice and Platform Effect</h3>
+      <p>Where cookie settings are available, users may manage optional cookies. Refusing or disabling optional cookies does not normally prevent ordinary platform use. Disabling essential cookies may prevent login, payment processing, wallet use, chat, document unlocking, saved preferences, security checks, or dashboard access from working correctly.</p>
+    </div>
+
+    <div id="sec1.10" class="gdpr-section">
+      <h2>1.10 Data Breach Response</h2>
+      <p>If StudyGlade identifies a personal data breach, StudyGlade investigates the incident, contains the risk, preserves evidence, assesses affected data, applies corrective measures, and notifies users or regulators where required by law. StudyGlade may reset passwords, restrict accounts, disable unsafe access, or take other actions to protect users and the platform.</p>
+    </div>
+
+    <div id="sec1.11" class="gdpr-section">
+      <h2>1.11 Contract Performance Examples</h2>
+      <p>StudyGlade uses contract performance as a lawful basis when a user creates an account, logs in, posts a question, assigns a tutor, uploads a file, receives an answer, unlocks a document, uses paid tools, receives support, requests a refund, opens a dispute, or requests withdrawal. These actions require data processing because StudyGlade cannot provide the service without account, content, transaction, and communication records.</p>
+      <p>For example, a student question requires StudyGlade to process the question title, instructions, subject, files, budget, deadline, tutor bids, assigned tutor, chat messages, and answer files. A withdrawal requires StudyGlade to process available balance, payout method, account verification, and payment records.</p>
+    </div>
+
+    <div id="sec1.12" class="gdpr-section">
+      <h2>1.12 Legitimate Interest Examples</h2>
+      <p>StudyGlade relies on legitimate interests where the platform protects accounts, prevents fraud, detects fake sessions, monitors suspicious withdrawals, enforces off-platform payment rules, reviews disputes, preserves audit logs, improves search, analyzes support trends, protects document marketplace quality, and responds to safety reports.</p>
+      <p>StudyGlade balances these interests against user rights. Access is limited by role, records are used for defined purposes, and users may object where applicable law gives that right.</p>
+    </div>
+
+    <div id="sec1.13" class="gdpr-section">
+      <h2>1.13 Consent-Based Processing</h2>
+      <p>Consent applies where StudyGlade requests optional permission, such as optional marketing communication, certain non-essential cookies, optional profile display choices, or optional communications not required to provide services. Consent must be clear and may be withdrawn where applicable.</p>
+      <p>Withdrawing consent does not affect processing already completed before withdrawal. It also does not stop StudyGlade from processing information where another lawful basis applies, such as contract performance, legal obligation, fraud prevention, payment records, or dispute handling.</p>
+    </div>
+
+    <div id="sec1.14" class="gdpr-section">
+      <h2>1.14 Right of Access</h2>
+      <p>A user covered by GDPR may ask StudyGlade for confirmation of whether personal data is being processed and may request access to that data. StudyGlade may provide account data, transaction summaries, support records, or other available personal data in a reasonable form.</p>
+      <p>StudyGlade may protect other users’ personal data when responding to access requests. A user may not use an access request to obtain another student’s private records, a tutor’s private application file, another user’s wallet records, or confidential admin notes.</p>
+    </div>
+
+    <div id="sec1.15" class="gdpr-section">
+      <h2>1.15 Right to Erasure</h2>
+      <p>A user may request deletion of eligible personal data. StudyGlade may delete account information, old optional profile information, or unnecessary stored data where no retention reason applies. StudyGlade may retain records needed for payment, tax, accounting, fraud prevention, dispute resolution, copyright review, safety, legal claims, or platform enforcement.</p>
+      <p>Account closure and data deletion are not always the same action. An account may be closed while records remain retained for legitimate and legal reasons.</p>
+    </div>
+
+    <div id="sec1.16" class="gdpr-section">
+      <h2>1.16 Right to Portability</h2>
+      <p>Where GDPR portability applies, a user may request personal data provided to StudyGlade in a structured and commonly used format. Portability applies to data processed by automated means and based on consent or contract performance, subject to legal limits.</p>
+      <p>Portability does not require StudyGlade to disclose another user’s information, internal fraud indicators, proprietary system logic, confidential admin notes, or data retained only for legal claims or enforcement.</p>
+    </div>
+
+    <div id="sec1.17" class="gdpr-section">
+      <h2>1.17 Vendor and Sub-Processor Controls</h2>
+      <p>StudyGlade may use vendors for hosting, payment processing, email, storage, analytics, live chat, artificial intelligence tools, support tickets, security, and identity verification. Vendors receive only the information needed to perform their service. Where GDPR applies, StudyGlade expects appropriate contractual, technical, and organizational safeguards for vendors that process personal data on behalf of StudyGlade.</p>
+      <h3>(i) Vendor Access Limits</h3>
+      <p>Vendors and sub-processors may access personal data only to the extent needed to provide the relevant service. A payment provider may process payment details. A hosting provider may store platform data. An email provider may deliver account notices. An artificial intelligence service provider may process tool inputs where the user uses that tool. Vendors are not authorized to use StudyGlade user data for unrelated purposes.</p>
+      <h3>(ii) Vendor Changes</h3>
+      <p>StudyGlade may change vendors or sub-processors where needed for security, reliability, legal compliance, service quality, payment processing, storage, support, or platform improvement. Where required by applicable data protection law, StudyGlade may update privacy notices or provide relevant information about material vendor changes.</p>
+    </div>
+
+    <div id="sec1.18" class="gdpr-section">
+      <h2>1.18 Complaints</h2>
+      <p>Users covered by GDPR may contact StudyGlade first with privacy concerns at info@studyglade.com or studyglade@gmail.com. Users may also have the right to complain to a data protection authority in their location.</p>
+      <p>StudyGlade handles privacy complaints through verification, review, response, correction where appropriate, and record keeping.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a> | <a href="dispute.html">Dispute</a> | <a href="how-it-works.html">How It Works</a> | <a href="about.html">About</a> | <a href="refunds.html">Tutor Payment</a> | <a href="press-media.html">Press & Media</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.gdpr-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
