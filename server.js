@@ -290,6 +290,21 @@ app.get('/document/*.html', (req, res) => {
   return res.status(404).send('File not found');
 });
 
+// ========== REDIRECT STATIC .html FILES FROM /blog/ ==========
+app.get('/blog/*.html', (req, res) => {
+    // Extract the filename from the request path (e.g., 'press-media.html')
+    const filename = req.path.split('/').pop();
+    const staticPath = path.join(__dirname, 'docs', filename);
+
+    // Check if the static file exists before redirecting
+    if (fs.existsSync(staticPath)) {
+        // Redirect to the root of the site (e.g., /press-media.html)
+        return res.redirect(301, `/${filename}`);
+    }
+    // If the static file doesn't exist, return a 404 error
+    return res.status(404).send('File not found');
+});
+
 // ========== 14. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
