@@ -278,7 +278,19 @@ app.get('/api/admin/blog/posts', auth, roleCheck('admin'), async (req, res) => {
   }
 });
 
-// ========== 13. SEO PUBLIC ROUTES + BLOG ==========
+// ========== 13. REDIRECT FOR STATIC .html FILES MISTAKENLY UNDER /document/ ==========
+app.get('/document/*.html', (req, res) => {
+  const filename = req.path.split('/').pop(); // e.g., terms.html
+  const staticPath = path.join(__dirname, 'docs', filename);
+  // Only redirect if the static file actually exists
+  if (fs.existsSync(staticPath)) {
+    return res.redirect(301, `/${filename}`);
+  }
+  // Otherwise, treat as 404 (prevents infinite loops)
+  return res.status(404).send('File not found');
+});
+
+// ========== 14. SEO PUBLIC ROUTES + BLOG ==========
 app.get('/document/:slug', async (req, res) => {
   try {
     const document = await Document.findOne({ slug: req.params.slug, isApproved: true });
@@ -314,7 +326,7 @@ app.use('/question', publicQuestionRoutes);
 app.use('/admin/blog', adminBlogRoutes);
 app.use('/blog', blogRoutes);
 
-// ========== 14. DYNAMIC SITEMAP ==========
+// ========== 15. DYNAMIC SITEMAP ==========
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = 'https://studyglade.com';
@@ -345,15 +357,23 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// ========== 15. STATIC FRONTEND ==========
+// ========== 16. STATIC FRONTEND & 404 HANDLING ==========
 app.use(express.static(path.join(__dirname, 'docs')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'register.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'login.html')));
 
-// ========== 16. CATCH-ALL ==========
+// Optional: Proper 404 for missing .html files (prevents catch‑all from hiding them)
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html')) {
+    return res.status(404).sendFile(path.join(__dirname, 'docs', '404.html'));
+  }
+  next();
+});
+
+// ========== 17. CATCH‑ALL FOR SPA ROUTING ==========
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'docs', 'index.html')));
 
-// ========== 17. CRON JOBS ==========
+// ========== 18. CRON JOBS ==========
 cron.schedule('0 * * * *', async () => {
   console.log('Running budget suggestion cron job...');
   try {
@@ -397,7 +417,7 @@ cron.schedule('0 8 * * *', async () => {
   } catch (err) { console.error('Content violation cron error:', err); }
 });
 
-// ========== 18. GLOBAL ERROR HANDLER ==========
+// ========== 19. GLOBAL ERROR HANDLER ==========
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
   if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
@@ -406,6 +426,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-// ========== 19. START SERVER ==========
+// ========== 20. START SERVER ==========
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
