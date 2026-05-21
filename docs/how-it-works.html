@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How It Works | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .howit-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .howit-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .howit-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .howit-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .contact-info a {
+      color: #005BFF;
+      text-decoration: none;
+    }
+    .binding-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .howit-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .howit-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .howit-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .howit-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .howit-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .howit-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .howit-toc ul {
+        columns: 1;
+      }
+    }
+
+    .howit-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .howit-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .howit-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .howit-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .howit-section ul, .howit-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .howit-section li {
+      margin-bottom: 0.4rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .howit-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .howit-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="howit-container">
+    <div class="howit-header">
+      <h1>How It Works</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+      <div class="contact-info">
+        <span><i class="fas fa-envelope"></i> <a href="mailto:info@studyglade.com">info@studyglade.com</a></span>
+        <span><i class="fas fa-envelope-open-text"></i> <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a></span>
+        <span><i class="fas fa-globe"></i> <a href="https://studyglade.com" target="_blank">www.studyglade.com</a></span>
+      </div>
+    </div>
+
+    <div class="binding-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+
+    <!-- Table of Contents (1.1 to 1.16) -->
+    <div class="howit-toc">
+      <h3><i class="fas fa-list-ul"></i> Contents</h3>
+      <ul>
+        <li><a href="#sec1.1">1.1 Platform Overview</a></li>
+        <li><a href="#sec1.2">1.2 How Students Use StudyGlade</a></li>
+        <li><a href="#sec1.3">1.3 How Tutors Use StudyGlade</a></li>
+        <li><a href="#sec1.4">1.4 How the Document Library Works</a></li>
+        <li><a href="#sec1.5">1.5 How Users Upload Study Materials</a></li>
+        <li><a href="#sec1.6">1.6 How the Wallet Works</a></li>
+        <li><a href="#sec1.7">1.7 How Live Chat Works</a></li>
+        <li><a href="#sec1.8">1.8 How Artificial Intelligence Tools Work</a></li>
+        <li><a href="#sec1.9">1.9 How Support Works</a></li>
+        <li><a href="#sec1.10">1.10 Student Question Statuses</a></li>
+        <li><a href="#sec1.11">1.11 Tutor Assignment Statuses</a></li>
+        <li><a href="#sec1.12">1.12 Document Statuses</a></li>
+        <li><a href="#sec1.13">1.13 Refund and Dispute Flow</a></li>
+        <li><a href="#sec1.14">1.14 Tutor Application Flow</a></li>
+        <li><a href="#sec1.15">1.15 Seller Flow</a></li>
+        <li><a href="#sec1.16">1.16 Support Flow</a></li>
+      </ul>
+    </div>
+
+    <!-- Sections (1.1 to 1.16) -->
+    <div id="sec1.1" class="howit-section">
+      <h2>1.1 Platform Overview</h2>
+      <p>StudyGlade gives users one structured place to seek academic support, connect with approved tutors, unlock study resources, upload lawful study materials, use learning tools, manage wallet payments, communicate safely, and receive support. The platform uses role‑based dashboards so students, tutors, sellers, buyers, and admins see the tools relevant to them.</p>
+    </div>
+
+    <div id="sec1.2" class="howit-section">
+      <h2>1.2 How Students Use StudyGlade</h2>
+      <p>A student creates an account, verifies the account where required, adds funds or uses an approved payment method, posts a question, selects the subject and subcategory, enters clear instructions, uploads relevant files, selects academic level, sets a deadline, sets a budget, reviews the question, confirms the Honor Code acknowledgment, and submits the question.</p>
+      <p>After the question is submitted, eligible tutors may view the permitted question details and place bids. The student reviews tutor bids, profile information, ratings, tutor level, proposed price, and expected delivery. The student then selects a tutor through StudyGlade. The question status updates, the live chat opens, and the tutor receives access to the assigned work.</p>
+      <p>The student communicates with the tutor through StudyGlade chat, provides clarification where needed, and waits for delivery. When the tutor submits the answer through StudyGlade, the student receives a notification, reviews the answer, downloads any files, requests a valid revision where applicable, rates the tutor, and closes the question. If a serious issue occurs, the student may request refund or open a dispute.</p>
+    </div>
+
+    <div id="sec1.3" class="howit-section">
+      <h2>1.3 How Tutors Use StudyGlade</h2>
+      <p>A tutor applicant creates an account, completes the tutor application, selects areas of expertise, submits any required qualifications or writing sample, completes the platform rules quiz, accepts tutor policies, and waits for StudyGlade review. A tutor applicant does not receive full tutor access until approved.</p>
+      <p>After approval, the tutor can access the tutor dashboard, view available questions within approved subjects and permissions, place bids, accept assigned work through the platform, communicate with assigned students, upload answers, respond to revision requests, receive ratings, track earnings, and request withdrawal of available funds.</p>
+      <p>Tutors must keep communication and payment inside StudyGlade. Tutors must not request personal contact details, direct payment, restricted assessment work, or dishonest academic actions. Work must be delivered through the official StudyGlade question page to qualify for payment protection.</p>
+    </div>
+
+    <div id="sec1.4" class="howit-section">
+      <h2>1.4 How the Document Library Works</h2>
+      <p>Users may browse the StudyGlade Document Library by subject, academic level, document type, price, rating, popularity, date, or keyword. A user opens a document preview to review the title, description, subject, academic level, document type, seller username, price, and limited preview content.</p>
+      <p>When the user clicks Unlock, StudyGlade checks wallet balance or approved payment status. If payment is successful, the document unlocks, the buyer receives download access, the transaction record updates, the seller earnings record updates, and the buyer can later find the document in the account library. If wallet balance is insufficient, StudyGlade blocks the unlock and asks the user to add funds.</p>
+    </div>
+
+    <div id="sec1.5" class="howit-section">
+      <h2>1.5 How Users Upload Study Materials</h2>
+      <p>Eligible users may upload study materials through the Upload Study Material page or seller dashboard. The uploader adds title, description, preview summary, subject, subcategory, academic level, document type, tags, price, and file. The uploader confirms ownership, academic integrity, copyright compliance, and privacy declarations before submission.</p>
+      <p>StudyGlade may review the document before publication. The document may be approved, rejected, returned for correction, unpublished, removed, or placed under copyright, quality, privacy, or academic integrity review. Sellers earn only from eligible and genuine document unlocks.</p>
+    </div>
+
+    <div id="sec1.6" class="howit-section">
+      <h2>1.6 How the Wallet Works</h2>
+      <p>The StudyGlade wallet records deposits, question payments, document unlocks, tutor earnings, seller earnings, refunds, reversals, holds, failed payments, and withdrawals. Students use wallet balance to pay for questions and unlock documents. Tutors and sellers use wallet records to track pending, available, held, and withdrawn earnings.</p>
+      <p>Wallet status matters. Available balance can be used or withdrawn where allowed. Pending balance is not yet released. Held balance is paused because of dispute, fraud review, refund review, chargeback, copyright complaint, account restriction, or other platform review. Reversed balance has been adjusted because of refund, chargeback, fraud, or correction.</p>
+    </div>
+
+    <div id="sec1.7" class="howit-section">
+      <h2>1.7 How Live Chat Works</h2>
+      <p>Live chat allows students and assigned tutors to clarify instructions, share relevant information, and discuss assigned work inside StudyGlade. Chat messages are linked to the question or support issue. Chat records help StudyGlade resolve disputes, review refunds, detect off‑platform payment requests, investigate harassment, and protect users.</p>
+      <p>Users may not share phone numbers, personal email addresses, WhatsApp contacts, Telegram handles, social media profiles, payment details, passwords, or private bank information through chat. StudyGlade may review chat where needed for support, safety, payment review, academic integrity, or enforcement.</p>
+    </div>
+
+    <div id="sec1.8" class="howit-section">
+      <h2>1.8 How Artificial Intelligence Tools Work</h2>
+      <p>StudyGlade may provide tools such as Plagiarism Checker, Artificial Intelligence Detector, Artificial Intelligence Homework Helper, Artificial Intelligence Humanizer, and Grammar Checker. Each tool supports learning, clarity, checking, and review. Tool outputs may be useful, but users remain responsible for reviewing them before use.</p>
+      <p>Artificial intelligence tools may not be used for cheating, restricted assessment completion, fabricated sources, false data, or hiding academic misconduct. Users should not upload private payment details, passwords, confidential files, or sensitive personal data into these tools.</p>
+      <h3>(i) Tool Results Are Not Final Decisions</h3>
+      <p>Artificial intelligence detector scores, plagiarism indicators, grammar suggestions, rewritten text, generated explanations, or homework support responses are not final academic decisions. A low artificial intelligence score does not guarantee acceptance by an institution. A high similarity score does not automatically prove plagiarism. A grammar suggestion may change meaning if accepted without review.</p>
+      <h3>(ii) User Review before Use</h3>
+      <p>Users should check every artificial intelligence output for accuracy, relevance, tone, source quality, originality, and compliance with assignment or institutional rules. Where the tool produces citations, statistics, claims, calculations, or explanations, the user should verify them before relying on them.</p>
+    </div>
+
+    <div id="sec1.9" class="howit-section">
+      <h2>1.9 How Support Works</h2>
+      <p>Users may contact StudyGlade through website support forms, live chat, dashboard support, or official email. Support categories include account access, student questions, tutor applications, wallet payments, withdrawals, refunds, disputes, document library, copyright, privacy, academic integrity, community conduct, technical issues, and general inquiries.</p>
+      <p>Users should submit clear information and evidence. StudyGlade may request account verification before changing account access, reviewing payments, processing privacy requests, or resolving sensitive cases.</p>
+    </div>
+
+    <div id="sec1.10" class="howit-section">
+      <h2>1.10 Student Question Statuses</h2>
+      <p>A student question may show statuses such as Draft, Awaiting Payment, Posted, Awaiting Tutor Bids, Tutor Assigned, In Progress, Answer Delivered, Revision Requested, Completed, Disputed, Canceled, Expired, or Refunded. Each status reflects the latest platform record and helps the student understand what action is needed.</p>
+      <p>A question cannot be treated as assigned until the StudyGlade system confirms assignment. A private message from a tutor or student does not replace system assignment, wallet confirmation, and dashboard status.</p>
+      <h3>(i) Student Cancellation before Tutor Assignment</h3>
+      <p>A student may request cancellation before a tutor is officially assigned, subject to wallet, payment, and platform status. Where payment has already been made, StudyGlade may return eligible funds as wallet credit, original payment method refund, or another approved correction depending on payment provider rules and platform records.</p>
+      <h3>(ii) Student Cancellation after Tutor Assignment</h3>
+      <p>After a tutor is assigned, cancellation may affect tutor earnings, student refund eligibility, dispute review, and platform records. StudyGlade may review whether the tutor had started work, whether files were accessed, whether chat occurred, whether the deadline was active, and whether the cancellation request is fair under the original question scope.</p>
+    </div>
+
+    <div id="sec1.11" class="howit-section">
+      <h2>1.11 Tutor Assignment Statuses</h2>
+      <p>Tutor work may show statuses such as Bid Submitted, Bid Accepted, Assigned, In Progress, Answer Uploaded, Revision Pending, Completed, Under Review, Payment Pending, Payment Available, Payment Held, or Disputed. These statuses help tutors manage deadlines, communication, and earnings.</p>
+      <p>A tutor should not start paid work before official assignment. Work started before assignment may not receive payment protection because StudyGlade cannot confirm the agreed scope, price, or delivery obligations.</p>
+      <h3>(i) Tutor Unable to Complete Assigned Work</h3>
+      <p>If a tutor cannot complete assigned work, the tutor should notify the student and StudyGlade through the platform as soon as possible. The tutor should not disappear, deliver incomplete work as final, or move the task off‑platform. StudyGlade may review reassignment, cancellation, refund, deadline adjustment, or payment hold depending on the timing and evidence.</p>
+      <h3>(ii) Reassignment of Tutor Work</h3>
+      <p>StudyGlade may allow reassignment where a tutor fails to respond, cannot complete the work, breaches platform rules, misses a deadline, or is removed from the question for a valid reason. Reassignment is handled through StudyGlade records so the student, tutor, wallet, and dispute history remain traceable.</p>
+    </div>
+
+    <div id="sec1.12" class="howit-section">
+      <h2>1.12 Document Statuses</h2>
+      <p>Documents may show statuses such as Draft, Submitted for Review, Correction Required, Approved, Published, Rejected, Unpublished, Removed, Under Copyright Review, Under Quality Review, Under Privacy Review, or Under Academic Integrity Review.</p>
+      <p>Only approved and published documents appear for public marketplace unlocks. Documents under review, removed, or unpublished may be hidden from search and downloads depending on the reason.</p>
+    </div>
+
+    <div id="sec1.13" class="howit-section">
+      <h2>1.13 Refund and Dispute Flow</h2>
+      <p>A user experiencing a problem should first check the relevant dashboard, transaction record, message thread, document page, or support article. If the issue remains unresolved, the user may submit a support request, refund request, or dispute depending on the nature of the problem.</p>
+      <p>StudyGlade reviews the request, checks records, requests missing evidence where needed, may ask the other party to respond, makes a decision, updates wallet or content records where necessary, and sends an outcome notice.</p>
+    </div>
+
+    <div id="sec1.14" class="howit-section">
+      <h2>1.14 Tutor Application Flow</h2>
+      <p>A tutor applicant submits application information, subject expertise, writing sample or qualification evidence where required, and platform rule acknowledgements. StudyGlade reviews the application and may approve, reject, or request more information.</p>
+      <p>Approved tutors receive dashboard access and begin at the assigned tutor level. Rejected applicants may receive a reason and may be allowed to reapply depending on the issue. Serious dishonesty, copied samples, fake credentials, or suspicious activity may block reapplication.</p>
+    </div>
+
+    <div id="sec1.15" class="howit-section">
+      <h2>1.15 Seller Flow</h2>
+      <p>A seller uploads a document, completes metadata, confirms ownership, confirms academic integrity, confirms privacy compliance, sets a price where allowed, and submits the document for review. StudyGlade reviews and assigns a document status.</p>
+      <p>After approval and publication, buyers may preview and unlock the document. The seller sees views, unlocks, ratings, earnings, and status notices. Seller earnings may be held if buyer complaints, copyright reports, fraud alerts, or document quality problems arise.</p>
+    </div>
+
+    <div id="sec1.16" class="howit-section">
+      <h2>1.16 Support Flow</h2>
+      <p>A support request begins with a category, user type, account email, message, and evidence where needed. StudyGlade creates or updates a support record, routes the issue to the correct review area, verifies identity where necessary, and responds through official channels.</p>
+      <p>Complex matters such as disputes, refunds, copyright reports, payment reviews, privacy requests, and academic integrity concerns may require more time because StudyGlade must review evidence and preserve platform records.</p>
+      <h3>(i) Support Ticket Continuity</h3>
+      <p>When a support issue is opened, StudyGlade may connect later emails, screenshots, dashboard messages, live chat records, payment records, or dispute evidence to the same support ticket. This helps avoid repeated explanations and allows StudyGlade to review the full history of the case.</p>
+      <h3>(ii) Duplicate Requests</h3>
+      <p>If a user submits several messages about the same issue, StudyGlade may combine them into one support case. Submitting repeated duplicate requests may delay review because support staff must reconcile the records before making a decision.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a> | <a href="dispute.html">Dispute</a> | <a href="how-it-works.html">How It Works</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.howit-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

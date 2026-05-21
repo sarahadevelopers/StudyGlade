@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .contact-container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .contact-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .contact-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .contact-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-card {
+      background: #F8FAFF;
+      border-radius: 24px;
+      padding: 1.8rem;
+      margin-bottom: 2rem;
+    }
+    .contact-card h2 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #061B49;
+      margin-bottom: 1rem;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+    }
+    .contact-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: space-between;
+    }
+    .contact-method {
+      flex: 1;
+      min-width: 200px;
+    }
+    .contact-method i {
+      font-size: 1.8rem;
+      color: #005BFF;
+      margin-bottom: 0.5rem;
+    }
+    .contact-method h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .contact-method p, .contact-method a {
+      color: #1E293B;
+      text-decoration: none;
+      word-break: break-word;
+    }
+    .contact-method a:hover {
+      color: #005BFF;
+      text-decoration: underline;
+    }
+    .support-hours {
+      background: #EFF6FF;
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border-left: 4px solid #005BFF;
+    }
+    .support-hours h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #061B49;
+    }
+    .disclaimer-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1.2rem;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .disclaimer-note i {
+      margin-right: 0.5rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .contact-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .contact-details {
+        flex-direction: column;
+        gap: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="contact-container">
+    <div class="contact-header">
+      <h1>Contact Us</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+    </div>
+
+    <!-- Official contact card -->
+    <div class="contact-card">
+      <h2>Official StudyGlade Contacts</h2>
+      <div class="contact-details">
+        <div class="contact-method">
+          <i class="fas fa-envelope"></i>
+          <h3>Email (Primary)</h3>
+          <a href="mailto:info@studyglade.com">info@studyglade.com</a>
+        </div>
+        <div class="contact-method">
+          <i class="fas fa-envelope-open-text"></i>
+          <h3>Email (Secondary)</h3>
+          <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a>
+        </div>
+        <div class="contact-method">
+          <i class="fas fa-globe"></i>
+          <h3>Website</h3>
+          <a href="https://studyglade.com" target="_blank">www.studyglade.com</a>
+        </div>
+        <div class="contact-method">
+          <i class="fas fa-phone-alt"></i>
+          <h3>Phone</h3>
+          <p>Support available via email and dashboard – phone support is currently not offered.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Support hours and general info -->
+    <div class="contact-card">
+      <h2>How Can We Help?</h2>
+      <p>StudyGlade is available to assist with account questions, tutoring support, document library issues, wallet and payment concerns, technical problems, disputes, copyright reports, and general inquiries.</p>
+      <div class="support-hours">
+        <h3><i class="fas fa-clock"></i> Support Hours</h3>
+        <p>StudyGlade support is available <strong>24/7</strong> through the platform dashboard and official contact channels.</p>
+        <p style="margin-top: 0.5rem;">For technical issues, account inquiries, tutor support, document library assistance, wallet concerns, or general questions, please contact our support team using the details above. We aim to respond to most inquiries within 24 hours, although complex matters involving payments, disputes, copyright, privacy, or account security may require additional review time.</p>
+      </div>
+    </div>
+
+    <!-- Binding document notice (from the provided text) -->
+    <div class="disclaimer-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

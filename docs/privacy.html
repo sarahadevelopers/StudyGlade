@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .privacy-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .privacy-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .privacy-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .privacy-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+    }
+    .privacy-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .privacy-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .privacy-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .privacy-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .privacy-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .privacy-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .privacy-toc ul {
+        columns: 1;
+      }
+    }
+
+    .privacy-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .privacy-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .privacy-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .privacy-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .privacy-section ul, .privacy-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .privacy-section li {
+      margin-bottom: 0.4rem;
+    }
+    .notice-box {
+      background: #EFF6FF;
+      border-left: 4px solid #005BFF;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 12px;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .privacy-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .privacy-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="privacy-container">
+    <div class="privacy-header">
+      <h1>Privacy Policy</h1>
+      <p>How StudyGlade collects, uses, and protects your information</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="privacy-toc">
+      <h3><i class="fas fa-lock"></i> Contents</h3>
+      <ul>
+        <li><a href="#commitment">1. Privacy Commitment</a></li>
+        <li><a href="#collection">2. Information StudyGlade Collects</a></li>
+        <li><a href="#payment-info">3. Payment and Wallet Information</a></li>
+        <li><a href="#live-chat">4. Live Chat and Messages</a></li>
+        <li><a href="#ai-data">5. Artificial Intelligence Tool Data</a></li>
+        <li><a href="#usage">6. How StudyGlade Uses Information</a></li>
+        <li><a href="#role-access">7. Role‑Based Access</a></li>
+        <li><a href="#sharing">8. Sharing Information</a></li>
+        <li><a href="#retention">9. Data Retention</a></li>
+        <li><a href="#rights">10. User Privacy Rights</a></li>
+        <li><a href="#children">11. Children and Younger Users</a></li>
+        <li><a href="#security">12. Security</a></li>
+        <li><a href="#not-required">13. Information Not Required for Ordinary Use</a></li>
+        <li><a href="#student-privacy">14. Student Privacy in Questions</a></li>
+        <li><a href="#tutor-privacy">15. Tutor Privacy</a></li>
+        <li><a href="#marketplace-privacy">16. Document Marketplace Privacy</a></li>
+        <li><a href="#support-privacy">17. Support and Evidence Privacy</a></li>
+        <li><a href="#marketing">18. Marketing Choices</a></li>
+        <li><a href="#account-closure">19. Account Closure and Privacy</a></li>
+        <li><a href="#contact">20. Privacy Contact</a></li>
+      </ul>
+    </div>
+
+    <!-- Sections (numbered and anchored) -->
+    <div id="commitment" class="privacy-section">
+      <h2>1. Privacy Commitment</h2>
+      <p>StudyGlade respects user privacy and handles personal information to operate the platform, provide academic support, process payments, manage tutor and document services, respond to support requests, protect users, prevent fraud, enforce policies, and comply with legal obligations. Personal information is collected for defined platform purposes and is not sold to advertisers.</p>
+      <p>The privacy rules apply to visitors, students, tutors, tutor applicants, document sellers, buyers, rights holders, support users, and anyone who submits information through StudyGlade. Privacy protection applies across account pages, dashboards, wallet records, live chat, uploaded files, document previews, artificial intelligence tools, support forms, disputes, refunds, copyright reports, and admin review processes.</p>
+    </div>
+
+    <div id="collection" class="privacy-section">
+      <h2>2. Information StudyGlade Collects</h2>
+      <p>StudyGlade may collect account information such as name, username, email address, password credentials in protected form, account type, country or region, profile image, language preferences, notification settings, login history, device data, and security records. This information supports account creation, login, user identification, account recovery, dashboard routing, fraud prevention, and communication.</p>
+      <p>StudyGlade may collect student activity information such as posted questions, subject and subcategory, academic level, deadline, budget, uploaded files, tutor bids, assigned tutor, chat messages, answer files, ratings, revision requests, purchased documents, support tickets, refund requests, dispute submissions, and wallet records.</p>
+      <p>StudyGlade may collect tutor information such as application details, qualifications, subject expertise, writing samples, platform quiz results, approved subjects, tutor profile, bids, active assignments, completed assignments, answer uploads, messages, ratings, reviews, level status, earnings, withdrawal records, warnings, suspensions, and reinstatement records.</p>
+      <p>StudyGlade may collect document marketplace information such as document title, description, preview, subject, subcategory, academic level, document type, tags, uploaded file, price, approval status, views, unlocks, downloads, ratings, reviews, seller earnings, copyright reports, buyer complaints, and document moderation records.</p>
+    </div>
+
+    <div id="payment-info" class="privacy-section">
+      <h2>3. Payment and Wallet Information</h2>
+      <p>StudyGlade collects wallet and transaction information to process deposits, question payments, document unlocks, tutor earnings, seller earnings, refunds, chargebacks, withdrawals, payment failures, and financial reviews. Payment information may include transaction amount, date, currency, payment method, payment provider reference, wallet status, refund status, withdrawal status, and related question or document records.</p>
+      <p>Payment card information and sensitive payment credentials should be handled by approved payment providers where available. Users should not send full card numbers, card security codes, bank passwords, mobile money personal identification numbers, or payment account passwords through live chat, uploaded files, support messages, or public forms.</p>
+    </div>
+
+    <div id="live-chat" class="privacy-section">
+      <h2>4. Live Chat and Messages</h2>
+      <p>Live chat and platform messages may include text, attachments, images, files, links, timestamps, delivery status, and message history. StudyGlade uses chat records to support tutor‑student communication, answer clarification, support review, disputes, refunds, harassment reports, off‑platform payment detection, personal contact sharing review, academic integrity concerns, and fraud prevention.</p>
+      <p>Chat is private from unauthorized users, but it is not private from legitimate StudyGlade review. Authorized StudyGlade personnel may review chat where needed to operate the service, protect users, enforce rules, investigate reports, resolve disputes, or comply with legal duties.</p>
+    </div>
+
+    <div id="ai-data" class="privacy-section">
+      <h2>5. Artificial Intelligence Tool Data</h2>
+      <p>StudyGlade artificial intelligence learning tools may process text entered by users, uploaded files, selected tool options, prompts, generated outputs, reports, and usage records. Tool data may be used to provide the requested function, troubleshoot errors, prevent abuse, support paid tool records, and respond to user support requests.</p>
+      <p>Users should not enter passwords, private payment details, bank information, identity records, confidential third‑party information, private medical information, or unrelated sensitive data into artificial intelligence tools. Users remain responsible for reviewing artificial intelligence outputs before using them.</p>
+      <h3>(i) Tool‑Specific Notices</h3>
+      <p>Each artificial intelligence tool may display its own notice explaining what the tool does, what information it may process, and what limits apply to its output. Users should read the notice shown on the specific tool page before submitting content.</p>
+      <h3>(ii) Output Responsibility</h3>
+      <p>Artificial intelligence outputs, reports, scores, suggestions, rewritten text, explanations, or similarity indicators are support materials only. They should not be treated as final academic judgment, proof of originality, proof of misconduct, guaranteed compliance, or verified research. Users must review the output, correct errors, confirm sources, and decide whether use of the output is allowed by their institution or task rules.</p>
+    </div>
+
+    <div id="usage" class="privacy-section">
+      <h2>6. How StudyGlade Uses Information</h2>
+      <p>StudyGlade uses personal information to create accounts, verify login, route users to dashboards, post questions, match tutors, process bids, open chat, deliver answers, manage documents, unlock study materials, process wallet transactions, release payments, review withdrawals, provide support, handle refunds, resolve disputes, process copyright reports, improve platform safety, and maintain records.</p>
+      <p>StudyGlade also uses information to detect fraud, prevent fake sessions, identify off‑platform payment requests, protect accounts, investigate harassment, review plagiarism concerns, remove prohibited content, manage academic integrity concerns, provide notifications, maintain audit trails, and comply with applicable legal obligations.</p>
+    </div>
+
+    <div id="role-access" class="privacy-section">
+      <h2>7. Role‑Based Access</h2>
+      <p>StudyGlade uses role‑based access controls. Students see their own questions, wallet balance, tutor bids, messages, answers, purchased documents, and support records. Tutors see approved tutor tools, assigned student question details, files needed for assigned work, tutor earnings, ratings, and tutor support records. Sellers see their own uploaded documents, document performance, seller earnings, and document notices. Buyers see the documents they have unlocked and related purchase records. Admins see wider records only where their role requires it. Support staff may see account and support information needed to resolve a ticket. Payment reviewers may see wallet and transaction records. Document moderators may see documents and metadata. No user role receives unlimited access to private information by default.</p>
+    </div>
+
+    <div id="sharing" class="privacy-section">
+      <h2>8. Sharing Information</h2>
+      <p>StudyGlade may share limited information with service providers that support hosting, cloud storage, payment processing, live chat, email delivery, analytics, fraud prevention, identity verification, document storage, artificial intelligence tool operation, and customer support. Service providers receive information needed to perform the service and are expected to protect it under appropriate controls.</p>
+      <p>StudyGlade may share information with legal advisers, payment providers, copyright complainants or uploaders where required by copyright process, regulators, law enforcement, or courts where required or permitted by law. StudyGlade may also share assignment‑relevant information with assigned tutors and document access information with buyers and sellers only to the extent needed for the transaction.</p>
+    </div>
+
+    <div id="retention" class="privacy-section">
+      <h2>9. Data Retention</h2>
+      <p>StudyGlade keeps personal information for as long as needed to provide services, maintain account records, process payments, manage disputes, support refunds, handle copyright complaints, prevent fraud, maintain tax and accounting records, enforce policies, protect users, and comply with legal duties. Some records may remain after account closure, including payment records, wallet transactions, withdrawal records, refund decisions, dispute evidence, copyright notices, fraud records, academic integrity records, admin audit logs, and legal records. StudyGlade may delete or anonymize information that is no longer needed.</p>
+      <h3>(i) Different Retention Periods for Different Records</h3>
+      <p>StudyGlade may keep different categories of information for different periods. Account profile information may be kept while the account remains active. Wallet, payment, withdrawal, refund, tax, chargeback, and accounting records may be kept longer because they support financial accuracy and legal compliance. Dispute, copyright, academic integrity, fraud, and enforcement records may also be retained where needed to protect users, prevent repeat abuse, and preserve evidence.</p>
+      <h3>(ii) Deletion, Restriction, or Anonymization</h3>
+      <p>Where StudyGlade no longer needs identifiable personal information, it may delete, restrict, or anonymize the information. Anonymized information may be used for general reporting, platform improvement, safety analysis, service statistics, and trend review, provided it no longer identifies the user.</p>
+    </div>
+
+    <div id="rights" class="privacy-section">
+      <h2>10. User Privacy Rights</h2>
+      <p>Users may request access to personal information, correction of inaccurate information, deletion of eligible information, restriction of processing, data export, withdrawal of consent where consent applies, and marketing opt‑out where applicable. The available rights depend on the user’s location and applicable law.</p>
+      <p>StudyGlade may require account verification before responding to privacy requests. StudyGlade may decline or limit a request where information must be retained for payment records, fraud prevention, legal compliance, dispute handling, copyright review, security, accounting, or other legitimate platform reasons.</p>
+    </div>
+
+    <div id="children" class="privacy-section">
+      <h2>11. Children and Younger Users</h2>
+      <p>StudyGlade is designed for academic support and may be used by students subject to applicable age and consent rules. Users under the age required by law to consent independently should use StudyGlade only with parent or guardian permission. StudyGlade may restrict, suspend, or close an account if age or consent requirements are not met.</p>
+    </div>
+
+    <div id="security" class="privacy-section">
+      <h2>12. Security</h2>
+      <p>StudyGlade protects user information through account login controls, email verification, password protection, session controls, role‑based dashboard access, secure file handling, payment provider controls, audit logs, admin permissions, suspicious activity review, and support verification. No security system is perfect, but StudyGlade maintains reasonable controls to reduce unauthorized access and misuse.</p>
+      <p>Users also share responsibility for security. Users should protect passwords, log out on shared devices, avoid sharing private information in public areas, report suspicious activity, and contact StudyGlade immediately if they believe their account has been compromised.</p>
+    </div>
+
+    <div id="not-required" class="privacy-section">
+      <h2>13. Information Not Required for Ordinary Use</h2>
+      <p>StudyGlade does not require users to submit passwords through support, card security codes, banking passwords, mobile money personal identification numbers, full identity documents, medical records, private family records, or confidential third‑party records for ordinary academic support. A user who uploads unnecessary sensitive information may have the file restricted, removed, redacted, or handled under privacy review.</p>
+      <p>Where sensitive information is required for a specific lawful reason, such as payment verification, privacy request verification, legal compliance, or fraud investigation, StudyGlade collects only what is relevant and limits access to authorized reviewers.</p>
+    </div>
+
+    <div id="student-privacy" class="privacy-section">
+      <h2>14. Student Privacy in Questions</h2>
+      <p>Students should keep public question previews free from private information. A preview may describe the subject, task type, academic level, deadline, and required output. It should not include full legal names, student identification numbers, phone numbers, personal email addresses, login credentials, financial details, medical information, family details, or private school portal screenshots.</p>
+      <p>Full question files may be visible to the assigned tutor and authorized StudyGlade reviewers where needed. Unassigned tutors may receive only controlled preview information unless the platform grants wider controlled access under a clear rule.</p>
+    </div>
+
+    <div id="tutor-privacy" class="privacy-section">
+      <h2>15. Tutor Privacy</h2>
+      <p>Tutor public profiles may show username, profile image or avatar, tutor level, approved subjects, short bio, rating, completed questions, badges, and availability. Tutor private email addresses, phone numbers, legal identity records, application documents, bank details, withdrawal accounts, admin notes, warnings, and suspension history are not public profile information.</p>
+      <p>Tutor application materials are used for approval, quality review, integrity review, payment risk review, and account enforcement. Students do not receive access to tutor application records.</p>
+    </div>
+
+    <div id="marketplace-privacy" class="privacy-section">
+      <h2>16. Document Marketplace Privacy</h2>
+      <p>Document listings may show public marketplace information such as title, subject, academic level, document type, preview summary, price, seller username, rating, and publication date. Document files and previews must not expose unnecessary personal data. Documents that include private information may be rejected, unpublished, removed, or returned for correction.</p>
+      <p>Buyer purchase records are private to the buyer and authorized StudyGlade personnel. Sellers may see document performance and sales records, but they do not receive buyer payment credentials or private wallet data.</p>
+    </div>
+
+    <div id="support-privacy" class="privacy-section">
+      <h2>17. Support and Evidence Privacy</h2>
+      <p>Support requests may include screenshots, messages, receipts, transaction references, files, error messages, or dispute evidence. StudyGlade uses this information to respond to the request and keeps it connected to the relevant support ticket or case record. Users should submit only information needed to resolve the issue. Evidence that contains unrelated private information may be redacted, restricted, or handled with additional care. Support evidence may be shared internally only with people who need it to resolve the case.</p>
+      <h3>(i) Evidence Containing Other People’s Information</h3>
+      <p>Users should avoid uploading evidence that exposes another person’s private information unless that information is necessary to explain the issue. Where evidence includes another person’s name, contact details, student number, payment record, private message, identity detail, or sensitive information, StudyGlade may limit access to the evidence, redact unnecessary details, or ask the user to submit a safer version.</p>
+      <h3>(ii) Support Evidence and Case Access</h3>
+      <p>Support evidence may be viewed only by authorized StudyGlade personnel handling the case. This may include support staff, payment reviewers, dispute reviewers, privacy reviewers, copyright reviewers, academic integrity reviewers, or security reviewers where relevant. Access is based on the issue being reviewed and is not open to ordinary users.</p>
+    </div>
+
+    <div id="marketing" class="privacy-section">
+      <h2>18. Marketing Choices</h2>
+      <p>StudyGlade may send service communications related to account security, wallet activity, tutor assignments, document unlocks, support tickets, policy updates, disputes, refunds, and withdrawals. These communications are part of platform operation and may not be treated as optional marketing.</p>
+      <p>StudyGlade may also send optional marketing or educational updates where allowed. Users may unsubscribe from optional marketing messages without losing access to essential service notices.</p>
+    </div>
+
+    <div id="account-closure" class="privacy-section">
+      <h2>19. Account Closure and Privacy</h2>
+      <p>A user may request account closure through StudyGlade support. Account closure may stop future login and platform use, but it does not automatically delete all records. StudyGlade may retain transaction records, dispute records, copyright notices, fraud records, payment records, support history, legal records, and audit logs where needed.</p>
+      <p>Where data is eligible for deletion, StudyGlade may delete or anonymize it. Where retention is required, StudyGlade keeps the information only for legitimate platform, legal, accounting, security, or enforcement purposes.</p>
+    </div>
+
+    <div id="contact" class="privacy-section">
+      <h2>20. Privacy Contact</h2>
+      <p>Privacy questions, data access requests, correction requests, deletion requests, consent withdrawal, marketing opt‑out, or privacy complaints may be sent to <a href="mailto:info@studyglade.com">info@studyglade.com</a> or <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a>. The request should include the account email, request type, and enough detail for StudyGlade to locate the relevant information.</p>
+      <p>StudyGlade may request verification before responding. Verification protects users from someone else trying to access or change their personal information.</p>
+    </div>
+
+    <div class="notice-box">
+      <p><i class="fas fa-shield-alt"></i> <strong>Your privacy matters.</strong> StudyGlade is committed to transparency and responsible data handling. If you have any concerns, please reach out through the contact methods above.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.privacy-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

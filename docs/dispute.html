@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispute Policy | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .dispute-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .dispute-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .dispute-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .dispute-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .contact-info a {
+      color: #005BFF;
+      text-decoration: none;
+    }
+    .binding-note {
+      background: #FEF3C7;
+      border-radius: 20px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      color: #92400E;
+    }
+    .dispute-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .dispute-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .dispute-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .dispute-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .dispute-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .dispute-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .dispute-toc ul {
+        columns: 1;
+      }
+    }
+
+    .dispute-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .dispute-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .dispute-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .dispute-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .dispute-section ul, .dispute-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .dispute-section li {
+      margin-bottom: 0.4rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .dispute-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .dispute-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="dispute-container">
+    <div class="dispute-header">
+      <h1>Dispute Policy</h1>
+      <p>Effective Date: 2018 | Last Updated: May 21, 2026</p>
+      <div class="contact-info">
+        <span><i class="fas fa-envelope"></i> <a href="mailto:info@studyglade.com">info@studyglade.com</a></span>
+        <span><i class="fas fa-envelope-open-text"></i> <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a></span>
+        <span><i class="fas fa-globe"></i> <a href="https://studyglade.com" target="_blank">www.studyglade.com</a></span>
+      </div>
+    </div>
+
+    <div class="binding-note">
+      <i class="fas fa-gavel"></i> <strong>Binding Document Notice</strong><br>
+      This document forms part of the binding rules that govern use of StudyGlade. It applies to account use, academic support, tutor services, document marketplace activity, privacy, data protection, payments, wallet activity, withdrawals, refunds, disputes, copyright, user conduct, and platform enforcement. Where a specific legal issue depends on governing law, consumer protection, tax, data protection, copyright, payment regulation, minors, arbitration, or court forum, StudyGlade may apply the rules required by the relevant law.
+    </div>
+
+    <!-- Table of Contents (1.1 to 1.20) -->
+    <div class="dispute-toc">
+      <h3><i class="fas fa-list-ul"></i> Contents</h3>
+      <ul>
+        <li><a href="#sec1.1">1.1 Purpose of the Dispute Policy</a></li>
+        <li><a href="#sec1.2">1.2 Disputes Covered</a></li>
+        <li><a href="#sec1.3">1.3 Dispute Submission</a></li>
+        <li><a href="#sec1.4">1.4 Initial Review</a></li>
+        <li><a href="#sec1.5">1.5 Evidence Review</a></li>
+        <li><a href="#sec1.6">1.6 Temporary Actions During Review</a></li>
+        <li><a href="#sec1.7">1.7 Dispute Outcomes</a></li>
+        <li><a href="#sec1.8">1.8 Student-Tutor Disputes</a></li>
+        <li><a href="#sec1.9">1.9 Document Disputes</a></li>
+        <li><a href="#sec1.10">1.10 Wallet, Payment, and Withdrawal Disputes</a></li>
+        <li><a href="#sec1.11">1.11 Timeline</a></li>
+        <li><a href="#sec1.12">1.12 Appeals</a></li>
+        <li><a href="#sec1.13">1.13 Contact for Disputes</a></li>
+        <li><a href="#sec1.14">1.14 Dispute Evidence Standards</a></li>
+        <li><a href="#sec1.15">1.15 Revision Before Refund</a></li>
+        <li><a href="#sec1.16">1.16 Disputes Involving Ratings</a></li>
+        <li><a href="#sec1.17">1.17 Disputes Involving Harassment or Safety</a></li>
+        <li><a href="#sec1.18">1.18 Disputes Involving Copyright</a></li>
+        <li><a href="#sec1.19">1.19 Dispute Closure</a></li>
+        <li><a href="#sec1.20">1.20 Dispute Abuse</a></li>
+      </ul>
+    </div>
+
+    <!-- Dispute Policy sections (1.1 to 1.20) -->
+    <div id="sec1.1" class="dispute-section">
+      <h2>1.1 Purpose of the Dispute Policy</h2>
+      <p>This Dispute Policy explains how StudyGlade reviews disagreements involving students, tutors, document sellers, buyers, wallet payments, withdrawals, refunds, documents, artificial intelligence tools, account restrictions, ratings, copyright, academic integrity, and user conduct. A dispute is a formal request for StudyGlade to review a problem that ordinary support cannot resolve.</p>
+      <p>StudyGlade reviews disputes using platform records, user evidence, policies, payment records, chat messages, uploaded files, timestamps, account history, and admin notes where relevant.</p>
+    </div>
+
+    <div id="sec1.2" class="dispute-section">
+      <h2>1.2 Disputes Covered</h2>
+      <p>StudyGlade may review disputes about answer quality, late delivery, missing answers, plagiarism concerns, tutor communication, refund decisions, wallet deductions, failed deposits, failed document unlocks, corrupted documents, misleading document previews, seller earnings, tutor earnings, withdrawals, ratings, harassment, off-platform payment, academic integrity concerns, and account restrictions.</p>
+    </div>
+
+    <div id="sec1.3" class="dispute-section">
+      <h2>1.3 Dispute Submission</h2>
+      <p>A user may submit a dispute through the website dispute form, support dashboard, live chat escalation, or official email. The dispute should include account email, user type, dispute category, related question or document, transaction reference, date of issue, clear explanation, desired outcome, screenshots, files, chat references, payment receipts, and any evidence that helps StudyGlade understand the issue.</p>
+      <p>Users must provide truthful information. False screenshots, altered chat records, fabricated payment evidence, false plagiarism claims, false copyright complaints, or retaliatory reports may lead to account action.</p>
+    </div>
+
+    <div id="sec1.4" class="dispute-section">
+      <h2>1.4 Initial Review</h2>
+      <p>StudyGlade checks whether the dispute contains enough information to begin review. If key information is missing, StudyGlade may ask the user to provide details. If the dispute is incomplete and the user does not respond, StudyGlade may close the dispute without further action.</p>
+    </div>
+
+    <div id="sec1.5" class="dispute-section">
+      <h2>1.5 Evidence Review</h2>
+      <p>Depending on the dispute, StudyGlade may review the original question, tutor bid, assigned tutor record, uploaded files, chat messages, answer file, delivery timestamp, revision request, wallet transaction, document preview, document file, download logs, artificial intelligence tool record, refund request, user history, and admin notes.</p>
+      <p>StudyGlade may also ask the other party to respond where it is fair and safe. A tutor may be asked to explain a disputed answer. A seller may be asked to explain a document issue. A student may be asked to provide missing instructions or evidence.</p>
+    </div>
+
+    <div id="sec1.6" class="dispute-section">
+      <h2>1.6 Temporary Actions During Review</h2>
+      <p>StudyGlade may temporarily hold funds, restrict chat, pause withdrawals, disable document downloads, hide a document, lock a question, or restrict account functions while a dispute is reviewed. Temporary action protects users and records while StudyGlade checks evidence. It is not always a final decision.</p>
+    </div>
+
+    <div id="sec1.7" class="dispute-section">
+      <h2>1.7 Dispute Outcomes</h2>
+      <p>StudyGlade may approve a full refund, approve a partial refund, issue wallet credit, restore document access, require tutor revision, release tutor earnings, hold payment, reverse tutor or seller earnings, remove a document, remove a review, keep a review, warn a user, restrict an account, suspend a tutor, restrict seller uploads, or take no action where evidence does not support the claim.</p>
+      <p>Payment outcomes depend on the type of dispute, evidence, service record, user conduct, refund rules, chargeback risk, copyright status, and platform policies.</p>
+    </div>
+
+    <div id="sec1.8" class="dispute-section">
+      <h2>1.8 Student-Tutor Disputes</h2>
+      <p>For student-tutor disputes, StudyGlade reviews the original question instructions first. The tutor is responsible for work accepted through StudyGlade and delivered through StudyGlade. The student is responsible for clear instructions, timely clarification, relevant files, and honest review.</p>
+      <p>A refund or revision may be supported where the tutor missed original instructions, failed to deliver, delivered late without valid reason, submitted incorrect or incomplete work, uploaded the wrong file, ignored required files, used fabricated sources, or produced plagiarized work. A refund may be declined where the student changed the task after assignment, requested extra work outside the original scope, failed to provide necessary files, or made unsupported claims.</p>
+    </div>
+
+    <div id="sec1.9" class="dispute-section">
+      <h2>1.9 Document Disputes</h2>
+      <p>For document disputes, StudyGlade reviews the document preview, title, description, file access, wallet transaction, download record, buyer complaint, seller account, and document moderation status. A buyer may receive support where the wallet was deducted but the document did not unlock, the file is corrupted, the document materially differs from the preview, duplicate payment occurred, or StudyGlade confirms a platform error.</p>
+      <p>Document disputes based only on a buyer changing their mind, ignoring a clear preview, or misusing the document may be declined.</p>
+    </div>
+
+    <div id="sec1.10" class="dispute-section">
+      <h2>1.10 Wallet, Payment, and Withdrawal Disputes</h2>
+      <p>For wallet, payment, and withdrawal disputes, StudyGlade reviews transaction records, payment provider references, wallet status, account verification, withdrawal method, refund records, chargeback history, fraud alerts, and user evidence. StudyGlade may correct an error, reprocess a failed action, hold funds for review, decline a request, or request verification.</p>
+    </div>
+
+    <div id="sec1.11" class="dispute-section">
+      <h2>1.11 Timeline</h2>
+      <p>StudyGlade aims to acknowledge disputes within a reasonable support period and to resolve ordinary disputes as quickly as the evidence allows. Complex disputes involving payments, chargebacks, copyright, fraud, privacy, or legal concerns may take longer because they require additional review.</p>
+      <h3>(i) Standard Review Expectations</h3>
+      <p>StudyGlade aims to acknowledge ordinary disputes within a reasonable support period after receiving enough information to identify the account and issue. A dispute cannot be reviewed properly where the user does not provide the account email, relevant question or document, transaction reference where applicable, and a clear explanation of the issue.</p>
+      <h3>(ii) Complex Review Matters</h3>
+      <p>Disputes involving chargebacks, copyright complaints, academic integrity, harassment, fraud, privacy, account security, withdrawal holds, or third-party payment provider delays may take longer than ordinary support requests. StudyGlade may keep the user informed through dashboard notices, email, or support ticket updates where practical.</p>
+    </div>
+
+    <div id="sec1.12" class="dispute-section">
+      <h2>1.12 Appeals</h2>
+      <p>A user may appeal a dispute outcome where appeal is available. The appeal must identify the decision being challenged and include new or overlooked evidence. StudyGlade may close appeals that repeat the same claim, contain false information, abuse staff, or attempt to reopen a matter already fully reviewed without new evidence.</p>
+      <h3>(i) Appeal Review Standard</h3>
+      <p>An appeal is not a new dispute from the beginning. StudyGlade reviews whether the original decision overlooked important evidence, applied the wrong policy, misunderstood the platform record, or received new information that could reasonably change the outcome.</p>
+      <h3>(ii) Finality of Reviewed Appeals</h3>
+      <p>After an appeal has been reviewed and a final response has been issued, StudyGlade may close the matter unless new evidence becomes available. Repeated disagreement, abusive messages, duplicate tickets, or pressure for a different result may be treated as dispute abuse.</p>
+    </div>
+
+    <div id="sec1.13" class="dispute-section">
+      <h2>1.13 Contact for Disputes</h2>
+      <p>Dispute questions may be sent to <a href="mailto:info@studyglade.com">info@studyglade.com</a> or <a href="mailto:studyglade@gmail.com">studyglade@gmail.com</a>. Users should include the account email, dispute category, related question or document, transaction reference where available, and a clear explanation.</p>
+    </div>
+
+    <div id="sec1.14" class="dispute-section">
+      <h2>1.14 Dispute Evidence Standards</h2>
+      <p>Dispute evidence should be specific and connected to the issue. A useful student‑tutor dispute includes the original instructions, tutor answer, chat messages, timestamp, specific missed requirements, and screenshots. A useful payment dispute includes transaction reference, date, amount, payment method, wallet screenshot, and receipt.</p>
+      <p>General dissatisfaction without evidence may not support a refund or enforcement action. StudyGlade relies on platform records and credible evidence rather than assumptions.</p>
+    </div>
+
+    <div id="sec1.15" class="dispute-section">
+      <h2>1.15 Revision Before Refund</h2>
+      <p>Where the issue can reasonably be corrected, StudyGlade may allow or require a revision before deciding a refund. A valid revision request must connect to the original instructions. It cannot demand a new task, new topic, new files added after delivery, extra length, different academic level, or new formatting that was not part of the accepted work.</p>
+      <p>Tutors should respond to valid revision requests professionally and through StudyGlade. Students should explain the issue clearly and avoid threats or pressure.</p>
+    </div>
+
+    <div id="sec1.16" class="dispute-section">
+      <h2>1.16 Disputes Involving Ratings</h2>
+      <p>StudyGlade may review ratings that appear false, abusive, retaliatory, manipulated, linked to fake transactions, or containing private information. A low rating is not removed merely because the tutor dislikes it. A rating may remain where it reflects a genuine user experience.</p>
+      <p>Ratings connected to active disputes may be paused, hidden, or marked under review until the dispute is resolved.</p>
+    </div>
+
+    <div id="sec1.17" class="dispute-section">
+      <h2>1.17 Disputes Involving Harassment or Safety</h2>
+      <p>Where a dispute includes harassment, threats, hate speech, retaliation, repeated unwanted messages, pressure for direct payment, or personal contact solicitation, StudyGlade may restrict communication while review is pending. Safety‑related action may occur before the full dispute is resolved.</p>
+      <p>StudyGlade may preserve chat records, restrict account functions, issue warnings, suspend users, or close accounts where safety or community rules are breached.</p>
+    </div>
+
+    <div id="sec1.18" class="dispute-section">
+      <h2>1.18 Disputes Involving Copyright</h2>
+      <p>A dispute involving copyright may be handled under both the Dispute Policy and the StudyGlade Copyright and Takedown Policy. StudyGlade may remove or disable content, notify the uploader, hold seller earnings, restrict downloads, and preserve records while reviewing the copyright issue.</p>
+      <p>Copyright disputes require clear identification of the work and the StudyGlade content being challenged. Vague claims that do not identify the content may be returned for more information.</p>
+    </div>
+
+    <div id="sec1.19" class="dispute-section">
+      <h2>1.19 Dispute Closure</h2>
+      <p>A dispute closes when StudyGlade issues a final outcome, applies required account or payment actions, sends notice where appropriate, records the decision, and completes any required follow‑up. A closed dispute may be reopened only where new or overlooked evidence is provided or where StudyGlade identifies an error.</p>
+      <p>Repeated attempts to reopen the same dispute without new evidence may be declined.</p>
+    </div>
+
+    <div id="sec1.20" class="dispute-section">
+      <h2>1.20 Dispute Abuse</h2>
+      <p>Dispute tools protect users, but they may not be used for abuse. Dispute abuse includes false reports, fake evidence, repeated unsupported complaints, refund pressure after using delivered services, retaliation against tutors or students, copyright claims made in bad faith, or attempts to avoid payment.</p>
+      <p>StudyGlade may warn, restrict, or close accounts that abuse dispute tools.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a> | <a href="contact.html">Contact</a> | <a href="dispute.html">Dispute</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.dispute-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Honor Code | StudyGlade</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-pen-favicon.webp">
+  <!-- Font Awesome + Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #EFF6FF;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+
+    /* ========== DARK NAVBAR ========== */
+    .dashboard-nav {
+      background: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-logo i {
+      font-size: 1.6rem;
+      margin-left: 4px;
+      transform: rotate(12deg);
+      color: #38BDF8;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      border-bottom-color: #005BFF;
+    }
+    @media (max-width: 768px) {
+      .nav-container {
+        flex-direction: column;
+        text-align: center;
+      }
+      .nav-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .honor-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .honor-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 1rem;
+    }
+    .honor-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #061B49;
+    }
+    .honor-header p {
+      color: #5B6E8C;
+      margin-top: 0.5rem;
+    }
+    .honor-toc {
+      background: #F8FAFF;
+      padding: 1.2rem 1.5rem;
+      border-radius: 24px;
+      margin-bottom: 2rem;
+    }
+    .honor-toc h3 {
+      margin-bottom: 0.8rem;
+      color: #005BFF;
+      font-weight: 600;
+    }
+    .honor-toc ul {
+      columns: 2;
+      column-gap: 2rem;
+      list-style: none;
+    }
+    .honor-toc li {
+      margin-bottom: 0.5rem;
+    }
+    .honor-toc a {
+      text-decoration: none;
+      color: #0F172A;
+      transition: color 0.2s;
+    }
+    .honor-toc a:hover {
+      color: #005BFF;
+    }
+    @media (max-width: 640px) {
+      .honor-toc ul {
+        columns: 1;
+      }
+    }
+
+    .honor-section {
+      margin-bottom: 2rem;
+      scroll-margin-top: 90px;
+    }
+    .honor-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061B49;
+      border-left: 4px solid #005BFF;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .honor-section h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 1rem 0 0.5rem;
+    }
+    .honor-section p {
+      margin-bottom: 0.8rem;
+      color: #1E293B;
+    }
+    .honor-section ul, .honor-section ol {
+      margin: 0.8rem 0 1rem 1.8rem;
+    }
+    .honor-section li {
+      margin-bottom: 0.4rem;
+    }
+    .highlight-box {
+      background: #FEF3C7;
+      padding: 1rem;
+      border-radius: 16px;
+      margin: 1rem 0;
+    }
+    .example-box {
+      background: #EFF6FF;
+      border-left: 4px solid #005BFF;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 12px;
+    }
+
+    /* ========== FOOTER ========== */
+    .premium-footer {
+      background-color: #1E293B;
+      color: #F1F5F9;
+      padding: 2rem 5% 1.5rem;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .premium-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+    .footer-bottom {
+      margin-top: 1rem;
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .honor-container {
+        margin: 1rem;
+        padding: 1.2rem;
+      }
+      .honor-section h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dashboard-nav">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">StudyGlade<i class="fas fa-pen-fancy"></i></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="student-dashboard.html">Dashboard</a>
+      <a href="post-question.html">Post a Question</a>
+      <a href="document-library.html">Library</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="honor-container">
+    <div class="honor-header">
+      <h1>Honor Code</h1>
+      <p>Protecting learning, integrity, and honest academic growth</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="honor-toc">
+      <h3><i class="fas fa-hand-peace"></i> Contents</h3>
+      <ul>
+        <li><a href="#purpose">1. Purpose of the Honor Code</a></li>
+        <li><a href="#good-faith">2. Good‑Faith Learning Standard</a></li>
+        <li><a href="#student-duties">3. Student Honor Duties</a></li>
+        <li><a href="#tutor-duties">4. Tutor Honor Duties</a></li>
+        <li><a href="#seller-duties">5. Document Seller Honor Duties</a></li>
+        <li><a href="#buyer-duties">6. Buyer Honor Duties</a></li>
+        <li><a href="#ai-duties">7. Artificial Intelligence Honor Duties</a></li>
+        <li><a href="#enforcement">8. Honor Code Enforcement</a></li>
+        <li><a href="#allowed">9. Examples of Allowed Use</a></li>
+        <li><a href="#prohibited">10. Examples of Prohibited Use</a></li>
+        <li><a href="#communication">11. Honor in Communication</a></li>
+        <li><a href="#payments">12. Honor in Payments</a></li>
+        <li><a href="#documents">13. Honor in Documents</a></li>
+        <li><a href="#reports">14. Honor Code Reports</a></li>
+      </ul>
+    </div>
+
+    <!-- Sections -->
+    <div id="purpose" class="honor-section">
+      <h2>1. Purpose of the Honor Code</h2>
+      <p>The StudyGlade Honor Code protects learning. StudyGlade exists to help users understand, practice, revise, improve, and receive academic guidance. It does not exist to help users cheat, deceive instructors, submit another person’s work as their own, bypass academic rules, fabricate evidence, or complete restricted assessments dishonestly.</p>
+    </div>
+
+    <div id="good-faith" class="honor-section">
+      <h2>2. Good‑Faith Learning Standard</h2>
+      <p><strong>Good faith:</strong> Using StudyGlade to learn a concept, understand a method, review examples, receive feedback, practice academic skills, improve grammar, organize study materials, prepare for assessments through lawful study, or seek tutoring support allowed by the user’s institution.</p>
+      <p><strong>Bad faith:</strong> Using StudyGlade to mislead, copy, cheat, hide authorship, bypass rules, complete restricted assessments, submit tutor work as personal work where prohibited, upload stolen materials, or use AI outputs to fabricate sources or false data.</p>
+    </div>
+
+    <div id="student-duties" class="honor-section">
+      <h2>3. Student Honor Duties</h2>
+      <p>Students agree to use StudyGlade support responsibly. Students should check institutional rules before using tutor help, documents, AI tools, examples, templates, or study materials. Students may use support to understand and improve. Students may not use StudyGlade to dishonestly complete live exams, timed quizzes, proctored assessments, closed‑book work, or assignments that must be completed without outside assistance.</p>
+      <p>Students may not ask tutors to fabricate references, invent statistics, write false data, hide plagiarism, or produce work intended for dishonest submission. Students remain responsible for final academic choices and compliance with school or university rules.</p>
+    </div>
+
+    <div id="tutor-duties" class="honor-section">
+      <h2>4. Tutor Honor Duties</h2>
+      <p>Tutors agree to teach, explain, guide, and support learning. Tutors may provide examples, explanations, draft feedback, problem‑solving guidance, research support, formatting support, and study assistance where allowed. Tutors may not help students cheat or complete restricted assessments.</p>
+      <p>Tutors must refuse requests for live exam help, proctored test answers, restricted quiz completion, fabricated sources, false references, false data, plagiarism, or off‑platform academic misconduct. Tutors must submit original work, verify sources where required, and use AI only as a reviewed support tool.</p>
+      <h3>(i) Refusal of Prohibited Requests</h3>
+      <p>A tutor who receives a prohibited request should refuse clearly and keep the response inside StudyGlade. The tutor should not complete part of the prohibited task, negotiate off‑platform, ask for private payment, or suggest ways to avoid detection. Where the request creates serious academic integrity or safety concerns, the tutor may report the matter to StudyGlade.</p>
+      <h3>(ii) Honest Representation of Ability</h3>
+      <p>Tutors should bid only on work they can reasonably complete within their approved subject knowledge, time availability, and skill level. A tutor should not accept work by claiming expertise they do not have, promising impossible deadlines, or relying on unverified AI output to cover lack of subject knowledge.</p>
+    </div>
+
+    <div id="seller-duties" class="honor-section">
+      <h2>5. Document Seller Honor Duties</h2>
+      <p>Document sellers agree to upload lawful study materials intended for learning. Sellers may not upload stolen assignments, copyrighted textbooks without permission, test banks, instructor‑only files, restricted exams, private course portal materials, private student information, or documents designed to help users cheat.</p>
+    </div>
+
+    <div id="buyer-duties" class="honor-section">
+      <h2>6. Buyer Honor Duties</h2>
+      <p>Buyers may use unlocked documents for personal study, revision, understanding, practice, and learning. Buyers may not resell, redistribute, upload, publish, or submit unlocked documents as original work where this violates academic rules. Buying access to a document does not transfer ownership of the document to the buyer.</p>
+    </div>
+
+    <div id="ai-duties" class="honor-section">
+      <h2>7. Artificial Intelligence Honor Duties</h2>
+      <p>Users may use StudyGlade AI tools for learning support, grammar review, clarity improvement, similarity awareness, study explanation, and drafting help where allowed. Users may not use AI tools to cheat, fabricate sources, create false data, bypass academic integrity rules, or hide authorship in prohibited ways.</p>
+    </div>
+
+    <div id="enforcement" class="honor-section">
+      <h2>8. Honor Code Enforcement</h2>
+      <p>StudyGlade may remove content, cancel questions, restrict tool access, deny refunds, hold payments, suspend tutor access, remove documents, restrict seller accounts, warn students, or close accounts where the Honor Code is violated. Serious or repeated violations may lead to permanent account closure.</p>
+    </div>
+
+    <div id="allowed" class="honor-section">
+      <h2>9. Examples of Allowed Use</h2>
+      <div class="example-box">
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Asking a tutor to explain a concept</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Checking how to solve a similar practice problem</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Reviewing a draft for clarity where permitted</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Learning how to cite sources</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Unlocking notes for revision</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Using a grammar tool to improve readability</p>
+        <p><i class="fas fa-check-circle" style="color: #10B981;"></i> Asking for a study plan before an assessment</p>
+      </div>
+      <p>Allowed use focuses on learning, understanding, practice, preparation, revision, and responsible academic development.</p>
+    </div>
+
+    <div id="prohibited" class="honor-section">
+      <h2>10. Examples of Prohibited Use</h2>
+      <div class="example-box" style="background:#FEE2E2; border-left-color:#EF4444;">
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Asking a tutor to complete a live exam</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Buying a document and submitting it as original work</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Asking for fake references</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Asking AI to invent data</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Uploading a test bank</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Selling another student’s assignment</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Requesting direct payment outside StudyGlade</p>
+        <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Asking a tutor to hide plagiarism</p>
+      </div>
+      <p>Prohibited use focuses on deception, cheating, false authorship, unfair academic advantage, privacy abuse, copyright infringement, or payment avoidance.</p>
+    </div>
+
+    <div id="communication" class="honor-section">
+      <h2>11. Honor in Communication</h2>
+      <p>Users should communicate truthfully and respectfully. Students should not pressure tutors to break rules. Tutors should not pressure students for ratings or off‑platform payment. Sellers should not mislead buyers about document quality. Buyers should not file false complaints after receiving access. Honor includes honesty in messages, ratings, reports, payment claims, copyright notices, and refund requests.</p>
+    </div>
+
+    <div id="payments" class="honor-section">
+      <h2>12. Honor in Payments</h2>
+      <p>Users honor the platform by keeping payments inside StudyGlade, paying for services before receiving paid access, avoiding chargeback abuse, refusing fake sessions, and not manipulating wallet records. Tutors and sellers honor the platform by earning only from genuine work and lawful document sales. Payment dishonesty may lead to stronger enforcement because it affects other users, platform trust, and financial records.</p>
+    </div>
+
+    <div id="documents" class="honor-section">
+      <h2>13. Honor in Documents</h2>
+      <p>Users should upload and use documents responsibly. Sellers should share only lawful, useful, and accurately described study materials. Buyers should use unlocked materials for personal study unless a wider license is stated. A document that helps users understand a topic supports learning. A document uploaded or used to cheat, copy, mislead, or infringe copyright violates the Honor Code.</p>
+    </div>
+
+    <div id="reports" class="honor-section">
+      <h2>14. Honor Code Reports</h2>
+      <p>Users may report Honor Code concerns through support, dispute tools, document reports, tutor reports, or official email. Reports should describe the conduct, provide available evidence, and identify the related question, document, message, or transaction. Good‑faith reports support platform safety. False or retaliatory reports may lead to enforcement against the reporting account.</p>
+    </div>
+
+    <div class="highlight-box">
+      <p><i class="fas fa-gavel"></i> <strong>Remember:</strong> StudyGlade is a learning community. Every user helps maintain integrity by using the platform honestly and encouraging others to do the same.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="premium-footer">
+  <p>© 2015 – <span id="currentYear"></span> StudyGlade. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a> | <a href="honor.html">Honor Code</a></p>
+  <div class="footer-bottom">
+    <p>Empowering students worldwide with expert academic help, quality resources, and a supportive learning community.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  // Smooth anchor scrolling for table of contents
+  document.querySelectorAll('.honor-toc a').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
