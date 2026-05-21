@@ -1,4 +1,4 @@
-const { body, validationResult, sanitizeBody } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 
 // Middleware to check validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -13,9 +13,9 @@ const handleValidationErrors = (req, res, next) => {
 const sanitizeText = (field) => {
   return body(field)
     .trim()
-    .escape()                    // converts HTML entities
-    .stripLow()                  // removes control characters
-    .blacklist('\\$\\{\\}');     // remove template literal chars
+    .escape()
+    .stripLow()
+    .blacklist('\\$\\{\\}');
 };
 
 // For emails
@@ -34,9 +34,16 @@ const validatePassword = (field) => {
     .withMessage('Password must be at least 6 characters');
 };
 
-// For MongoDB ObjectId
+// For MongoDB ObjectId in request BODY
 const validateObjectId = (field) => {
   return body(field)
+    .isMongoId()
+    .withMessage('Invalid ID format');
+};
+
+// ✅ NEW: For MongoDB ObjectId in URL PARAMETERS
+const validateParamId = (field) => {
+  return param(field)
     .isMongoId()
     .withMessage('Invalid ID format');
 };
@@ -47,4 +54,5 @@ module.exports = {
   sanitizeEmail,
   validatePassword,
   validateObjectId,
+  validateParamId,   // export the new function
 };

@@ -5,7 +5,7 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
 const path = require('path');
 const { body, param, query } = require('express-validator');
-const { handleValidationErrors, sanitizeText, validateObjectId } = require('../middleware/validate');
+const { handleValidationErrors, sanitizeText, validateObjectId, validateParamId } = require('../middleware/validate');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const Document = require('../models/Document');
@@ -267,62 +267,94 @@ router.post('/upload',
 // ========== UNLOCK DOCUMENT ==========
 router.post('/:id/unlock',
   auth,
-  validateObjectId('id'),
+  validateParamId('id'),  // ✅ FIXED: now validates URL parameter, not request body
   handleValidationErrors,
   async (req, res) => {
-    // ... (keep your existing unlock logic, unchanged)
     try {
       const doc = await Document.findById(req.params.id);
       if (!doc) return res.status(404).json({ error: 'Document not found' });
+      
       const user = await User.findById(req.userId);
-      if (user.walletBalance < doc.price) return res.status(400).json({ error: 'Insufficient wallet balance' });
-
-      user.walletBalance -= doc.price;
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      
+      // DEBUG LOGGING – remove after confirming balance works
+      console.log('===== UNLOCK DEBUG =====');
+      console.log('User email:', user.email);
+      console.log('Wallet balance:', user.walletBalance, 'type:', typeof user.walletBalance);
+      console.log('Document title:', doc.title);
+      console.log('Document price:', doc.price, 'type:', typeof doc.price);
+      
+      // Ensure numeric comparison (parseFloat safety)
+      const userBalance = parseFloat(user.walletBalance);
+      const documentPrice = parseFloat(doc.price);
+      
+      if (isNaN(userBalance) || isNaN(documentPrice)) {
+        console.error('Invalid number detected:', { userBalance, documentPrice });
+        return res.status(500).json({ error: 'Invalid balance or price data' });
+      }
+      
+      if (userBalance < documentPrice) {
+        return res.status(400).json({ error: 'Insufficient wallet balance' });
+      }
+      
+      // Deduct from buyer
+      user.walletBalance = userBalance - documentPrice;
       await user.save();
-
+      
+      // Pay seller (65% of price)
       const seller = await User.findById(doc.uploaderId);
-      const sellerEarnings = doc.price * 0.65;
-      seller.walletBalance += sellerEarnings;
+      const sellerEarnings = documentPrice * 0.65;
+      seller.walletBalance = parseFloat(seller.walletBalance || 0) + sellerEarnings;
       if (seller.role === 'tutor') {
         seller.tutorProfile.totalEarnings = (seller.tutorProfile.totalEarnings || 0) + sellerEarnings;
       }
       await seller.save();
-
+      
+      // Increment download count
       doc.downloads += 1;
       await doc.save();
-
+      
+      // Create transactions
       await Transaction.create({
-        userId: req.userId, type: 'unlock_document', amount: -doc.price,
-        description: `Unlocked: ${doc.title}`, referenceId: doc._id
+        userId: req.userId,
+        type: 'unlock_document',
+        amount: -documentPrice,
+        description: `Unlocked: ${doc.title}`,
+        referenceId: doc._id
       });
       await Transaction.create({
-        userId: doc.uploaderId, type: 'tutor_payment', amount: sellerEarnings,
-        description: `Document sale: ${doc.title}`, referenceId: doc._id
+        userId: doc.uploaderId,
+        type: 'tutor_payment',
+        amount: sellerEarnings,
+        description: `Document sale: ${doc.title}`,
+        referenceId: doc._id
       });
-
+      
+      // Send emails (non-blocking)
       sendEmailWithTemplate(user.email, 'Document Unlocked – StudyGlade', 'document-unlocked.ejs', {
         studentName: user.fullName,
         documentTitle: doc.title,
-        documentPrice: doc.price,
+        documentPrice: documentPrice,
         downloadUrl: doc.fileUrl
       }).catch(err => console.error('Failed to send unlock email:', err));
-
+      
       sendEmailWithTemplate(seller.email, 'Payment Received – StudyGlade', 'tutor-payment.ejs', {
         tutorName: seller.fullName,
         amount: sellerEarnings,
         reason: `Document sale: ${doc.title}`
       }).catch(err => console.error('Failed to send tutor payment email:', err));
-
+      
+      // Real-time notifications
       const io = getIO(req);
       emitToUser(io, req.userId, 'wallet_update', {
         newBalance: user.walletBalance,
-        transaction: { amount: -doc.price, type: 'unlock_document' }
+        transaction: { amount: -documentPrice, type: 'unlock_document' }
       });
       emitToUser(io, req.userId, 'document_unlocked', {
         documentId: doc._id,
         documentTitle: doc.title,
         fileUrl: doc.fileUrl,
-        price: doc.price
+        price: documentPrice
       });
       emitToUser(io, doc.uploaderId, 'wallet_update', {
         newBalance: seller.walletBalance,
@@ -334,7 +366,7 @@ router.post('/:id/unlock',
         earnings: sellerEarnings,
         buyerName: user.fullName
       });
-
+      
       res.json({ message: 'Document unlocked', fileUrl: doc.fileUrl });
     } catch (err) {
       console.error('Unlock error:', err);
