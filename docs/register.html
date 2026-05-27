@@ -2,12 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <!-- Favicon -->
-<link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sign Up | StudyGlade</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
   <style>
+    /* ========== OFFICIAL COLOR VARIABLES ========== */
+    :root {
+      --navy: #061B49;
+      --deep-blue: #0B2E75;
+      --brand-blue: #005BFF;
+      --royal-blue: #2563EB;
+      --sky-blue: #38BDF8;
+      --ice-blue: #EFF6FF;
+      --pale-blue: #DBEAFE;
+      --white: #FFFFFF;
+      --text-navy: #0F172A;
+      --slate: #64748B;
+      --border-grey: #E2E8F0;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      --shadow-sm: 0 4px 10px -2px rgba(0,0,0,0.05);
+      --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.1);
+      --grad-primary: linear-gradient(135deg, #005BFF 0%, #2563EB 60%, #38BDF8 100%);
+      --grad-nav: linear-gradient(135deg, #061B49 0%, #0B2E75 100%);
+      --sidebar-width: 260px;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -15,93 +37,154 @@
     }
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+      background: var(--grad-nav);
       min-height: 100vh;
       padding: 2rem 1rem;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.2) 100%);
+      pointer-events: none;
     }
     .container {
-      max-width: 720px;
+      max-width: 820px;
       margin: 0 auto;
+      animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .card {
-      background: #ffffff;
+      background: var(--white);
       border-radius: 32px;
-      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-md);
       padding: 2rem;
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-grey);
+    }
+    .card:hover {
+      box-shadow: 0 20px 35px -10px rgba(0,0,0,0.15);
     }
     h2 {
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: 700;
+      background: var(--grad-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
       margin-bottom: 0.25rem;
-      color: #0a0c10;
     }
     .sub {
-      color: #5b6e8c;
+      color: var(--slate);
       margin-bottom: 1.5rem;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border-grey);
+      padding-bottom: 0.75rem;
     }
     .form-group {
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      position: relative;
     }
     label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      color: #1e293b;
-      font-size: 0.9rem;
+      position: absolute;
+      top: -0.6rem;
+      left: 1rem;
+      background: var(--white);
+      padding: 0 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--brand-blue);
+      letter-spacing: 0.02em;
+      transition: all 0.2s;
+      z-index: 2;
     }
     input, select, textarea {
       width: 100%;
-      padding: 0.75rem 1rem;
-      border: 1px solid #e2e8f0;
+      padding: 1rem 1rem;
+      border: 1.5px solid var(--border-grey);
       border-radius: 60px;
       font-family: inherit;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       transition: all 0.2s;
-      background: #fff;
+      background: var(--white);
+      outline: none;
     }
     textarea {
       border-radius: 24px;
       resize: vertical;
     }
     input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+      border-color: var(--brand-blue);
+      box-shadow: 0 0 0 3px rgba(0,91,255,0.15);
+      transform: translateY(-1px);
+    }
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      background-color: #fef2f2;
+    }
+    .error-text {
+      color: var(--error);
+      font-size: 0.7rem;
+      margin-top: 0.25rem;
+      display: block;
+      font-weight: 500;
+      padding-left: 1rem;
     }
     small {
       display: block;
       font-size: 0.7rem;
-      color: #5b6e8c;
+      color: var(--slate);
       margin-top: 0.25rem;
+      padding-left: 1rem;
     }
     .btn-primary {
       width: 100%;
-      background: #3b82f6;
+      background: var(--grad-primary);
       color: white;
       border: none;
-      padding: 0.85rem;
+      padding: 1rem;
       border-radius: 60px;
       font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(0,91,255,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    .btn-primary:hover::after {
+      left: 100%;
     }
     .btn-primary:hover {
-      background: #2563eb;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0,91,255,0.4);
     }
     .btn-primary:disabled {
       opacity: 0.6;
-      cursor: not-allowed;
       transform: none;
+      cursor: not-allowed;
     }
     .spinner {
       display: inline-block;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border: 2px solid white;
       border-top-color: transparent;
       border-radius: 50%;
@@ -110,41 +193,71 @@
       margin-right: 0.5rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .tutor-fields {
-      display: none;
-      margin-top: 1.5rem;
-      border-top: 1px solid #eef2f6;
-      padding-top: 1.5rem;
+    .step-indicator {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-grey);
+      padding-bottom: 0.75rem;
     }
-    .tutor-fields.show {
-      display: block;
+    .step {
+      flex: 1;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--slate);
+      position: relative;
+      cursor: default;
+    }
+    .step.active {
+      color: var(--brand-blue);
+    }
+    .step.active::after {
+      content: '';
+      position: absolute;
+      bottom: -0.78rem;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--grad-primary);
+      border-radius: 3px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { width: 0; } to { width: 100%; } }
+    .step.completed {
+      color: var(--success);
     }
     .quiz-question {
-      background: #f8fafc;
-      border-radius: 20px;
+      background: var(--ice-blue);
+      border-radius: 24px;
       padding: 1rem;
       margin-bottom: 1rem;
+      border: 1px solid var(--border-grey);
+      transition: all 0.2s;
+    }
+    .quiz-question:hover {
+      background: var(--pale-blue);
+      transform: translateX(2px);
     }
     .quiz-question p {
-      font-weight: 500;
-      margin-bottom: 0.5rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-navy);
     }
     .quiz-question label {
+      position: static;
+      background: transparent;
+      padding: 0;
       font-weight: normal;
-      margin-bottom: 0;
-      display: inline-block;
       margin-right: 1rem;
-    }
-    .error-text {
-      color: #dc2626;
-      font-size: 0.8rem;
-      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      color: var(--text-navy);
     }
     hr {
       margin: 1rem 0;
       border: 0;
       height: 1px;
-      background: #eef2f6;
+      background: linear-gradient(90deg, var(--border-grey), transparent);
     }
     .flex-row {
       display: flex;
@@ -154,10 +267,56 @@
       flex: 1;
     }
     a {
-      color: #3b82f6;
+      color: var(--brand-blue);
       text-decoration: none;
+      font-weight: 500;
     }
-    a:hover { text-decoration: underline; }
+    a:hover {
+      text-decoration: underline;
+      color: var(--royal-blue);
+    }
+    .file-info {
+      font-size: 0.7rem;
+      background: var(--ice-blue);
+      border-radius: 30px;
+      padding: 0.25rem 0.75rem;
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: var(--slate);
+    }
+    .word-count {
+      font-size: 0.7rem;
+      margin-top: 0.25rem;
+      font-weight: 500;
+      padding-left: 1rem;
+    }
+    .word-count.valid { color: var(--success); }
+    .word-count.invalid { color: var(--error); }
+    #prevBtn {
+      background: var(--border-grey);
+      color: var(--text-navy);
+      box-shadow: none;
+    }
+    #prevBtn:hover {
+      background: var(--slate);
+      color: white;
+      transform: translateY(-1px);
+    }
+    /* Override floating label on checkboxes */
+    .form-group:has(input[type="checkbox"]) label {
+      position: relative;
+      top: auto;
+      left: auto;
+      background: transparent;
+      display: inline-block;
+      margin-left: 0.5rem;
+    }
+    /* Fix for radio buttons in quiz */
+    .quiz-question input[type="radio"] {
+      width: auto;
+      margin-right: 0.3rem;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -165,50 +324,60 @@
   <div class="card">
     <h2>Create account</h2>
     <div class="sub">Join StudyGlade – unlock knowledge or share yours</div>
+
+    <!-- Step indicator (only visible for tutor) -->
+    <div id="stepIndicator" class="step-indicator" style="display: none;">
+      <div class="step active" data-step="1">1. Basic info</div>
+      <div class="step" data-step="2">2. Tutor application</div>
+      <div class="step" data-step="3">3. Payment details</div>
+    </div>
+
     <form id="registerForm" enctype="multipart/form-data">
-      <!-- Basic fields -->
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="fullName" required>
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="email" required>
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" required>
-        <small>At least 6 characters</small>
-      </div>
-      <div class="form-group">
-        <label>I am a</label>
-        <select id="role">
-          <option value="student">Student – Browse & unlock documents</option>
-          <option value="tutor">Tutor – Earn by sharing knowledge</option>
-        </select>
+      <!-- === STEP 1: Basic info === -->
+      <div id="step1" class="step-content">
+        <div class="form-group">
+          <label>Full Name <span class="required">*</span></label>
+          <input type="text" id="fullName" required>
+          <div class="error-text" id="fullNameError"></div>
+        </div>
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input type="email" id="email" required>
+          <div class="error-text" id="emailError"></div>
+        </div>
+        <div class="form-group">
+          <label>Password <span class="required">*</span></label>
+          <input type="password" id="password" required>
+          <small>At least 6 characters (recommended: mix of letters, numbers, symbols)</small>
+          <div class="error-text" id="passwordError"></div>
+        </div>
+        <div class="form-group">
+          <label>I am a <span class="required">*</span></label>
+          <select id="role">
+            <option value="student">Student – Browse & unlock documents</option>
+            <option value="tutor">Tutor – Earn by sharing knowledge</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Tutor-only fields (hidden initially) -->
-      <div id="tutorFields" class="tutor-fields">
-        <h3 style="margin-bottom: 1rem;">📘 Tutor Application</h3>
-        
+      <!-- === STEP 2: Tutor application (hidden initially) === -->
+      <div id="step2" class="step-content" style="display: none;">
         <div class="form-group">
-          <label>Academic & Professional Qualifications</label>
+          <label>Academic & Professional Qualifications <span class="required">*</span></label>
           <textarea id="qualifications" rows="3" placeholder="e.g., B.Sc. Mathematics, 3 years tutoring experience, TESOL certified"></textarea>
-          <small>List degrees, certifications, and relevant experience.</small>
+          <div class="error-text" id="qualificationsError"></div>
         </div>
-
         <div class="form-group">
-          <label>Subjects You Can Tutor</label>
+          <label>Subjects You Can Tutor <span class="required">*</span></label>
           <input type="text" id="subjects" placeholder="Math, Physics, English, etc. (comma separated)">
+          <div class="error-text" id="subjectsError"></div>
         </div>
-
         <div class="form-group">
-          <label>Essay (500–1000 words)</label>
+          <label>Essay (500–1000 words) <span class="required">*</span></label>
           <textarea id="essay" rows="8" placeholder="Write an essay on: 'How technology is transforming education' or a topic of your choice. Follow APA or MLA formatting."></textarea>
-          <small>Your essay will be evaluated for grammar, structure, and critical thinking.</small>
+          <div class="word-count" id="wordCount"></div>
+          <div class="error-text" id="essayError"></div>
         </div>
-
         <div class="form-group">
           <label>Essay Format</label>
           <select id="essayFormat">
@@ -216,14 +385,16 @@
             <option value="MLA">MLA</option>
           </select>
         </div>
-
         <div class="form-group">
-          <label>Portfolio / Sample Work (Optional)</label>
-          <input type="file" id="portfolio" accept=".pdf,.doc,.docx,.jpg,.png,.zip">
-          <small>Max 10MB – show us your best work.</small>
+          <label>Portfolio / Sample Work (Optional – but strongly recommended)</label>
+          <input type="file" id="portfolio" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm">
+          <div class="file-info" id="fileInfo"></div>
+          <small>Accepted: PDF, Word, Excel, PowerPoint, text, CSV, ZIP, images, MP4, WebM (max 10MB)</small>
+          <div class="error-text" id="portfolioError"></div>
         </div>
 
-        <h4 style="margin: 1rem 0 0.5rem;">📝 Platform Rules Quiz</h4>
+        <h4 style="margin: 1rem 0 0.5rem;">📝 Platform Rules Quiz <span class="required">*</span></h4>
+        <!-- 10 Platform Rules Quiz Questions -->
         <div class="quiz-question">
           <p>1. Which of the following is <em>not allowed</em> for tutors?</p>
           <label><input type="radio" name="quiz1" value="A"> A) Asking the student for their phone number</label><br>
@@ -241,10 +412,55 @@
           <label><input type="radio" name="quiz3" value="True"> True</label><br>
           <label><input type="radio" name="quiz3" value="False"> False</label>
         </div>
+        <div class="quiz-question">
+          <p>4. What should a tutor do if a student asks for help with an exam during the exam period?</p>
+          <label><input type="radio" name="quiz4" value="A"> A) Provide the answers directly</label><br>
+          <label><input type="radio" name="quiz4" value="B"> B) Decline and refer to the platform's honour code</label><br>
+          <label><input type="radio" name="quiz4" value="C"> C) Charge extra for exam help</label>
+        </div>
+        <div class="quiz-question">
+          <p>5. Is it acceptable for a tutor to complete a student's assignment and submit it as their own work?</p>
+          <label><input type="radio" name="quiz5" value="A"> A) Yes, if the student pays well</label><br>
+          <label><input type="radio" name="quiz5" value="B"> B) Yes, as long as it's confidential</label><br>
+          <label><input type="radio" name="quiz5" value="C"> C) No, that is academic dishonesty</label>
+        </div>
+        <div class="quiz-question">
+          <p>6. What is the platform’s policy on sharing tutor account access with others?</p>
+          <label><input type="radio" name="quiz6" value="A"> A) It is allowed for trusted friends</label><br>
+          <label><input type="radio" name="quiz6" value="B"> B) It is strictly prohibited</label><br>
+          <label><input type="radio" name="quiz6" value="C"> C) Only if both parties are tutors</label>
+        </div>
+        <div class="quiz-question">
+          <p>7. How should a tutor handle a student who becomes aggressive or disrespectful?</p>
+          <label><input type="radio" name="quiz7" value="A"> A) Argue back to defend themselves</label><br>
+          <label><input type="radio" name="quiz7" value="B"> B) Stop responding and report the conversation to support</label><br>
+          <label><input type="radio" name="quiz7" value="C"> C) Ignore the student’s messages</label>
+        </div>
+        <div class="quiz-question">
+          <p>8. Can a tutor promote their own paid services outside StudyGlade?</p>
+          <label><input type="radio" name="quiz8" value="A"> A) Yes, in the public chat</label><br>
+          <label><input type="radio" name="quiz8" value="B"> B) No, that is prohibited</label><br>
+          <label><input type="radio" name="quiz8" value="C"> C) Only if the student asks first</label>
+        </div>
+        <div class="quiz-question">
+          <p>9. If a tutor is unsure about a question, what is the best action?</p>
+          <label><input type="radio" name="quiz9" value="A"> A) Guess and hope it's correct</label><br>
+          <label><input type="radio" name="quiz9" value="B"> B) Inform the student and skip the question</label><br>
+          <label><input type="radio" name="quiz9" value="C"> C) Research the topic thoroughly before answering</label>
+        </div>
+        <div class="quiz-question">
+          <p>10. True or False: A tutor may ask a student to communicate via WhatsApp or Telegram for faster responses.</p>
+          <label><input type="radio" name="quiz10" value="True"> True</label><br>
+          <label><input type="radio" name="quiz10" value="False"> False</label>
+        </div>
+        <div class="error-text" id="quizError"></div>
+      </div>
 
-        <h4 style="margin: 1.5rem 0 0.5rem;">💳 Payment Details (for tutor payouts)</h4>
+      <!-- === STEP 3: Payment details (hidden initially) === -->
+      <div id="step3" class="step-content" style="display: none;">
+        <h4 style="margin-bottom: 0.5rem;">💳 Payment Details (for tutor payouts)</h4>
         <div class="form-group">
-          <label>Preferred Payout Method</label>
+          <label>Preferred Payout Method <span class="required">*</span></label>
           <select id="preferredMethod">
             <option value="paypal">PayPal</option>
             <option value="mpesa">Mpesa</option>
@@ -252,32 +468,40 @@
           </select>
         </div>
         <div id="paypalField" class="form-group">
-          <label>PayPal Email</label>
+          <label>PayPal Email <span class="required">*</span></label>
           <input type="email" id="paypalEmail">
+          <div class="error-text" id="paypalEmailError"></div>
         </div>
         <div id="mpesaField" class="form-group" style="display:none;">
-          <label>Mpesa Phone Number</label>
-          <input type="tel" id="mpesaPhone">
+          <label>Mpesa Phone Number <span class="required">*</span></label>
+          <input type="tel" id="mpesaPhone" placeholder="254XXXXXXXXX">
+          <div class="error-text" id="mpesaPhoneError"></div>
         </div>
         <div id="bankField" class="form-group" style="display:none;">
           <div class="flex-row">
-            <div class="form-group"><label>Bank Name</label><input type="text" id="bankName"></div>
-            <div class="form-group"><label>Account Name</label><input type="text" id="accountName"></div>
-            <div class="form-group"><label>Account Number</label><input type="text" id="accountNumber"></div>
+            <div class="form-group"><label>Bank Name <span class="required">*</span></label><input type="text" id="bankName"></div>
+            <div class="form-group"><label>Account Name <span class="required">*</span></label><input type="text" id="accountName"></div>
+            <div class="form-group"><label>Account Number <span class="required">*</span></label><input type="text" id="accountNumber"></div>
           </div>
+          <div class="error-text" id="bankError"></div>
         </div>
 
         <div class="form-group">
           <label>
-            <!-- Change this line -->
-<input type="checkbox" id="agreeRules">
-<!-- remove the required attribute -->
+            <input type="checkbox" id="agreeRules">
             I agree to abide by StudyGlade's <a href="/terms.html" target="_blank">Terms & Conditions</a> and will not request personal information from students.
           </label>
+          <div class="error-text" id="agreeError"></div>
         </div>
       </div>
 
-      <button type="submit" class="btn-primary" id="submitBtn">Sign Up</button>
+      <!-- Navigation buttons (for tutor wizard) -->
+      <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <button type="button" id="prevBtn" class="btn-primary" style="background: #e2e8f0; color: #1e293b; box-shadow: none; width: auto; padding: 0.6rem 1.5rem; display: none;">← Back</button>
+        <button type="button" id="nextBtn" class="btn-primary" style="width: auto; padding: 0.6rem 2rem;">Next</button>
+        <button type="submit" id="submitBtn" class="btn-primary" style="display: none;">Sign Up</button>
+      </div>
+
       <div id="formError" class="error-text" style="text-align:center; margin-top:1rem;"></div>
     </form>
     <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">
@@ -288,25 +512,186 @@
 
 <script src="api.js"></script>
 <script>
-  // ----- Helper: get returnTo parameter -----
-  function getReturnTo() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('returnTo');
+  // ---- DOM elements ----
+  const roleSelect = document.getElementById('role');
+  const tutorFields = document.getElementById('step2');
+  const step3 = document.getElementById('step3');
+  const stepIndicator = document.getElementById('stepIndicator');
+  const step1 = document.getElementById('step1');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const form = document.getElementById('registerForm');
+
+  let currentStep = 1;
+  const totalSteps = 3;
+
+  // ---- Helper: update wizard UI ----
+  function updateWizard() {
+    // Show/hide steps
+    step1.style.display = currentStep === 1 ? 'block' : 'none';
+    if (step2) step2.style.display = currentStep === 2 ? 'block' : 'none';
+    if (step3) step3.style.display = currentStep === 3 ? 'block' : 'none';
+    // Update step indicators
+    document.querySelectorAll('.step').forEach((el, idx) => {
+      const stepNum = idx + 1;
+      if (stepNum === currentStep) el.classList.add('active');
+      else el.classList.remove('active');
+      if (stepNum < currentStep) el.classList.add('completed');
+      else el.classList.remove('completed');
+    });
+    // Buttons
+    prevBtn.style.display = currentStep > 1 ? 'inline-block' : 'none';
+    if (currentStep === totalSteps) {
+      nextBtn.style.display = 'none';
+      submitBtn.style.display = 'block';
+    } else {
+      nextBtn.style.display = 'inline-block';
+      submitBtn.style.display = 'none';
+    }
   }
 
-  // ----- Toggle tutor fields based on role -----
-  const roleSelect = document.getElementById('role');
-  const tutorFields = document.getElementById('tutorFields');
+  // ---- Step validation (returns true if valid) ----
+  function validateStep(step) {
+    let isValid = true;
+
+    if (step === 1) {
+      // Full name
+      const fullName = document.getElementById('fullName').value.trim();
+      if (!fullName) { showError('fullNameError', 'Full name is required'); isValid = false; } else { clearError('fullNameError'); }
+      // Email
+      const email = document.getElementById('email').value.trim();
+      const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+      if (!email) { showError('emailError', 'Email is required'); isValid = false; }
+      else if (!emailRegex.test(email)) { showError('emailError', 'Enter a valid email address'); isValid = false; }
+      else { clearError('emailError'); }
+      // Password
+      const password = document.getElementById('password').value;
+      if (password.length < 6) { showError('passwordError', 'Password must be at least 6 characters'); isValid = false; } else { clearError('passwordError'); }
+      // Role is always present
+    } 
+    else if (step === 2) {
+      // Only validate if tutor role is selected
+      if (roleSelect.value !== 'tutor') return true;
+
+      // Qualifications
+      const quals = document.getElementById('qualifications').value.trim();
+      if (!quals) { showError('qualificationsError', 'Qualifications are required'); isValid = false; } else { clearError('qualificationsError'); }
+      // Subjects
+      const subjects = document.getElementById('subjects').value.trim();
+      if (!subjects) { showError('subjectsError', 'At least one subject is required'); isValid = false; } else { clearError('subjectsError'); }
+      // Essay word count (minimum 500)
+      const essay = document.getElementById('essay').value;
+      const words = essay.trim().split(/\s+/).filter(w => w.length > 0).length;
+      if (words < 500) { showError('essayError', `Essay must be at least 500 words (currently ${words})`); isValid = false; } else { clearError('essayError'); }
+
+      // ========== 10‑QUESTION QUIZ VALIDATION ==========
+      const correctAnswers = {
+        quiz1: 'A', quiz2: 'B', quiz3: 'False',
+        quiz4: 'B', quiz5: 'C', quiz6: 'B',
+        quiz7: 'B', quiz8: 'B', quiz9: 'C', quiz10: 'False'
+      };
+      let allAnswered = true;
+      let allCorrect = true;
+      for (let i = 1; i <= 10; i++) {
+        const answer = document.querySelector(`input[name="quiz${i}"]:checked`);
+        if (!answer) {
+          allAnswered = false;
+          break;
+        }
+        if (answer.value !== correctAnswers[`quiz${i}`]) {
+          allCorrect = false;
+        }
+      }
+      if (!allAnswered) {
+        showError('quizError', 'Please answer all 10 quiz questions');
+        isValid = false;
+      } else if (!allCorrect) {
+        showError('quizError', 'One or more quiz answers are incorrect. Please review the platform rules.');
+        isValid = false;
+      } else {
+        clearError('quizError');
+      }
+      // ==================================================
+
+      // File size check (optional)
+      const file = document.getElementById('portfolio').files[0];
+      if (file && file.size > 10 * 1024 * 1024) { showError('portfolioError', 'File exceeds 10MB limit'); isValid = false; } else { clearError('portfolioError'); }
+    } 
+    else if (step === 3) {
+      if (roleSelect.value !== 'tutor') return true;
+      const method = document.getElementById('preferredMethod').value;
+      if (method === 'paypal') {
+        const paypalEmail = document.getElementById('paypalEmail').value.trim();
+        if (!paypalEmail) { showError('paypalEmailError', 'PayPal email is required'); isValid = false; }
+        else if (!/^[^\s@]+@([^\s@]+\.)+[^\s@]+$/.test(paypalEmail)) { showError('paypalEmailError', 'Invalid email format'); isValid = false; }
+        else { clearError('paypalEmailError'); }
+      } else if (method === 'mpesa') {
+        const phone = document.getElementById('mpesaPhone').value.trim();
+        if (!phone) { showError('mpesaPhoneError', 'Mpesa phone number is required'); isValid = false; }
+        else if (!/^254\d{9}$/.test(phone)) { showError('mpesaPhoneError', 'Enter a valid Kenyan phone number (e.g., 254712345678)'); isValid = false; }
+        else { clearError('mpesaPhoneError'); }
+      } else if (method === 'bank') {
+        const bankName = document.getElementById('bankName').value.trim();
+        const accName = document.getElementById('accountName').value.trim();
+        const accNum = document.getElementById('accountNumber').value.trim();
+        if (!bankName || !accName || !accNum) { showError('bankError', 'All bank fields are required'); isValid = false; }
+        else { clearError('bankError'); }
+      }
+      // Terms agreement
+      if (!document.getElementById('agreeRules').checked) { showError('agreeError', 'You must agree to the Terms & Conditions'); isValid = false; } else { clearError('agreeError'); }
+    }
+
+    return isValid;
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = msg;
+  }
+  function clearError(id) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = '';
+  }
+
+  // ---- Next / Prev handlers ----
+  nextBtn.addEventListener('click', () => {
+    if (validateStep(currentStep)) {
+      if (currentStep === 1 && roleSelect.value !== 'tutor') {
+        // If student, skip directly to submit
+        currentStep = totalSteps;
+        updateWizard();
+      } else {
+        currentStep++;
+        updateWizard();
+      }
+    }
+  });
+  prevBtn.addEventListener('click', () => {
+    currentStep--;
+    updateWizard();
+  });
+
+  // ---- Role change: show/hide steps, reset wizard ----
   roleSelect.addEventListener('change', () => {
-    if (roleSelect.value === 'tutor') {
-      tutorFields.classList.add('show');
-      togglePaymentFields(); // ensure correct payment fields visible
+    const isTutor = roleSelect.value === 'tutor';
+    if (isTutor) {
+      stepIndicator.style.display = 'flex';
+      currentStep = 1;
+      updateWizard();
     } else {
-      tutorFields.classList.remove('show');
+      stepIndicator.style.display = 'none';
+      // For student, show only step1 and submit button directly
+      step1.style.display = 'block';
+      if (step2) step2.style.display = 'none';
+      if (step3) step3.style.display = 'none';
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      submitBtn.style.display = 'block';
     }
   });
 
-  // ----- Payment method toggling -----
+  // ---- Payment method toggling ----
   const methodSelect = document.getElementById('preferredMethod');
   function togglePaymentFields() {
     const method = methodSelect.value;
@@ -315,90 +700,91 @@
     document.getElementById('bankField').style.display = method === 'bank' ? 'block' : 'none';
   }
   methodSelect.addEventListener('change', togglePaymentFields);
-  
-  // ----- Form submission -----
-  const form = document.getElementById('registerForm');
-  const submitBtn = document.getElementById('submitBtn');
 
+  // ---- Real‑time essay word counter ----
+  const essayField = document.getElementById('essay');
+  const wordCountSpan = document.getElementById('wordCount');
+  function updateWordCount() {
+    if (!essayField) return;
+    const text = essayField.value;
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    wordCountSpan.innerHTML = `Word count: ${words} (minimum 500)`;
+    wordCountSpan.className = words >= 500 ? 'word-count valid' : 'word-count invalid';
+    if (words >= 500) clearError('essayError');
+  }
+  if (essayField) essayField.addEventListener('input', updateWordCount);
+
+  // ---- File info display ----
+  const fileInput = document.getElementById('portfolio');
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    const infoDiv = document.getElementById('fileInfo');
+    if (file) {
+      infoDiv.innerHTML = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    } else {
+      infoDiv.innerHTML = '';
+    }
+  });
+
+  // ---- Email validation on the fly ----
+  const emailInput = document.getElementById('email');
+  emailInput.addEventListener('input', () => {
+    const email = emailInput.value.trim();
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (email && !emailRegex.test(email)) showError('emailError', 'Invalid email format');
+    else clearError('emailError');
+  });
+
+  // ---- Form submission (fixed to collect all 10 quiz answers) ----
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    // Final validation on all relevant steps before submit
+    if (roleSelect.value === 'tutor') {
+      if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+        document.getElementById('formError').innerText = 'Please fix errors before submitting.';
+        return;
+      }
+    } else {
+      if (!validateStep(1)) return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner"></span> Creating account...';
     document.getElementById('formError').innerText = '';
 
-    // Basic validation
-    const password = document.getElementById('password').value;
-    if (password.length < 6) {
-      document.getElementById('formError').innerText = 'Password must be at least 6 characters.';
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Sign Up';
-      return;
-    }
-
-  const role = roleSelect.value;
-if (role === 'tutor') {
-  const essay = document.getElementById('essay').value.trim();
-  if (essay.length < 500) {
-    document.getElementById('formError').innerText = 'Essay must be at least 500 words.';
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Sign Up';
-    return;
-  }
-  // ✅ Check terms agreement only for tutors
-  if (!document.getElementById('agreeRules').checked) {
-    document.getElementById('formError').innerText = 'You must agree to the platform rules.';
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Sign Up';
-    return;
-  }
-  const quiz1 = document.querySelector('input[name="quiz1"]:checked');
-  const quiz2 = document.querySelector('input[name="quiz2"]:checked');
-  const quiz3 = document.querySelector('input[name="quiz3"]:checked');
-  if (!quiz1 || !quiz2 || !quiz3) {
-    document.getElementById('formError').innerText = 'Please answer all quiz questions.';
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Sign Up';
-    return;
-  }
-  if (quiz1.value !== 'A' || quiz2.value !== 'B' || quiz3.value !== 'False') {
-    document.getElementById('formError').innerText = 'You failed the platform rules quiz. Please review the rules and try again.';
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Sign Up';
-    return;
-  }
-}
-
-    // Build FormData
     const formData = new FormData();
-    formData.append('fullName', document.getElementById('fullName').value);
-    formData.append('email', document.getElementById('email').value);
-    formData.append('password', password);
+    formData.append('fullName', document.getElementById('fullName').value.trim());
+    formData.append('email', document.getElementById('email').value.trim());
+    formData.append('password', document.getElementById('password').value);
+    const role = roleSelect.value;
     formData.append('role', role);
 
     if (role === 'tutor') {
-      formData.append('qualifications', document.getElementById('qualifications').value);
-      formData.append('subjects', document.getElementById('subjects').value);
+      formData.append('qualifications', document.getElementById('qualifications').value.trim());
+      formData.append('subjects', document.getElementById('subjects').value.trim());
       formData.append('essay', document.getElementById('essay').value);
       formData.append('essayFormat', document.getElementById('essayFormat').value);
       const portfolioFile = document.getElementById('portfolio').files[0];
       if (portfolioFile) formData.append('portfolio', portfolioFile);
-      const quizAnswers = {
-        q1: document.querySelector('input[name="quiz1"]:checked').value,
-        q2: document.querySelector('input[name="quiz2"]:checked').value,
-        q3: document.querySelector('input[name="quiz3"]:checked').value
-      };
+      
+      // ✅ Collect ALL 10 quiz answers
+      const quizAnswers = {};
+      for (let i = 1; i <= 10; i++) {
+        const selected = document.querySelector(`input[name="quiz${i}"]:checked`);
+        if (selected) quizAnswers[`q${i}`] = selected.value;
+      }
       formData.append('quizAnswers', JSON.stringify(quizAnswers));
 
       const preferredMethod = methodSelect.value;
       formData.append('preferredMethod', preferredMethod);
       if (preferredMethod === 'paypal') {
-        formData.append('paypalEmail', document.getElementById('paypalEmail').value);
+        formData.append('paypalEmail', document.getElementById('paypalEmail').value.trim());
       } else if (preferredMethod === 'mpesa') {
-        formData.append('mpesaPhone', document.getElementById('mpesaPhone').value);
+        formData.append('mpesaPhone', document.getElementById('mpesaPhone').value.trim());
       } else if (preferredMethod === 'bank') {
-        formData.append('bankName', document.getElementById('bankName').value);
-        formData.append('accountName', document.getElementById('accountName').value);
-        formData.append('accountNumber', document.getElementById('accountNumber').value);
+        formData.append('bankName', document.getElementById('bankName').value.trim());
+        formData.append('accountName', document.getElementById('accountName').value.trim());
+        formData.append('accountNumber', document.getElementById('accountNumber').value.trim());
       }
     }
 
@@ -411,13 +797,10 @@ if (role === 'tutor') {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Handle returnTo redirect
-        const returnTo = getReturnTo();
-        if (returnTo) {
-          window.location.href = returnTo;
-        } else if (data.user.role === 'student') {
-          window.location.href = 'student-dashboard.html';
-        } else {
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        if (returnTo) window.location.href = returnTo;
+        else if (data.user.role === 'student') window.location.href = 'student-dashboard.html';
+        else {
           alert('Your tutor application has been submitted. You will be notified once approved.');
           window.location.href = 'login.html';
         }
@@ -433,8 +816,10 @@ if (role === 'tutor') {
     }
   });
 
-  // Initialise payment fields if tutor selected by default (though default is student)
-  if (roleSelect.value === 'tutor') togglePaymentFields();
+  // Initialise: if default role is student, hide wizard and steps
+  if (roleSelect.value !== 'tutor') roleSelect.dispatchEvent(new Event('change'));
+  togglePaymentFields();
+  updateWordCount();
 </script>
 </body>
 </html>

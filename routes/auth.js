@@ -133,7 +133,24 @@ router.post('/register',
   body('quizAnswers').if(body('role').equals('tutor')).custom(value => {
     try {
       const parsed = JSON.parse(value);
-      if (parsed.q1 !== 'A' || parsed.q2 !== 'B' || parsed.q3 !== 'False') throw new Error();
+      // Define correct answers for all 10 questions
+      const correct = {
+        q1: 'A',
+        q2: 'B',
+        q3: 'False',
+        q4: 'B',
+        q5: 'C',
+        q6: 'B',
+        q7: 'B',
+        q8: 'B',
+        q9: 'C',
+        q10: 'False'
+      };
+      // Validate each answer
+      for (let i = 1; i <= 10; i++) {
+        const key = `q${i}`;
+        if (parsed[key] !== correct[key]) throw new Error();
+      }
       return true;
     } catch {
       throw new Error('Quiz answers are incorrect');
@@ -143,7 +160,6 @@ router.post('/register',
   async (req, res) => {
     try {
       let { fullName, email, password, role } = req.body;
-      // ✅ Normalize email to lowercase
       email = email.toLowerCase();
 
       const existing = await User.findOne({ email });
@@ -152,7 +168,7 @@ router.post('/register',
       const hashed = await bcrypt.hash(password, 10);
 
       const userData = {
-        email,  // stored as lowercase
+        email,
         password: hashed,
         fullName,
         role,
@@ -199,7 +215,6 @@ router.post('/register',
       user.refreshToken = refreshToken;
       await user.save();
 
-      // ✅ Send pending application email to tutor (if role is tutor)
       if (role === 'tutor') {
         try {
           await sendEmailWithTemplate(user.email, 'Tutor Application Received – StudyGlade', 'tutor-application-pending.ejs', {
@@ -208,10 +223,8 @@ router.post('/register',
           console.log(`📧 Pending application email sent to ${user.email}`);
         } catch (emailErr) {
           console.error('Failed to send pending tutor email:', emailErr);
-          // Do not block registration if email fails
         }
 
-        // ✅ NEW: Notify all admins about new tutor application
         try {
           const admins = await User.find({ role: 'admin' });
           const io = req.app.get('io');
@@ -233,11 +246,9 @@ router.post('/register',
           console.log(`📢 Notified ${admins.length} admin(s) about new tutor application`);
         } catch (notifErr) {
           console.error('Failed to notify admins about new tutor:', notifErr);
-          // Do not block registration
         }
       }
 
-      // ✅ Welcome notification ONLY for instant‑approval roles (student, admin)
       if (role !== 'tutor') {
         try {
           await Notification.create({
@@ -277,7 +288,6 @@ router.post('/register',
     }
   }
 );
-
 
 
 // ----------------- Login (with validation) -----------------
