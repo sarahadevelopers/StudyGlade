@@ -1,4 +1,6 @@
 // Sanitize preview text for onclick attribute (remove binary junk)
+// Global store for pending tutors (to avoid refetching)
+window.pendingTutorsMap = new Map();
 function sanitizeForOnclick(str) {
   if (!str) return '';
   // Keep only printable ASCII, newline, tab, carriage return
@@ -135,10 +137,13 @@ async function loadOverview() {
 // ----- Tutor Applications Section (using dedicated endpoint) -----
 async function loadTutorApplications() {
   try {
-    // ✅ Call the new endpoint that returns all pending tutors
     const response = await apiFetch('/admin/pending-tutors');
     const pendingApps = response.applications || [];
     console.log('📋 Pending tutor applications:', pendingApps);
+
+    // Store in global map for quick lookup
+    window.pendingTutorsMap.clear();
+    pendingApps.forEach(t => window.pendingTutorsMap.set(t._id, t));
 
     const container = document.getElementById('tutorApplicationsList');
     if (!container) return;
@@ -172,21 +177,16 @@ async function loadTutorApplications() {
 }
 
 
-
 let currentReviewUserId = null;
 
 async function showTutorReview(userId) {
   try {
     console.log('showTutorReview called for userId:', userId);
     
-    // Fetch users from the API (response is { users: [], pagination: {} })
-    const response = await apiFetch('/admin/users');
-    const users = response.users || [];
-    
-    // Find the specific tutor by ID
-    const tutor = users.find(u => u._id === userId);
+    // Retrieve the tutor from the global map (already loaded)
+    const tutor = window.pendingTutorsMap.get(userId);
     if (!tutor) {
-      console.error('Tutor not found for userId:', userId);
+      console.error('Tutor not found in pendingTutorsMap for userId:', userId);
       alert('Tutor not found. Please refresh the page and try again.');
       return;
     }
