@@ -632,18 +632,22 @@ window.savePreviewText = async function() {
   const docId = document.getElementById('editPreviewDocId').value;
   const newPreviewText = document.getElementById('editPreviewText').value.trim();
   if (!docId) return;
+
   const saveBtn = document.querySelector('#editPreviewForm button[type="submit"]');
   const originalText = saveBtn.innerText;
   saveBtn.disabled = true;
   saveBtn.innerText = 'Saving...';
+
   try {
-    await apiFetch(`/api/documents/${docId}/preview`, {
+    // ✅ Use relative path – apiFetch will prepend '/api'
+    const endpoint = `documents/${docId}/preview`;
+    await apiFetch(endpoint, {
       method: 'PUT',
       body: JSON.stringify({ previewText: newPreviewText })
     });
     showToast('Preview text updated', 'success');
     closePreviewModal();
-    loadDocuments();
+    loadDocuments(); // refresh the document list
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -651,7 +655,6 @@ window.savePreviewText = async function() {
     saveBtn.innerText = originalText;
   }
 };
-
 // ----- Withdrawal Requests -----
 async function loadWithdrawals() {
   try {

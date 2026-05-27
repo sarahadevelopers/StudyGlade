@@ -619,11 +619,30 @@ router.put('/:id/preview',
   async (req, res) => {
     try {
       const { previewText } = req.body;
-      const doc = await Document.findByIdAndUpdate(req.params.id, { previewText: previewText.substring(0, 500) }, { new: true });
-      if (!doc) return res.status(404).json({ error: 'Document not found' });
-      res.json({ message: 'Preview text updated', previewText: doc.previewText });
+      const docId = req.params.id;
+
+      console.log(`✏️ Admin ${req.userId} updating preview for document ${docId}`);
+
+      const doc = await Document.findByIdAndUpdate(
+        docId,
+        { previewText: previewText.substring(0, 500) },
+        { new: true, runValidators: true }
+      );
+
+      if (!doc) {
+        console.warn(`⚠️ Document ${docId} not found for preview update`);
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      console.log(`✅ Preview updated for document ${doc.title} (${docId})`);
+      res.json({
+        message: 'Preview text updated',
+        previewText: doc.previewText,
+        documentId: doc._id
+      });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error('❌ Preview update error:', err);
+      res.status(500).json({ error: 'Failed to update preview text' });
     }
   }
 );
