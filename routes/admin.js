@@ -76,6 +76,19 @@ router.get('/public/tutors', async (req, res) => {
 // ========== ALL ADMIN ROUTES BELOW REQUIRE AUTH ==========
 router.use(auth, roleCheck('admin'));
 
+// Get all pending tutor applications (no pagination or large limit)
+router.get('/pending-tutors', async (req, res) => {
+  try {
+    const pendingTutors = await User.find({
+      role: 'tutor',
+      'tutorApplication.status': 'pending'
+    }).select('fullName email tutorApplication walletBalance createdAt');
+    res.json({ applications: pendingTutors });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ========== USERS ==========
 // ========== USERS (with filtering, search, pagination for tutors) ==========
 router.get('/users', async (req, res) => {

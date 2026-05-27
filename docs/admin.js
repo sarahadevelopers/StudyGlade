@@ -132,18 +132,12 @@ async function loadOverview() {
   }
 }
 // ----- Tutor Applications Section -----
+// ----- Tutor Applications Section (using dedicated endpoint) -----
 async function loadTutorApplications() {
   try {
-    const response = await apiFetch('/admin/users');
-    // API returns { users: [], pagination: {} }
-    const users = response.users || [];
-    console.log('📋 All users:', users);
-
-    const pendingApps = users.filter(u => 
-      u.role === 'tutor' && 
-      u.tutorApplication && 
-      u.tutorApplication.status === 'pending'
-    );
+    // ✅ Call the new endpoint that returns all pending tutors
+    const response = await apiFetch('/admin/pending-tutors');
+    const pendingApps = response.applications || [];
     console.log('📋 Pending tutor applications:', pendingApps);
 
     const container = document.getElementById('tutorApplicationsList');
@@ -157,7 +151,7 @@ async function loadTutorApplications() {
     container.innerHTML = `
       <table class="data-table" id="tutorAppsTable">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></td>
+          <tr><th>Name</th><th>Email</th><th>Applied On</th><th>Subjects</th><th>Action</th></tr>
         </thead>
         <tbody>
           ${pendingApps.map(t => `
