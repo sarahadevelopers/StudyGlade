@@ -1,12 +1,39 @@
 const express = require('express');
 const auth = require('../middleware/auth');
-const roleCheck = require('../middleware/roleCheck');   // <-- added for admin check
+const roleCheck = require('../middleware/roleCheck');
 const Notification = require('../models/Notification');
 
 const router = express.Router();
 
-// POST /api/notifications – create a notification (admin only)
-router.post('/', auth, roleCheck('admin'), async (req, res) => {
+// ========== PUBLIC ROUTES (no authentication required) ==========
+// GET unread count for the bell badge – works even if user is not logged in
+router.get('/unread-count', async (req, res) => {
+  try {
+    // Attempt to get user from access token cookie
+    let userId = null;
+    const token = req.cookies.accessToken;
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (err) {
+        // Invalid token – treat as not logged in
+      }
+    }
+    const count = userId ? await Notification.countDocuments({ userId, read: false }) : 0;
+    res.json({ count });
+  } catch (err) {
+    console.error('Unread count error:', err);
+    res.status(500).json({ error: 'Failed to fetch count' });
+  }
+});
+
+// ========== ALL ROUTES BELOW REQUIRE AUTHENTICATION ==========
+router.use(auth);
+
+// POST – create a notification (admin only)
+router.post('/', roleCheck('admin'), async (req, res) => {
   try {
     const { userId, type, title, message, link } = req.body;
     if (!userId || !title || !message) {
@@ -29,39 +56,8 @@ router.post('/', auth, roleCheck('admin'), async (req, res) => {
   }
 });
 
-// ----------------- POST: Create a notification (admin only) -----------------
-router.post('/', auth, roleCheck('admin'), async (req, res) => {
-  try {
-    const { userId, type, title, message, link } = req.body;
-
-    if (!userId || !title || !message) {
-      return res.status(400).json({ error: 'Missing required fields: userId, title, message' });
-    }
-
-    const notification = await Notification.create({
-      userId,
-      type: type || 'admin_test',
-      title,
-      message,
-      link: link || '/admin-dashboard.html',
-      read: false
-    });
-
-    // Emit real‑time update via Socket.io if available
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user_${userId}`).emit('notification_new', notification);
-    }
-
-    res.status(201).json(notification);
-  } catch (err) {
-    console.error('Error creating notification:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ----------------- GET user's notifications (latest first, paginated) -----------------
-router.get('/', auth, async (req, res) => {
+// GET user's notifications (paginated)
+router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -89,19 +85,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ----------------- GET unread count (for bell badge) -----------------
-router.get('/unread-count', auth, async (req, res) => {
-  try {
-    const count = await Notification.countDocuments({ userId: req.userId, read: false });
-    res.json({ count });
-  } catch (err) {
-    console.error('Unread count error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ----------------- PUT: Mark a single notification as read -----------------
-router.put('/:id/read', auth, async (req, res) => {
+// PUT – mark a single notification as read
+router.put('/:id/read', async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
@@ -116,8 +101,8 @@ router.put('/:id/read', auth, async (req, res) => {
   }
 });
 
-// ----------------- PUT: Mark all notifications as read -----------------
-router.put('/read-all', auth, async (req, res) => {
+// PUT – mark all notifications as read
+router.put('/read-all', async (req, res) => {
   try {
     await Notification.updateMany(
       { userId: req.userId, read: false },

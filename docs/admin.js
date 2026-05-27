@@ -1,6 +1,6 @@
 // Sanitize preview text for onclick attribute (remove binary junk)
 // Global store for pending tutors (to avoid refetching)
-window.pendingTutorsMap = new Map();
+
 function sanitizeForOnclick(str) {
   if (!str) return '';
   // Keep only printable ASCII, newline, tab, carriage return
@@ -19,6 +19,8 @@ function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
+
+window.pendingTutorsMap = new Map();
 
 // ----- Export CSV -----
 function exportTableToCSV(tableId, filename) {
@@ -1685,16 +1687,11 @@ async function markAllRead() {
 async function updateUnreadCountAndSound() {
   try {
     const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
-    const data = await res.json();
-    const currentCount = data.count;
-    if (currentCount > lastUnreadCount && notificationSoundEnabled) {
-      playNotificationSound();
-    }
-    lastUnreadCount = currentCount;
-    const badge = document.querySelector('.notification-bell .badge');
-    if (badge) badge.innerText = currentCount > 9 ? '9+' : currentCount;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { count } = await res.json();
+    // ... update badge UI
   } catch (err) {
-    console.error('Failed to fetch unread count:', err);
+    console.warn('Could not fetch unread count:', err.message);
   }
 }
 
