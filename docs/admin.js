@@ -640,7 +640,7 @@ window.savePreviewText = async function() {
 
   try {
     // ✅ Use relative path – apiFetch will prepend '/api'
-    const endpoint = `documents/${docId}/preview`;
+    const endpoint = `/documents/${docId}/preview`;  // ✅ leading slash
     await apiFetch(endpoint, {
       method: 'PUT',
       body: JSON.stringify({ previewText: newPreviewText })
