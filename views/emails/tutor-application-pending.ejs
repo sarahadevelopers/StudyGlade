@@ -10,6 +10,8 @@
     .header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; color: #ffffff; }
     .content { padding: 1.8rem; color: #1F2937; line-height: 1.6; }
     .button { display: inline-block; background-color: #005BFF; color: white !important; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: 600; }
+    .notice { background: #f0f7ff; border-left: 4px solid #005BFF; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; }
+    .notice strong { color: #0F172A; }
     .footer { background-color: #F8FAFF; padding: 1rem; text-align: center; font-size: 0.7rem; color: #6B7280; border-top: 1px solid #E5E7EB; }
     @media only screen and (max-width: 480px) { .content { padding: 1.2rem; } .button { display: block; text-align: center; } }
   </style>
@@ -22,9 +24,26 @@
     <div class="content">
       <p>Dear <%= tutorName %>,</p>
       <p>Thank you for applying to become a tutor on StudyGlade. We have received your application and it is now <strong>pending review</strong>.</p>
-      <p>Our team will review your qualifications, essay, and quiz answers. You will receive an email once a decision is made (usually within 2‑3 business days).</p>
-      <p>In the meantime, you can log in to check your application status, but you won’t be able to bid or upload documents until approved.</p>
-      <p>If you have any questions, please contact our support team.</p>
+      <p>Our team will review your qualifications, essay, and quiz answers. You will receive an email once a decision is made (usually within <strong>24–48 hours</strong>).</p>
+      <p>In the meantime, you can log in to check your application status, but you won't be able to bid or upload documents until approved.</p>
+
+      <!-- 🔒 KYC DISCLAIMER (ADDED) -->
+      <div class="notice">
+        <p style="font-weight: 600; color: #0F172A; margin-bottom: 0.3rem;">
+          🔒 Identity & KYC Verification
+        </p>
+        <p style="font-size: 0.85rem; color: #1F2937; margin: 0; line-height: 1.6;">
+          To maintain a safe and trusted learning environment, <strong>StudyGlade conducts random verification checks</strong> on tutor applicants. You may be asked to verify your identity and/or qualifications via email at any time.
+        </p>
+        <p style="font-size: 0.85rem; color: #1F2937; margin-top: 0.3rem; line-height: 1.6;">
+          Please ensure that all information provided – including your full name, qualifications, and contact details – is <strong>accurate and verifiable</strong>. Providing false or misleading information may result in rejection, suspension, or permanent removal from the platform.
+        </p>
+        <p style="font-size: 0.8rem; color: #6B7280; margin-top: 0.3rem; font-style: italic;">
+          By submitting this application, you consent to these verification checks and agree to cooperate promptly if contacted.
+        </p>
+      </div>
+
+      <p>If you have any questions, feel free to <a href="https://studyglade.com/contact.html" style="color: #005BFF; text-decoration: none;">contact our support team</a>.</p>
       <p>Best regards,<br>The StudyGlade Team</p>
     </div>
     <div class="footer">

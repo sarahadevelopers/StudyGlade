@@ -264,17 +264,61 @@ async function placeBid(questionId, isDemo = false) {
   }
 }
 
+// ----- Accept Question (with restriction handling) -----
 async function acceptQuestion(questionId, isDemo = false) {
-  if (isDemo) {
-    showToast('This is a demo question – no real assignment', 'info');
+  try {
+    const response = await fetch(`${window.API_BASE}/questions/${questionId}/accept`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      showToast('Question accepted!', 'success');
+      loadTutorDashboard();
+    } else if (data.error === 'restricted') {
+      // Show the restriction modal with the server message
+      showRestrictionModal(data.message);
+    } else {
+      showToast(data.error || 'Failed to accept question', 'error');
+    }
+  } catch (err) {
+    showToast('Network error: ' + err.message, 'error');
+  }
+}
+
+// ----- Restriction Modal (for demo questions) -----
+function showRestrictionModal(message) {
+  const modal = document.getElementById('restrictionModal');
+  const body = document.getElementById('restrictionModalBody');
+  if (!modal || !body) {
+    // Fallback: show toast if modal not found
+    showToast(message, 'error');
     return;
   }
-  try {
-    await apiFetch(`/questions/${questionId}/accept`, { method: 'PUT' });
-    showToast('Question accepted!', 'success');
-    loadTutorDashboard();
-  } catch (err) { showToast(err.message, 'error'); }
+  body.innerHTML = `
+    <div style="text-align: center; padding: 0.5rem;">
+      <i class="fas fa-lock" style="font-size: 2.5rem; color: var(--warning, #f59e0b); margin-bottom: 1rem;"></i>
+      <p style="font-size: 1rem; color: var(--text-navy, #0f172a); line-height: 1.6;">${escapeHtml(message)}</p>
+      <p style="font-size: 0.85rem; color: var(--slate, #64748b); margin-top: 0.5rem;">
+        You can still <strong>place a bid</strong> on this question – if the student considers you, they may invite you to accept it later.
+      </p>
+      <button class="btn-primary" style="margin-top: 1rem; width: auto; padding: 0.6rem 2rem;" onclick="closeRestrictionModal()">Got it</button>
+    </div>
+  `;
+  modal.style.display = 'flex';
 }
+
+function closeRestrictionModal() {
+  const modal = document.getElementById('restrictionModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Expose to global scope
+window.showRestrictionModal = showRestrictionModal;
+window.closeRestrictionModal = closeRestrictionModal;
+
 
 // ----- Load Assignments (with pagination) -----
 async function loadAssignments(page = 1) {

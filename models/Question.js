@@ -28,9 +28,8 @@ const questionSchema = new mongoose.Schema({
   answerFileName: { type: String, default: '' },
   
   // ---------- Multiple answer files (new) ----------
-  answerFiles: { type: [String], default: [] },       // array of Cloudinary URLs
-  answerFileNames: { type: [String], default: [] },   // original file names
-  
+  answerFiles: { type: [String], default: [] },
+  answerFileNames: { type: [String], default: [] },
   answerUploadedAt: { type: Date, default: null },
   
   // Rating
@@ -49,10 +48,16 @@ const questionSchema = new mongoose.Schema({
   },
   // Tutor cancellation reason
   cancellationReason: { type: String, default: '' },
+  
+  // ✅ NEW: Restrict which tutors can accept this question
+  restrictedTutors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  
   createdAt: { type: Date, default: Date.now }
 });
 
 // Index for faster demo question filtering
 questionSchema.index({ isDemo: 1 });
+// ✅ Optional: index for restricted tutors queries
+questionSchema.index({ restrictedTutors: 1 });
 
 module.exports = mongoose.model('Question', questionSchema);

@@ -266,9 +266,20 @@ router.put('/:id/accept',
       const question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
 
-      // ✅ Demo question: fake acceptance – no real assignment
+      // ---------- Demo question: check restrictions first ----------
       if (question.isDemo) {
-        console.log(`🎭 Demo accept: tutor ${req.userId} pretended to accept demo question ${question._id}`);
+        // ✅ If the question has restricted tutors, check eligibility
+        if (question.restrictedTutors && question.restrictedTutors.length > 0) {
+          const isAllowed = question.restrictedTutors.some(id => id.toString() === req.userId);
+          if (!isAllowed) {
+            return res.status(403).json({
+              error: 'restricted',
+              message: 'This student has restricted this question to specific tutors only. You are not eligible to accept this question.'
+            });
+          }
+        }
+        // ✅ If allowed (or no restrictions), fake accept
+        console.log(`🎭 Demo accept: tutor ${req.userId} accepted demo question ${question._id}`);
         return res.json({ message: 'Question accepted!', demo: true });
       }
 
