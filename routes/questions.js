@@ -266,12 +266,19 @@ router.put('/:id/accept',
       const question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
 
+      // ========== DEBUG LOGS ==========
+      console.log('🔄 Accept called by tutor:', req.userId);
+      console.log('📄 Question:', question._id, 'isDemo:', question.isDemo);
+      console.log('🔒 restrictedTutors:', question.restrictedTutors || 'none');
+      // =================================
+
       // ---------- Demo question: check restrictions first ----------
       if (question.isDemo) {
         // ✅ If the question has restricted tutors, check eligibility
         if (question.restrictedTutors && question.restrictedTutors.length > 0) {
           const isAllowed = question.restrictedTutors.some(id => id.toString() === req.userId);
           if (!isAllowed) {
+            console.log('🚫 Tutor not allowed – returning restriction error');
             return res.status(403).json({
               error: 'restricted',
               message: 'This student has restricted this question to specific tutors only. You are not eligible to accept this question.'
@@ -306,6 +313,7 @@ router.put('/:id/accept',
 
       res.json(question);
     } catch (err) {
+      console.error('Accept error:', err);
       res.status(500).json({ error: err.message });
     }
   }

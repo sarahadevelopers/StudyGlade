@@ -280,9 +280,20 @@ window.changeAvailablePage = (delta) => {
 
 // ----- Place Bid (with demo question handling) -----
 async function placeBid(questionId, isDemo = false) {
+  // Helper to show toast or fallback to alert
+  function notify(message, type = 'info') {
+    if (typeof showToast === 'function') {
+      showToast(message, type);
+    } else {
+      // Fallback: use alert
+      alert(message);
+    }
+  }
+
+  // Demo question: fake bid with immediate visual feedback
   if (isDemo) {
-    showToast('Bid placed (demo) – this is a practice question', 'success');
-    // Disable the bid controls for this demo item
+    notify('Bid placed (demo) – this is a practice question', 'success');
+
     const container = document.querySelector(`.available-item[data-id="${questionId}"]`);
     if (container) {
       container.style.opacity = '0.6';
@@ -293,30 +304,46 @@ async function placeBid(questionId, isDemo = false) {
     return;
   }
 
-  // Original logic for real questions
-  console.log("placeBid called for", questionId);
+  // ---------- Real question logic ----------
+  console.log('placeBid called for', questionId);
+
   const input = document.getElementById(`bid-${questionId}`);
   const container = input?.closest('.available-item');
   const btn = container?.querySelector('.btn-primary-sm');
-  const amount = input?.value;
-  
-  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
-  
+  const amount = input?.value?.trim();
+
+  // Validate amount
+  if (!amount || parseFloat(amount) <= 0) {
+    notify('Please enter a valid bid amount.', 'error');
+    return;
+  }
+
+  // Disable inputs and show loading state
   if (input) input.disabled = true;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Placing...'; }
-  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Placing...';
+  }
+
   try {
+    // Send bid request
     await apiFetch(`/questions/${questionId}/bid`, {
       method: 'POST',
-      body: JSON.stringify({ amount: parseFloat(amount), message: 'Bid from dashboard' })
+      body: JSON.stringify({
+        amount: parseFloat(amount),
+        message: 'Bid from dashboard'
+      })
     });
-    showToast('Bid placed successfully!', 'success');
-    
+
+    notify('Bid placed successfully!', 'success');
+
+    // Mark the question as bid on
     if (container) {
       container.style.opacity = '0.6';
       container.style.pointerEvents = 'none';
       container.style.backgroundColor = '#f5f5f5';
       container.title = 'You have already placed a bid on this question';
+
       const header = container.querySelector('.available-header');
       if (header && !header.querySelector('.bid-placed-check')) {
         const checkSpan = document.createElement('span');
@@ -329,13 +356,17 @@ async function placeBid(questionId, isDemo = false) {
       }
     }
   } catch (err) {
-    console.error("Bid error:", err);
-    showToast(err.message, 'error');
+    console.error('Bid error:', err);
+    notify(err.message || 'Failed to place bid. Please try again.', 'error');
+
+    // Re-enable inputs on error
     if (input) input.disabled = false;
-    if (btn) { btn.disabled = false; btn.innerHTML = 'Place Bid'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Place Bid';
+    }
   }
 }
-
 // ----- Accept Question (with restriction handling) -----
 async function acceptQuestion(questionId, isDemo = false) {
   try {
@@ -345,6 +376,9 @@ async function acceptQuestion(questionId, isDemo = false) {
       headers: { 'Content-Type': 'application/json' }
     });
     const data = await response.json();
+
+    // ✅ Debug log: see exactly what the server returns
+    console.log('📨 Accept response:', data);
 
     if (response.ok) {
       showToast('Question accepted!', 'success');
@@ -356,10 +390,10 @@ async function acceptQuestion(questionId, isDemo = false) {
       showToast(data.error || 'Failed to accept question', 'error');
     }
   } catch (err) {
+    console.error('Accept error:', err);
     showToast('Network error: ' + err.message, 'error');
   }
 }
-
 // ----- Restriction Modal (for demo questions) -----
 function showRestrictionModal(message) {
   const modal = document.getElementById('restrictionModal');
