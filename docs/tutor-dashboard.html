@@ -317,7 +317,12 @@
     </div>
   </div>
 </div>
-
+ <!-- 🔒 RESTRICTION MODAL (for demo questions) -->
+  <div id="restrictionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 32px; max-width: 460px; width: 90%; padding: 2rem; box-shadow: 0 20px 35px rgba(0,0,0,0.2); animation: fadeInUp 0.3s ease;">
+      <div id="restrictionModalBody"></div>
+    </div>
+  </div>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="api.js?v=2"></script>
 <script src="auth.js?v=2"></script>
@@ -335,10 +340,8 @@
   if (typeof initIdleTimer === 'function') {
     initIdleTimer();
   }
-  const yearSpan = document.getElementById('currentYear');
-if (yearSpan) {
-  yearSpan.textContent = new Date().getFullYear();
-}
+ const headerYearSpan = document.getElementById('year');
+const footerYearSpan = document.getElementById('footer-year');
 </script>
 </body>
 </html>
