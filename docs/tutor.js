@@ -26,7 +26,25 @@ let totalAvailablePages = 1;
 let assignmentsPage = 1;
 let assignmentsTotalPages = 1;
 const ASSIGNMENTS_PER_PAGE = 10;
+// ----- Relative time (e.g., "2 hours ago") -----
+function timeAgo(date) {
+  const now = new Date();
+  const diff = Math.floor((now - new Date(date)) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return Math.floor(diff / 60) + ' minutes ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+  if (diff < 172800) return 'Yesterday';
+  return new Date(date).toLocaleDateString();
+}
 
+// ----- Format a date as "June 21, 2026" -----
+function formatFullDate(date) {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
 // ----- Helper to update user menu (avatar, name) -----
 function updateUserMenu(user) {
   const topName = document.getElementById('topName');
@@ -160,6 +178,60 @@ async function loadAvailableQuestions(page = 1) {
     let html = '';
     questions.forEach(q => {
       const isDemo = q.isDemo === true;
+
+      // ----- FOR DEMO QUESTIONS: override posting date, deadline, school, course -----
+      let displaySubject, displaySchool, displayCourse, displayCreatedAt, displayDeadline;
+
+      if (isDemo) {
+        // Always use current time for posting
+        displayCreatedAt = new Date();
+
+        // Deadline = 3 days from now
+        displayDeadline = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
+        // Subject – if missing or empty, stick to "General"
+        displaySubject = (q.subject && q.subject.trim() !== '' && q.subject !== 'General') 
+          ? q.subject 
+          : 'General';
+
+        // School – fallback to "GCU" if not provided
+        displaySchool = (q.school && q.school.trim() !== '') 
+          ? q.school 
+          : 'GCU';
+
+        // Course – if missing, show "Not specified" (admins should fill this)
+        displayCourse = (q.course && q.course.trim() !== '') 
+          ? q.course 
+          : 'Not specified';
+      } else {
+        // Real questions: use stored values
+        displaySubject = q.subject || 'General';
+        displaySchool = q.school;
+        displayCourse = q.course;
+        displayCreatedAt = q.createdAt;
+        displayDeadline = q.deadline;
+      }
+
+      // Build meta information string
+      let metaParts = [
+        `${escapeHtml(displaySubject)}`,
+        `Budget: ${formatMoney(q.budget)}`,
+        `Posted: ${timeAgo(displayCreatedAt)}`
+      ];
+
+      // Deadline
+      if (displayDeadline) {
+        metaParts.push(`Deadline: ${formatFullDate(displayDeadline)}`);
+      } else {
+        metaParts.push(`Deadline: Not set`);
+      }
+
+      // School & Course – only show if they exist (for dummy they always exist)
+      if (displaySchool) metaParts.push(`School: ${escapeHtml(displaySchool)}`);
+      if (displayCourse) metaParts.push(`Course: ${escapeHtml(displayCourse)}`);
+
+      const metaString = metaParts.join(' • ');
+
       html += `
         <div class="available-item" data-id="${q._id}" data-demo="${isDemo}">
           <div class="available-header">
@@ -167,7 +239,7 @@ async function loadAvailableQuestions(page = 1) {
               <div class="assignment-title">
                 <i class="fas fa-file-alt" style="margin-right: 6px;"></i> ${escapeHtml(q.title)}
               </div>
-              <div class="assignment-meta">${escapeHtml(q.subject || 'General')} • Budget: ${formatMoney(q.budget)} • Posted: ${new Date(q.createdAt).toLocaleDateString()}</div>
+              <div class="assignment-meta">${metaString}</div>
             </div>
             <span class="match-high">High Match</span>
           </div>

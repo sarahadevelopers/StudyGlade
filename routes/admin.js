@@ -476,24 +476,33 @@ router.get('/demo-questions', async (req, res) => {
 });
 
 // Create a new demo question
+// Create a new demo question (updated with school, course, auto‑deadline)
 router.post('/demo-questions', async (req, res) => {
   try {
-    const { title, description, subject, budget, level, type, files } = req.body;
+    const { title, description, subject, budget, level, type, files, school, course } = req.body;
+
+    // ✅ Validate required fields
     if (!title || !description || !subject || !budget) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: title, description, subject, budget' });
+    }
+    if (!school || !course) {
+      return res.status(400).json({ error: 'School and Course are required for demo questions' });
     }
 
     const newQuestion = await Question.create({
       title,
       description,
-      subject,
+      subject: subject || 'General',   // keep as provided, fallback to 'General'
       budget: parseFloat(budget),
       level: level || 'College',
       type: type || 'Assignment',
-      studentId: req.userId,  // admin's own ID as the "student" for demo questions
+      studentId: req.userId,
       isDemo: true,
       status: 'pending',
-      files: files || []
+      files: files || [],
+      school,                           // ✅ saved
+      course,                           // ✅ saved
+      deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // ✅ 3 days from now
     });
 
     res.status(201).json(newQuestion);

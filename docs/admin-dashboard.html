@@ -6,7 +6,7 @@
   <title>Admin Dashboard - StudyGlade</title>
  <!-- Favicon -->
 <link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0-beta3/css/all.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
@@ -266,59 +266,69 @@
   </div>
 
   <!-- NEW: Demo Question Modal (Create/Edit) -->
-  <div id="demoQuestionModal" class="modal">
-    <div class="modal-content" style="max-width: 600px;">
-      <div class="modal-header">
-        <h3 id="demoQuestionModalTitle">Create Demo Question</h3>
-        <span class="close-modal" onclick="closeDemoQuestionModal()">&times;</span>
-      </div>
-      <form id="demoQuestionForm">
-        <input type="hidden" id="demoQuestionId">
-        <div class="form-group">
-          <label>Title *</label>
-          <input type="text" id="demoTitle" required>
-        </div>
-        <div class="form-group">
-          <label>Description *</label>
-          <textarea id="demoDescription" rows="4" required></textarea>
-        </div>
-        <div class="form-group">
-          <label>Subject *</label>
-          <input type="text" id="demoSubject" required>
-        </div>
-        <div class="form-group">
-          <label>Budget ($) *</label>
-          <input type="number" id="demoBudget" step="0.5" min="1" required>
-        </div>
-        <div class="form-group">
-          <label>Level</label>
-          <select id="demoLevel">
-            <option value="College">College</option>
-            <option value="High School">High School</option>
-            <option value="Masters">Masters</option>
-            <option value="PhD">PhD</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Type</label>
-          <select id="demoType">
-            <option value="Assignment">Assignment</option>
-            <option value="Notes">Notes</option>
-            <option value="Exam Prep">Exam Prep</option>
-            <option value="Guide">Guide</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>File URLs (optional, comma separated)</label>
-          <input type="text" id="demoFiles" placeholder="https://example.com/file.pdf, https://example.com/image.jpg">
-        </div>
-        <div style="text-align: right;">
-          <button type="button" class="btn-secondary btn-sm" onclick="closeDemoQuestionModal()">Cancel</button>
-          <button type="submit" class="btn-primary btn-sm">Save</button>
-        </div>
-      </form>
+<!-- Demo Question Modal (Create/Edit) -->
+<div id="demoQuestionModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 id="demoQuestionModalTitle">Create Demo Question</h3>
+      <span class="close-modal" onclick="closeDemoQuestionModal()">&times;</span>
     </div>
+    <form id="demoQuestionForm">
+      <input type="hidden" id="demoQuestionId">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" id="demoTitle" required>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea id="demoDescription" rows="4" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" id="demoSubject" required placeholder="e.g., English, Mathematics, Nursing">
+      </div>
+      <!-- ✅ NEW: School & Course fields -->
+      <div class="form-group">
+        <label>School / University *</label>
+        <input type="text" id="demoSchool" required placeholder="e.g., Harvard University, GCU">
+      </div>
+      <div class="form-group">
+        <label>Course Code / Name *</label>
+        <input type="text" id="demoCourse" required placeholder="e.g., ENG 101: Composition, MATH 202">
+      </div>
+      <div class="form-group">
+        <label>Budget ($) *</label>
+        <input type="number" id="demoBudget" step="0.5" min="1" required>
+      </div>
+      <div class="form-group">
+        <label>Level</label>
+        <select id="demoLevel">
+          <option value="College">College</option>
+          <option value="High School">High School</option>
+          <option value="Masters">Masters</option>
+          <option value="PhD">PhD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="demoType">
+          <option value="Assignment">Assignment</option>
+          <option value="Notes">Notes</option>
+          <option value="Exam Prep">Exam Prep</option>
+          <option value="Guide">Guide</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>File URLs (optional, comma separated)</label>
+        <input type="text" id="demoFiles" placeholder="https://example.com/file.pdf, https://example.com/image.jpg">
+      </div>
+      <div style="text-align: right;">
+        <button type="button" class="btn-secondary btn-sm" onclick="closeDemoQuestionModal()">Cancel</button>
+        <button type="submit" class="btn-primary btn-sm">Save</button>
+      </div>
+    </form>
   </div>
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

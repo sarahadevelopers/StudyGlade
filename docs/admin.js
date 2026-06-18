@@ -987,6 +987,9 @@ function showCreateDemoQuestionModal() {
   document.getElementById('demoLevel').value = 'College';
   document.getElementById('demoType').value = 'Assignment';
   document.getElementById('demoFiles').value = '';
+  // ✅ NEW: Clear school and course
+  document.getElementById('demoSchool').value = '';
+  document.getElementById('demoCourse').value = '';
   document.getElementById('demoQuestionModal').style.display = 'flex';
 }
 
@@ -1004,6 +1007,9 @@ async function editDemoQuestion(questionId) {
     document.getElementById('demoLevel').value = question.level || 'College';
     document.getElementById('demoType').value = question.type || 'Assignment';
     document.getElementById('demoFiles').value = (question.files || []).join(', ');
+    // ✅ NEW: Populate school and course
+    document.getElementById('demoSchool').value = question.school || '';
+    document.getElementById('demoCourse').value = question.course || '';
     document.getElementById('demoQuestionModal').style.display = 'flex';
   } catch (err) {
     showToast('Failed to load question details', 'error');
@@ -1022,6 +1028,7 @@ async function deleteDemoQuestion(questionId) {
 }
 
 // Demo question form submission handler
+// Demo question form submission handler
 document.getElementById('demoQuestionForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('demoQuestionId').value;
@@ -1032,8 +1039,18 @@ document.getElementById('demoQuestionForm')?.addEventListener('submit', async (e
     budget: parseFloat(document.getElementById('demoBudget').value),
     level: document.getElementById('demoLevel').value,
     type: document.getElementById('demoType').value,
-    files: document.getElementById('demoFiles').value.split(',').map(s => s.trim()).filter(Boolean)
+    files: document.getElementById('demoFiles').value.split(',').map(s => s.trim()).filter(Boolean),
+    // ✅ NEW: School & Course
+    school: document.getElementById('demoSchool').value,
+    course: document.getElementById('demoCourse').value
   };
+
+  // Validate required fields
+  if (!data.school || !data.course) {
+    showToast('School and Course are required.', 'error');
+    return;
+  }
+
   try {
     if (id) {
       await apiFetch(`/admin/demo-questions/${id}`, { method: 'PUT', body: JSON.stringify(data) });
