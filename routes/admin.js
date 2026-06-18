@@ -513,13 +513,16 @@ router.post('/demo-questions', async (req, res) => {
 });
 
 // Update a demo question
+// Update a demo question (including school & course)
+// Update a demo question (including school & course)
 router.put('/demo-questions/:id', async (req, res) => {
   try {
-    const { title, description, subject, budget, level, type, files } = req.body;
+    const { title, description, subject, budget, level, type, files, school, course } = req.body;
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Demo question not found' });
     if (!question.isDemo) return res.status(400).json({ error: 'Not a demo question' });
 
+    // Update all fields
     question.title = title;
     question.description = description;
     question.subject = subject;
@@ -527,6 +530,11 @@ router.put('/demo-questions/:id', async (req, res) => {
     if (level) question.level = level;
     if (type) question.type = type;
     if (files) question.files = files;
+    
+    // ✅ NEW: Update school and course
+    if (school !== undefined) question.school = school;
+    if (course !== undefined) question.course = course;
+
     await question.save();
 
     res.json({ message: 'Demo question updated', question });

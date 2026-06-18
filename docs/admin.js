@@ -285,12 +285,20 @@ function closeTutorModal() {
 }
 
 // ----- Users Management -----
-async function loadUsers() {
+// ----- Users Management (with pagination) -----
+let usersPage = 1;
+let usersTotalPages = 1;
+const USERS_PER_PAGE = 20;
+
+async function loadUsers(page = 1) {
   try {
-    const response = await apiFetch('/admin/users');
-    // Safely extract the users array – the API returns an object with a 'users' property
-    const usersList = Array.isArray(response) ? response : (response.users || []);
+    const response = await apiFetch(`/admin/users?page=${page}&limit=${USERS_PER_PAGE}`);
+    const usersList = response.users || [];
+    const pagination = response.pagination || { page: 1, pages: 1, total: 0 };
     
+    usersPage = pagination.page;
+    usersTotalPages = pagination.pages;
+
     const container = document.getElementById('usersList');
     container.innerHTML = `
       <table class="data-table" id="usersTable">
@@ -315,10 +323,32 @@ async function loadUsers() {
             </tr>
           `).join('')}
         </tbody>
-      <tr>
+      </table>
     `;
+
+    // Render pagination controls
+    const paginationDiv = document.getElementById('usersPagination');
+    if (paginationDiv) {
+      if (usersTotalPages > 1) {
+        paginationDiv.innerHTML = `
+          <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+            <button class="btn-sm btn-secondary" onclick="loadUsers(${usersPage - 1})" ${usersPage === 1 ? 'disabled' : ''}>
+              ← Previous
+            </button>
+            <span>Page ${usersPage} of ${usersTotalPages}</span>
+            <button class="btn-sm btn-secondary" onclick="loadUsers(${usersPage + 1})" ${usersPage === usersTotalPages ? 'disabled' : ''}>
+              Next →
+            </button>
+          </div>
+        `;
+      } else {
+        paginationDiv.innerHTML = '';
+      }
+    }
+
   } catch (err) {
     console.error('Error loading users:', err);
+    document.getElementById('usersList').innerHTML = '<div class="card error">Failed to load users.</div>';
   }
 }
 
