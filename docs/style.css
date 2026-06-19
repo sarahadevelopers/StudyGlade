@@ -312,3 +312,41 @@ button[onclick="closeTransactionModal()"]:hover {
 .btn-sm {
   text-decoration: none !important;
 }
+
+/* ----- Premium Toast Notification (matching your design) ----- */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(150%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 60px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 10000;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  max-width: 90%;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+.toast.success {
+  background: #10b981;
+}
+.toast.error {
+  background: #ef4444;
+}
+.toast.info {
+  background: #3b82f6;
+}
+.toast.warning {
+  background: #f59e0b;
+}
