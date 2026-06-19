@@ -327,26 +327,43 @@ async function placeBid(questionId, isDemo = false) {
     if (typeof showToast === 'function') {
       showToast(message, type);
     } else {
-      // Fallback: use alert
       alert(message);
     }
   }
 
-  // Demo question: fake bid with immediate visual feedback
+  // Demo question: fake bid with a realistic 2‑second processing delay
   if (isDemo) {
-    notify('Bid placed successfully!', 'success');   // ✅ Updated message
-
     const container = document.querySelector(`.available-item[data-id="${questionId}"]`);
+    const btn = container?.querySelector('.btn-primary-sm');
+    const originalText = btn?.innerHTML;
+
+    // Show loading state
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Placing...';
+    }
+
+    // Simulate network delay (2 seconds)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Show success message
+    notify('Bid placed successfully!', 'success');
+
+    // Disable the item
     if (container) {
       container.style.opacity = '0.6';
       container.style.pointerEvents = 'none';
       container.style.backgroundColor = '#f5f5f5';
       container.title = 'Demo bid placed';
     }
+    if (btn) {
+      btn.innerHTML = 'Bid Placed';
+      btn.disabled = true;
+    }
     return;
   }
 
-  // ---------- Real question logic ----------
+  // ---------- Real question logic (unchanged) ----------
   console.log('placeBid called for', questionId);
 
   const input = document.getElementById(`bid-${questionId}`);
@@ -354,13 +371,11 @@ async function placeBid(questionId, isDemo = false) {
   const btn = container?.querySelector('.btn-primary-sm');
   const amount = input?.value?.trim();
 
-  // Validate amount
   if (!amount || parseFloat(amount) <= 0) {
     notify('Please enter a valid bid amount.', 'error');
     return;
   }
 
-  // Disable inputs and show loading state
   if (input) input.disabled = true;
   if (btn) {
     btn.disabled = true;
@@ -368,7 +383,6 @@ async function placeBid(questionId, isDemo = false) {
   }
 
   try {
-    // Send bid request
     await apiFetch(`/questions/${questionId}/bid`, {
       method: 'POST',
       body: JSON.stringify({
@@ -379,13 +393,11 @@ async function placeBid(questionId, isDemo = false) {
 
     notify('Bid placed successfully!', 'success');
 
-    // Mark the question as bid on
     if (container) {
       container.style.opacity = '0.6';
       container.style.pointerEvents = 'none';
       container.style.backgroundColor = '#f5f5f5';
       container.title = 'You have already placed a bid on this question';
-
       const header = container.querySelector('.available-header');
       if (header && !header.querySelector('.bid-placed-check')) {
         const checkSpan = document.createElement('span');
@@ -400,8 +412,6 @@ async function placeBid(questionId, isDemo = false) {
   } catch (err) {
     console.error('Bid error:', err);
     notify(err.message || 'Failed to place bid. Please try again.', 'error');
-
-    // Re-enable inputs on error
     if (input) input.disabled = false;
     if (btn) {
       btn.disabled = false;
