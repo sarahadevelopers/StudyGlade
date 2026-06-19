@@ -90,7 +90,9 @@ router.post('/',
       const budgetNum = parseFloat(budget);
       if (isNaN(budgetNum) || budgetNum <= 0) throw new Error('Invalid budget');
 
+      // ---------- Upload files & store both URL and original name ----------
       const uploadedFiles = [];
+      const uploadedFileNames = [];          // ✅ NEW – store original names
       if (req.files && req.files.length) {
         for (const file of req.files) {
           const resourceType = getResourceType(file.mimetype);
@@ -99,17 +101,26 @@ router.post('/',
             resource_type: resourceType
           });
           uploadedFiles.push(result.secure_url);
+          uploadedFileNames.push(file.originalname);   // ✅ store original name
           await fs.unlink(file.path);
         }
       }
 
       const question = await Question.create({
         studentId: req.userId,
-        title, description, category, subcategory,
-        budget: budgetNum, deadline, school, course,
-        files: uploadedFiles
+        title,
+        description,
+        category,
+        subcategory,
+        budget: budgetNum,
+        deadline,
+        school,
+        course,
+        files: uploadedFiles,
+        fileNames: uploadedFileNames    // ✅ save original names
       });
 
+      // ---------- Deduct budget from student wallet ----------
       const user = await User.findOneAndUpdate(
         { _id: req.userId, walletBalance: { $gte: budgetNum } },
         { $inc: { walletBalance: -budgetNum } },
@@ -120,12 +131,13 @@ router.post('/',
         return res.status(400).json({ error: 'Insufficient wallet balance' });
       }
 
+      // ---------- Record transaction ----------
       await Transaction.create({
         userId: req.userId, type: 'post_question', amount: -budgetNum,
         description: `Posted question: ${title}`, referenceId: question._id
       });
 
-      // Emit real‑time wallet update
+      // ---------- Real‑time wallet update ----------
       const io = getIO(req);
       emitToUser(io, req.userId, 'wallet_update', {
         newBalance: user.walletBalance,
@@ -134,6 +146,7 @@ router.post('/',
 
       res.status(201).json(question);
     } catch (err) {
+      // Cleanup uploaded files if error occurs
       if (req.files) {
         for (const file of req.files) await fs.unlink(file.path).catch(() => {});
       }
@@ -141,7 +154,6 @@ router.post('/',
     }
   }
 );
-
 // ------------------- 2. Get pending questions (tutor) -------------------
 router.get('/pending', 
   auth, 

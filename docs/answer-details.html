@@ -137,32 +137,40 @@
 
         // ---- Question Attachments (files student uploaded) ----
         const questionAttachDiv = document.getElementById('questionAttachmentsSection');
-        let qFilesHtml = '';
-        if (q.files && q.files.length > 0) {
-          qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
-          q.files.forEach(url => {
-            const fileName = getFileNameFromUrl(url);
-            let icon = 'fa-file';
-            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
-            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
-            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
-            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
-            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
-            qFilesHtml += `
-              <li>
-                <i class="fas ${icon} file-icon"></i>
-                <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
-                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
-                  <i class="fas fa-download"></i> Download
-                </span>
-              </li>`;
-          });
-          qFilesHtml += `</ul>`;
-          questionAttachDiv.innerHTML = qFilesHtml;
-          questionAttachDiv.style.display = 'block';
-        } else {
-          questionAttachDiv.style.display = 'none';
-        }
+let qFilesHtml = '';
+if (q.files && q.files.length > 0) {
+  qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
+  q.files.forEach((url, index) => {
+    // ✅ Use stored fileNames if available, otherwise fallback to URL extraction
+    let fileName;
+    if (q.fileNames && q.fileNames[index]) {
+      fileName = q.fileNames[index];
+    } else {
+      fileName = getFileNameFromUrl(url);
+    }
+    
+    let icon = 'fa-file';
+    if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+    else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+    else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+    else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+    else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+    
+    qFilesHtml += `
+      <li>
+        <i class="fas ${icon} file-icon"></i>
+        <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
+        <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+          <i class="fas fa-download"></i> Download
+        </span>
+      </li>`;
+  });
+  qFilesHtml += `</ul>`;
+  questionAttachDiv.innerHTML = qFilesHtml;
+  questionAttachDiv.style.display = 'block';
+} else {
+  questionAttachDiv.style.display = 'none';
+}
 
         // ---- Answer file(s) ----
         const answerDiv = document.getElementById('answerFileSection');
@@ -263,11 +271,11 @@
       if (file) formData.append('file', file);
       const token = localStorage.getItem('token');
       try {
-        const res = await fetch(`${window.API_BASE}/comments`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
+       const res = await fetch(`${window.API_BASE}/comments`, {
+  method: 'POST',
+  credentials: 'include',
+  body: formData
+});
         if (res.ok) {
           document.getElementById('commentText').value = '';
           fileInput.value = '';

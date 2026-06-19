@@ -10,6 +10,7 @@ const questionSchema = new mongoose.Schema({
   budget: { type: Number, required: true, min: 3 },
   deadline: Date,
   files: [String],
+  fileNames: [String], // ✅ NEW – original file names for question attachments
   school: String,
   course: String,
   isDemo: { type: Boolean, default: false },
@@ -49,7 +50,7 @@ const questionSchema = new mongoose.Schema({
   // Tutor cancellation reason
   cancellationReason: { type: String, default: '' },
   
-  // ✅ NEW: Restrict which tutors can accept this question
+  // Restrict which tutors can accept this question
   restrictedTutors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   
   createdAt: { type: Date, default: Date.now }
@@ -57,7 +58,7 @@ const questionSchema = new mongoose.Schema({
 
 // Index for faster demo question filtering
 questionSchema.index({ isDemo: 1 });
-// ✅ Optional: index for restricted tutors queries
+// Optional: index for restricted tutors queries
 questionSchema.index({ restrictedTutors: 1 });
 
 module.exports = mongoose.model('Question', questionSchema);
