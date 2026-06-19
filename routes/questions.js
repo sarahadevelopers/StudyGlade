@@ -310,30 +310,40 @@ router.put('/:id/complete',
   handleValidationErrors,
   async (req, res) => {
     try {
+      console.log('🔵 [COMPLETE] Called for question:', req.params.id);
+      console.log('🔵 [COMPLETE] Tutor ID:', req.userId);
+
       let question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
+
+      console.log('📄 [COMPLETE] Current status:', question.status);
+      console.log('📎 [COMPLETE] answerFiles:', question.answerFiles);
+      console.log('📎 [COMPLETE] answerFile (legacy):', question.answerFile);
 
       // ----- Check if answer files exist (support both old and new) -----
       const hasAnswer = question.answerFiles && question.answerFiles.length > 0;
       const hasLegacyAnswer = question.answerFile && question.answerFile.trim() !== '';
 
       if (!hasAnswer && !hasLegacyAnswer) {
-        // Retry once after 500ms in case upload is still processing
+        console.log('⏳ [COMPLETE] No answer files found, retrying after 500ms...');
         await new Promise(resolve => setTimeout(resolve, 500));
         const refreshed = await Question.findById(req.params.id);
         const refreshedHasAnswer = refreshed && refreshed.answerFiles && refreshed.answerFiles.length > 0;
         const refreshedHasLegacy = refreshed && refreshed.answerFile && refreshed.answerFile.trim() !== '';
 
         if (!refreshedHasAnswer && !refreshedHasLegacy) {
+          console.error('❌ [COMPLETE] No answer files after retry');
           return res.status(400).json({ error: 'Please upload the answer file(s) first' });
         }
         question = refreshed;
+        console.log('✅ [COMPLETE] Answer files found after retry');
       }
 
       // Mark as completed
       question.status = 'completed';
       await question.save();
+      console.log('✅ [COMPLETE] Status updated to "completed" for question:', question._id);
 
       // ----- Pay tutor (76% of budget) -----
       const tutor = await User.findById(req.userId);
@@ -386,9 +396,11 @@ router.put('/:id/complete',
       } else if (obj.answerFile) {
         obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
       }
+
+      console.log('✅ [COMPLETE] Successfully completed question:', question._id);
       res.json(obj);
     } catch (err) {
-      console.error('Complete error:', err);
+      console.error('❌ [COMPLETE] Error:', err);
       res.status(500).json({ error: err.message });
     }
   }

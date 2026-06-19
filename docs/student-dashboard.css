@@ -1058,3 +1058,8 @@ button[onclick="closeTransactionModal()"]:hover {
     gap: 0.5rem;
   }
 }
+
+.status-overdue {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: white !important;
+}
