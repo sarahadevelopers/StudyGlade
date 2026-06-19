@@ -501,13 +501,23 @@ async function refreshAssignments() {
 }
 
 function renderAssignmentsByTab(tab) {
+  const now = new Date();
   let filtered = [];
-  if (tab === 'all') filtered = allAssignments;
-  else if (tab === 'in-progress') filtered = allAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress');
-  else if (tab === 'overdue') {
-    const now = new Date();
-    filtered = allAssignments.filter(a => a.status !== 'completed' && a.deadline && new Date(a.deadline) < now);
-  } else if (tab === 'completed') filtered = allAssignments.filter(a => a.status === 'completed');
+
+  if (tab === 'all') {
+    filtered = allAssignments;
+  } else if (tab === 'in-progress') {
+    filtered = allAssignments.filter(a => 
+      (a.status === 'assigned' || a.status === 'in_progress') &&
+      !(a.deadline && new Date(a.deadline) < now)
+    );
+  } else if (tab === 'overdue') {
+    filtered = allAssignments.filter(a => 
+      a.status !== 'completed' && a.deadline && new Date(a.deadline) < now
+    );
+  } else if (tab === 'completed') {
+    filtered = allAssignments.filter(a => a.status === 'completed');
+  }
 
   const start = (assignmentsPage - 1) * ASSIGNMENTS_PER_PAGE;
   const paginated = filtered.slice(start, start + ASSIGNMENTS_PER_PAGE);
@@ -521,10 +531,9 @@ function renderAssignmentsByTab(tab) {
 
   let html = '';
   paginated.forEach(a => {
-    const statusText = a.status === 'assigned' ? 'In Progress' : a.status;
-    let statusClass = 'status-in-progress';
-    if (a.status === 'completed') statusClass = 'status-completed';
-    if (a.status === 'overdue') statusClass = 'status-overdue';
+    const isOverdue = a.deadline && new Date(a.deadline) < now && a.status !== 'completed';
+    const statusText = isOverdue ? 'Overdue' : (a.status === 'assigned' ? 'In Progress' : a.status);
+    let statusClass = isOverdue ? 'status-overdue' : (a.status === 'completed' ? 'status-completed' : 'status-in-progress');
 
     let deadlineDisplay = 'No deadline';
     if (a.deadline) {
@@ -544,7 +553,7 @@ function renderAssignmentsByTab(tab) {
         </div>
     `;
 
-    if (a.status === 'assigned') {
+    if (a.status === 'assigned' && !isOverdue) {
       html += `
         <div class="btn-group">
          <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" multiple style="display:none;">
@@ -555,7 +564,7 @@ function renderAssignmentsByTab(tab) {
           ${showCancel ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="cancelAssignment('${a._id}')">❌ Cancel</button>` : ''}
         </div>
       `;
-    } else if (a.status === 'completed') {
+    } else if (a.status === 'completed' || isOverdue) {
       let answerTimeHtml = '';
       if (a.answerUploadedAt) {
         const submittedDate = new Date(a.answerUploadedAt);
@@ -563,7 +572,7 @@ function renderAssignmentsByTab(tab) {
       }
       html += `
         <div class="btn-group">
-          ${a.answerFile ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer</button>` : '<span class="text-muted">No file uploaded</span>'}
+          ${a.answerFiles && a.answerFiles.length ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer(s)</button>` : '<span class="text-muted">No file uploaded</span>'}
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
         </div>
         ${answerTimeHtml}
@@ -573,7 +582,7 @@ function renderAssignmentsByTab(tab) {
   });
   container.innerHTML = html;
 
-  // Attach change event listeners to all file inputs with class "assignment-file-input"
+  // Attach change event listeners to file inputs
   document.querySelectorAll('.assignment-file-input').forEach(input => {
     const questionId = input.id.replace('answer-', '');
     input.addEventListener('change', (e) => {
@@ -582,7 +591,7 @@ function renderAssignmentsByTab(tab) {
       }
     });
   });
-}
+} 
 
 function renderAssignmentsPagination() {
   if (assignmentsTotalPages <= 1) return;
@@ -687,11 +696,21 @@ async function uploadAnswer(questionId) {
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
-    if (!question.answerFile) {
+    
+    // Check for multiple files first (new system)
+    if (question.answerFiles && question.answerFiles.length > 0) {
+      // Open the first file directly (Cloudinary URL)
+      window.open(question.answerFiles[0], '_blank');
+      showToast('Downloading answer file...', 'success');
+    } 
+    // Fallback to legacy single file
+    else if (question.answerFile) {
+      // Use the proxy endpoint for the legacy file
+      window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
+    } 
+    else {
       showToast('No answer file available', 'error');
-      return;
     }
-    window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
   } catch (err) {
     showToast('Failed to get download link', 'error');
   }

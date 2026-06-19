@@ -310,30 +310,39 @@ router.put('/:id/complete',
   handleValidationErrors,
   async (req, res) => {
     try {
-      // 👇 changed from const to let to allow reassignment
       let question = await Question.findById(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found' });
       if (question.tutorId.toString() !== req.userId) return res.status(403).json({ error: 'Not your question' });
 
-      // 👇 retry logic: if answerFile missing, wait 500ms and refresh
-      if (!question.answerFile) {
+      // ----- Check if answer files exist (support both old and new) -----
+      const hasAnswer = question.answerFiles && question.answerFiles.length > 0;
+      const hasLegacyAnswer = question.answerFile && question.answerFile.trim() !== '';
+
+      if (!hasAnswer && !hasLegacyAnswer) {
+        // Retry once after 500ms in case upload is still processing
         await new Promise(resolve => setTimeout(resolve, 500));
         const refreshed = await Question.findById(req.params.id);
-        if (refreshed && refreshed.answerFile) {
-          question = refreshed;
-        } else {
-          return res.status(400).json({ error: 'Please upload the answer file first' });
+        const refreshedHasAnswer = refreshed && refreshed.answerFiles && refreshed.answerFiles.length > 0;
+        const refreshedHasLegacy = refreshed && refreshed.answerFile && refreshed.answerFile.trim() !== '';
+
+        if (!refreshedHasAnswer && !refreshedHasLegacy) {
+          return res.status(400).json({ error: 'Please upload the answer file(s) first' });
         }
+        question = refreshed;
       }
 
+      // Mark as completed
       question.status = 'completed';
       await question.save();
 
+      // ----- Pay tutor (76% of budget) -----
       const tutor = await User.findById(req.userId);
       const earnings = question.budget * 0.76;
       tutor.walletBalance += earnings;
       tutor.tutorProfile.completedQuestions = (tutor.tutorProfile.completedQuestions || 0) + 1;
       tutor.tutorProfile.totalEarnings = (tutor.tutorProfile.totalEarnings || 0) + earnings;
+
+      // Calculate on‑time delivery rate
       const wasOnTime = new Date() <= new Date(question.deadline);
       const totalCompleted = tutor.tutorProfile.completedQuestions;
       const prevRate = tutor.tutorProfile.onTimeDeliveryRate || 100;
@@ -341,11 +350,13 @@ router.put('/:id/complete',
       tutor.tutorProfile.onTimeDeliveryRate = Math.round(newRate);
       await tutor.save();
 
+      // Record transaction
       await Transaction.create({
         userId: req.userId, type: 'tutor_payment', amount: earnings,
         description: `Completed question: ${question.title}`, referenceId: question._id
       });
 
+      // Notify student
       await Notification.create({
         userId: question.studentId, type: 'answer_uploaded',
         title: 'Question Completed',
@@ -353,12 +364,14 @@ router.put('/:id/complete',
         link: `/answer-details.html?id=${question._id}`
       });
 
+      // Send email to tutor
       sendEmailWithTemplate(tutor.email, 'Payment Received – StudyGlade', 'tutor-payment.ejs', {
         tutorName: tutor.fullName,
         amount: earnings,
         reason: `Completed question: ${question.title}`
       }).catch(err => console.error('Failed to send payment email:', err));
 
+      // Real‑time notification via socket
       const io = getIO(req);
       emitToUser(io, question.studentId, 'question_completed', {
         questionId: question._id,
@@ -366,8 +379,11 @@ router.put('/:id/complete',
         tutorName: tutor.fullName
       });
 
+      // Return signed URL for the first answer file (for download)
       const obj = question.toObject();
-      if (obj.answerFile) {
+      if (obj.answerFiles && obj.answerFiles.length > 0) {
+        obj.answerFileSigned = getSignedUrl(obj.answerFiles[0], 'raw');
+      } else if (obj.answerFile) {
         obj.answerFileSigned = getSignedUrl(obj.answerFile, 'raw');
       }
       res.json(obj);
