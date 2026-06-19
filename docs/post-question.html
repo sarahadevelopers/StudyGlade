@@ -256,6 +256,8 @@
       <div class="form-group">
         <label>Upload files (images, PDFs, Word, Excel, ZIP - max 50MB each)</label>
         <input type="file" id="files" name="files" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
+        <!-- ✅ NEW: Display selected file names -->
+        <small id="fileNamesDisplay">No files selected.</small>
         <small>You can select multiple files (max 50MB each)</small>
       </div>
       <button type="submit" class="submit-btn">Post Question & Pay</button>
@@ -277,6 +279,18 @@
     document.getElementById('deadlineDateTime').value = defaultValue;
   }
   setDefaultDeadline();
+
+  // ✅ NEW: Show selected file names
+  document.getElementById('files').addEventListener('change', function() {
+    const fileCount = this.files.length;
+    const display = document.getElementById('fileNamesDisplay');
+    if (fileCount === 0) {
+      display.innerText = 'No files selected.';
+      return;
+    }
+    const fileNames = Array.from(this.files).map(f => f.name).join(', ');
+    display.innerText = `Selected: ${fileNames}`;
+  });
 
   document.getElementById('postQuestionForm').addEventListener('submit', async (e) => {
     e.preventDefault();

@@ -68,7 +68,7 @@ async function loadPage() {
   }
 }
 
-// ---------- Load question details (with fallbacks for demo questions) ----------
+// ---------- Load question details (with fallbacks for demo questions and multiple answer files) ----------
 async function loadQuestion() {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
@@ -114,21 +114,37 @@ async function loadQuestion() {
     }
 
     let filesHtml = '', answerHtml = '';
+
+    // --- Attached files (from student when posting) ---
     if (question.files?.length) {
       filesHtml = '<p><strong>Attached files:</strong></p><ul>';
       question.files.forEach(url => filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download</a></li>`);
       filesHtml += '</ul>';
     }
-    
-    // Use signed URL if available – with safety check to prevent chrome-error://
-    const answerUrl = question.answerFileSigned || question.answerFile;
-    if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
-      answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
-    } else if (answerUrl) {
-      console.warn('Invalid answer URL – not starting with http', answerUrl);
-      answerHtml = `<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable (invalid link). Please contact support.</span></p>`;
+
+    // --- Answer files (tutor upload) ---
+    // ✅ Support multiple answer files (new system)
+    if (question.answerFiles && question.answerFiles.length > 0) {
+      answerHtml = `<p><strong>Answer files:</strong></p><ul>`;
+      question.answerFiles.forEach((url, index) => {
+        const fileName = question.answerFileNames && question.answerFileNames[index] 
+          ? question.answerFileNames[index] 
+          : `file-${index + 1}`;
+        answerHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
+      });
+      answerHtml += '</ul>';
+    } 
+    // ✅ Fallback to legacy single file (old system)
+    else if (question.answerFile) {
+      const answerUrl = question.answerFileSigned || question.answerFile;
+      if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
+        answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
+      } else if (answerUrl) {
+        console.warn('Invalid answer URL – not starting with http', answerUrl);
+        answerHtml = `<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable. Please contact support.</span></p>`;
+      }
     }
-    
+
     const html = `
       <h2>${escapeHtml(question.title)}</h2>
       <p>${escapeHtml(question.description)}</p>
