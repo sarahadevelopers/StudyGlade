@@ -7,12 +7,12 @@
   <link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Additional styles for answer file list */
-    .answer-files-list {
+    /* Additional styles for file lists */
+    .files-list {
       list-style: none;
       padding: 0;
     }
-    .answer-files-list li {
+    .files-list li {
       margin: 0.5rem 0;
       padding: 0.5rem 0.75rem;
       background: #f8fafc;
@@ -22,17 +22,23 @@
       align-items: center;
       gap: 0.5rem;
     }
-    .answer-files-list li a {
+    .files-list li a {
       color: #005BFF;
       text-decoration: none;
       font-weight: 500;
     }
-    .answer-files-list li a:hover {
+    .files-list li a:hover {
       text-decoration: underline;
     }
     .file-icon {
       font-size: 1.2rem;
       color: #64748B;
+    }
+    .section-divider {
+      margin: 1.5rem 0;
+      border: 0;
+      height: 1px;
+      background: linear-gradient(to right, #e2e8f0, transparent);
     }
   </style>
 </head>
@@ -50,6 +56,7 @@
 
   <div class="container" style="padding: 2rem 0;">
     <div id="answerDetails" class="card"></div>
+    <div id="questionAttachmentsSection" class="card" style="display:none;"></div>
     <div id="answerFileSection" class="card" style="display:none;"></div>
     <div id="commentsSection" class="card">
       <h3>💬 Discussion with Tutor</h3>
@@ -93,6 +100,15 @@
       return new Date(date).toLocaleString();
     }
 
+    // Helper to get file name from URL
+    function getFileNameFromUrl(url) {
+      if (!url) return 'file';
+      const parts = url.split('/');
+      const last = parts[parts.length - 1];
+      // Remove query params
+      return last.split('?')[0] || 'file';
+    }
+
     async function loadAnswerDetails() {
       try {
         const q = await apiFetch(`/questions/${questionId}`);
@@ -119,18 +135,46 @@
 
         document.getElementById('answerDetails').innerHTML = titleHtml + descHtml + metaHtml;
 
-        // ---- Answer file(s) display ----
+        // ---- Question Attachments (files student uploaded) ----
+        const questionAttachDiv = document.getElementById('questionAttachmentsSection');
+        let qFilesHtml = '';
+        if (q.files && q.files.length > 0) {
+          qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
+          q.files.forEach(url => {
+            const fileName = getFileNameFromUrl(url);
+            let icon = 'fa-file';
+            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+            qFilesHtml += `
+              <li>
+                <i class="fas ${icon} file-icon"></i>
+                <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
+                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+                  <i class="fas fa-download"></i> Download
+                </span>
+              </li>`;
+          });
+          qFilesHtml += `</ul>`;
+          questionAttachDiv.innerHTML = qFilesHtml;
+          questionAttachDiv.style.display = 'block';
+        } else {
+          questionAttachDiv.style.display = 'none';
+        }
+
+        // ---- Answer file(s) ----
         const answerDiv = document.getElementById('answerFileSection');
         let content = '';
 
         // Check for multiple files first (new system)
         if (q.answerFiles && q.answerFiles.length > 0) {
-          content = `<h3>📄 Answer Files</h3><ul class="answer-files-list">`;
+          content = `<h3>📄 Answer Files</h3><ul class="files-list">`;
           q.answerFiles.forEach((url, index) => {
             const fileName = q.answerFileNames && q.answerFileNames[index] 
               ? q.answerFileNames[index] 
-              : `file-${index + 1}`;
-            // Determine file icon based on extension
+              : getFileNameFromUrl(url);
             let icon = 'fa-file';
             if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
             else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
@@ -154,14 +198,14 @@
         // Fallback to legacy single file
         else if (q.answerFile) {
           let fileUrl = q.answerFileSigned || q.answerFile;
-          let fileName = q.answerFileName || 'answer-file';
-          let fileIcon = 'fa-file';
-          if (fileName.match(/\.(pdf)$/i)) fileIcon = 'fa-file-pdf';
-          else if (fileName.match(/\.(doc|docx)$/i)) fileIcon = 'fa-file-word';
-          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) fileIcon = 'fa-file-image';
+          let fileName = q.answerFileName || getFileNameFromUrl(fileUrl);
+          let icon = 'fa-file';
+          if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+          else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
 
-          content = `<h3>📄 Answer</h3><ul class="answer-files-list"><li>`;
-          content += `<i class="fas ${fileIcon} file-icon"></i>`;
+          content = `<h3>📄 Answer</h3><ul class="files-list"><li>`;
+          content += `<i class="fas ${icon} file-icon"></i>`;
           content += `<a href="${escapeHtml(fileUrl)}" target="_blank">${escapeHtml(fileName)}</a>`;
           content += `<span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;"><i class="fas fa-download"></i> Download</span>`;
           content += `</li></ul>`;
