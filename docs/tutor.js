@@ -97,20 +97,62 @@ async function previewQuestion(questionId) {
   contentDiv.innerHTML = '<div class="loading">Loading question details...</div>';
   try {
     const q = await apiFetch(`/questions/${questionId}`);
-    const deadline = q.deadline ? new Date(q.deadline).toLocaleString() : 'Not set';
+    const isDemo = q.isDemo === true;
+
+    // ----- Apply fallbacks (same logic as loadAvailableQuestions) -----
+    let displaySubject, displaySchool, displayCourse, displayDeadline, displayCategory;
+
+    if (isDemo) {
+      // Subject – stick to "General" if missing
+      displaySubject = (q.subject && q.subject.trim() !== '' && q.subject !== 'General')
+        ? q.subject
+        : 'General';
+
+      // School – fallback to "GCU" if not provided
+      displaySchool = (q.school && q.school.trim() !== '')
+        ? q.school
+        : 'GCU';
+
+      // Course – fallback to "Not specified" if not provided
+      displayCourse = (q.course && q.course.trim() !== '')
+        ? q.course
+        : 'Not specified';
+
+      // Deadline – if missing, calculate 3 days from now
+      if (q.deadline) {
+        displayDeadline = new Date(q.deadline).toLocaleString();
+      } else {
+        const fallbackDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        displayDeadline = fallbackDate.toLocaleString();
+      }
+
+      // Category – fallback to "—" if missing
+      displayCategory = q.category || '—';
+    } else {
+      // Real questions: use stored values with fallbacks
+      displaySubject = q.subject || 'General';
+      displaySchool = q.school || 'Not specified';
+      displayCourse = q.course || 'Not specified';
+      displayDeadline = q.deadline ? new Date(q.deadline).toLocaleString() : 'Not set';
+      displayCategory = q.category || '—';
+    }
+
     contentDiv.innerHTML = `
       <div style="margin-bottom:0.5rem;"><strong>Title:</strong> ${escapeHtml(q.title)}</div>
       <div><strong>Description:</strong> ${escapeHtml(q.description)}</div>
       <div><strong>Budget:</strong> $${q.budget}</div>
-      <div><strong>Deadline:</strong> ${deadline}</div>
-      <div><strong>Subject:</strong> ${escapeHtml(q.subject || 'General')}</div>
-      <div><strong>Category:</strong> ${escapeHtml(q.category || '—')}</div>
+      <div><strong>Deadline:</strong> ${escapeHtml(displayDeadline)}</div>
+      <div><strong>Subject:</strong> ${escapeHtml(displaySubject)}</div>
+      <div><strong>Category:</strong> ${escapeHtml(displayCategory)}</div>
+      ${displaySchool ? `<div><strong>School:</strong> ${escapeHtml(displaySchool)}</div>` : ''}
+      ${displayCourse ? `<div><strong>Course:</strong> ${escapeHtml(displayCourse)}</div>` : ''}
       ${q.files && q.files.length ? `<div><strong>Attachments:</strong> ${q.files.map(f => `<a href="${f}" target="_blank">View</a>`).join(', ')}</div>` : ''}
     `;
   } catch (err) {
     contentDiv.innerHTML = '<div class="error">Failed to load question details.</div>';
   }
 }
+
 function closeQuestionPreview() {
   const modal = document.getElementById('questionPreviewModal');
   if (modal) modal.style.display = 'none';

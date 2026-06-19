@@ -14,6 +14,12 @@ function formatMoney(amount) {
   return `$${parseFloat(amount).toFixed(2)}`;
 }
 
+// ---------- Helper: format date ----------
+function formatDate(date) {
+  if (!date) return 'Not set';
+  return new Date(date).toLocaleString();
+}
+
 // ---------- DOM elements ----------
 const urlParams = new URLSearchParams(window.location.search);
 const questionId = urlParams.get('id');
@@ -62,11 +68,51 @@ async function loadPage() {
   }
 }
 
-// ---------- Load question details ----------
+// ---------- Load question details (with fallbacks for demo questions) ----------
 async function loadQuestion() {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
     currentQuestion = question;
+    const isDemo = question.isDemo === true;
+
+    // ----- Apply fallbacks for demo questions -----
+    let displaySubject, displaySchool, displayCourse, displayDeadline, displayCategory;
+
+    if (isDemo) {
+      // Subject – stick to "General" if missing
+      displaySubject = (question.subject && question.subject.trim() !== '' && question.subject !== 'General')
+        ? question.subject
+        : 'General';
+
+      // School – fallback to "GCU" if not provided
+      displaySchool = (question.school && question.school.trim() !== '')
+        ? question.school
+        : 'GCU';
+
+      // Course – fallback to "Not specified" if not provided
+      displayCourse = (question.course && question.course.trim() !== '')
+        ? question.course
+        : 'Not specified';
+
+      // Category – fallback to "—" if missing
+      displayCategory = question.category || '—';
+
+      // Deadline – if missing, calculate 3 days from now
+      if (question.deadline) {
+        displayDeadline = formatDate(question.deadline);
+      } else {
+        const fallbackDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        displayDeadline = formatDate(fallbackDate);
+      }
+    } else {
+      // Real questions: use stored values with fallbacks
+      displaySubject = question.subject || 'General';
+      displaySchool = question.school || 'Not specified';
+      displayCourse = question.course || 'Not specified';
+      displayCategory = question.category || '—';
+      displayDeadline = question.deadline ? formatDate(question.deadline) : 'Not set';
+    }
+
     let filesHtml = '', answerHtml = '';
     if (question.files?.length) {
       filesHtml = '<p><strong>Attached files:</strong></p><ul>';
@@ -87,8 +133,9 @@ async function loadQuestion() {
       <h2>${escapeHtml(question.title)}</h2>
       <p>${escapeHtml(question.description)}</p>
       <p><strong>Budget:</strong> ${formatMoney(question.budget)} | <strong>Status:</strong> ${escapeHtml(question.status)}</p>
-      <p><strong>Category:</strong> ${escapeHtml(question.category)} | <strong>Deadline:</strong> ${question.deadline ? new Date(question.deadline).toLocaleString() : 'Not set'}</p>
-      <p><strong>School:</strong> ${escapeHtml(question.school || 'Not specified')} | <strong>Course:</strong> ${escapeHtml(question.course || 'Not specified')}</p>
+      <p><strong>Category:</strong> ${escapeHtml(displayCategory)} | <strong>Deadline:</strong> ${escapeHtml(displayDeadline)}</p>
+      <p><strong>Subject:</strong> ${escapeHtml(displaySubject)}</p>
+      <p><strong>School:</strong> ${escapeHtml(displaySchool)} | <strong>Course:</strong> ${escapeHtml(displayCourse)}</p>
       ${filesHtml} ${answerHtml}
     `;
     document.getElementById('questionDetails').innerHTML = html;
