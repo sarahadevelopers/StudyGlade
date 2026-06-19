@@ -644,11 +644,14 @@ async function uploadAnswer(questionId) {
     showToast('File input not found', 'error');
     return;
   }
+
+  // ✅ Safely get files – fallback to empty array if undefined
   const files = fileInput.files;
-  if (!files.length) {
-    showToast('Select at least one file', 'error');
+  if (!files || files.length === 0) {
+    showToast('Please select at least one file.', 'error');
     return;
   }
+
   console.log(`[UPLOAD] ${files.length} file(s) selected`);
 
   const btn = fileInput.closest('.btn-group')?.querySelector('.btn-primary-sm');
@@ -659,7 +662,6 @@ async function uploadAnswer(questionId) {
   }
 
   const formData = new FormData();
-  // Append all files under the same field name 'answers'
   for (let i = 0; i < files.length; i++) {
     formData.append('answers', files[i]);
   }
@@ -674,7 +676,7 @@ async function uploadAnswer(questionId) {
     console.log(`[UPLOAD] Response status: ${response.status}`);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Upload failed');
-    console.log(`[UPLOAD] Success, uploaded ${data.urls.length} file(s)`);
+    console.log(`[UPLOAD] Success, uploaded ${data.fileUrls?.length || data.urls?.length || 0} file(s)`);
 
     // Reload assignments to reflect new files
     await loadAssignments(assignmentsPage);
@@ -687,7 +689,7 @@ async function uploadAnswer(questionId) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = originalText;
+      btn.innerHTML = originalText || '📎 Upload Answers';
     }
     fileInput.value = ''; // clear selection
   }
