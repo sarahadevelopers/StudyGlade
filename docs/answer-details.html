@@ -3,9 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>Answer Details - StudyGlade</title>
- <!-- Favicon -->
-<link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/studyglade-official-favicon.jpg">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Additional styles for answer file list */
+    .answer-files-list {
+      list-style: none;
+      padding: 0;
+    }
+    .answer-files-list li {
+      margin: 0.5rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .answer-files-list li a {
+      color: #005BFF;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .answer-files-list li a:hover {
+      text-decoration: underline;
+    }
+    .file-icon {
+      font-size: 1.2rem;
+      color: #64748B;
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -55,36 +84,97 @@
       });
     }
 
+    function formatMoney(amount) {
+      return `$${parseFloat(amount).toFixed(2)}`;
+    }
+
+    function formatDate(date) {
+      if (!date) return 'Not set';
+      return new Date(date).toLocaleString();
+    }
+
     async function loadAnswerDetails() {
       try {
         const q = await apiFetch(`/questions/${questionId}`);
         currentUser = JSON.parse(localStorage.getItem('user'));
 
-        // Question metadata
-        const titleHtml = `<h2>${escapeHtml(q.title)}</h2><p>${escapeHtml(q.description)}</p>`;
-        const metaHtml = `<p><strong>Budget:</strong> $${q.budget} | <strong>Status:</strong> ${escapeHtml(q.status)}</p>`;
-        document.getElementById('answerDetails').innerHTML = titleHtml + metaHtml;
+        // ---- Question metadata ----
+        let displaySubject = q.subject || 'General';
+        let displaySchool = q.school || 'Not specified';
+        let displayCourse = q.course || 'Not specified';
+        let displayCategory = q.category || '—';
+        let displayDeadline = q.deadline ? formatDate(q.deadline) : 'Not set';
 
-        // Answer file display
+        const titleHtml = `<h2>${escapeHtml(q.title)}</h2>`;
+        const descHtml = `<p>${escapeHtml(q.description)}</p>`;
+        const metaHtml = `
+          <p><strong>Budget:</strong> ${formatMoney(q.budget)} |
+          <strong>Status:</strong> ${escapeHtml(q.status)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(displayCategory)} |
+          <strong>Deadline:</strong> ${escapeHtml(displayDeadline)}</p>
+          <p><strong>Subject:</strong> ${escapeHtml(displaySubject)}</p>
+          <p><strong>School:</strong> ${escapeHtml(displaySchool)} |
+          <strong>Course:</strong> ${escapeHtml(displayCourse)}</p>
+        `;
+
+        document.getElementById('answerDetails').innerHTML = titleHtml + descHtml + metaHtml;
+
+        // ---- Answer file(s) display ----
         const answerDiv = document.getElementById('answerFileSection');
-        if (q.answerFile) {
-          let content = `<h3>📄 Answer</h3>`;
-          if (q.answerFile.endsWith('.pdf')) {
-            content += `<iframe src="${escapeHtml(q.answerFile)}" width="100%" height="500px" style="border:1px solid #ddd; border-radius:8px;"></iframe>`;
-            content += `<p style="margin-top:0.5rem;"><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn-outline">📥 Download PDF</a></p>`;
-          } else if (q.answerFile.match(/\.(jpg|jpeg|png|gif)$/)) {
-            content += `<img src="${escapeHtml(q.answerFile)}" style="max-width:100%; border-radius:8px;">`;
-            content += `<p style="margin-top:0.5rem;"><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn-outline">🔍 Open image in new tab</a></p>`;
-          } else {
-            content += `<p><a href="${escapeHtml(q.answerFile)}" target="_blank" class="btn">📎 Download Answer (${escapeHtml(q.answerFileName || 'file')})</a></p>`;
-          }
+        let content = '';
+
+        // Check for multiple files first (new system)
+        if (q.answerFiles && q.answerFiles.length > 0) {
+          content = `<h3>📄 Answer Files</h3><ul class="answer-files-list">`;
+          q.answerFiles.forEach((url, index) => {
+            const fileName = q.answerFileNames && q.answerFileNames[index] 
+              ? q.answerFileNames[index] 
+              : `file-${index + 1}`;
+            // Determine file icon based on extension
+            let icon = 'fa-file';
+            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+            content += `
+              <li>
+                <i class="fas ${icon} file-icon"></i>
+                <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
+                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+                  <i class="fas fa-download"></i> Download
+                </span>
+              </li>
+            `;
+          });
+          content += `</ul>`;
           answerDiv.innerHTML = content;
           answerDiv.style.display = 'block';
-        } else {
+        } 
+        // Fallback to legacy single file
+        else if (q.answerFile) {
+          let fileUrl = q.answerFileSigned || q.answerFile;
+          let fileName = q.answerFileName || 'answer-file';
+          let fileIcon = 'fa-file';
+          if (fileName.match(/\.(pdf)$/i)) fileIcon = 'fa-file-pdf';
+          else if (fileName.match(/\.(doc|docx)$/i)) fileIcon = 'fa-file-word';
+          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) fileIcon = 'fa-file-image';
+
+          content = `<h3>📄 Answer</h3><ul class="answer-files-list"><li>`;
+          content += `<i class="fas ${fileIcon} file-icon"></i>`;
+          content += `<a href="${escapeHtml(fileUrl)}" target="_blank">${escapeHtml(fileName)}</a>`;
+          content += `<span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;"><i class="fas fa-download"></i> Download</span>`;
+          content += `</li></ul>`;
+          answerDiv.innerHTML = content;
+          answerDiv.style.display = 'block';
+        } 
+        else {
           answerDiv.style.display = 'none';
         }
 
+        // Load comments
         await loadComments();
+
       } catch (err) {
         document.getElementById('answerDetails').innerHTML = `<p style="color:red;">Error loading answer: ${err.message}</p>`;
       }
@@ -157,6 +247,12 @@
         }
       }
     }
+
+    // Logout
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
 
     loadAnswerDetails();
   </script>
