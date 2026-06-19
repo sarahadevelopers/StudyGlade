@@ -334,7 +334,7 @@ async function placeBid(questionId, isDemo = false) {
 
   // Demo question: fake bid with immediate visual feedback
   if (isDemo) {
-    notify('Bid placed (demo) – this is a practice question', 'success');
+    notify('Bid placed successfully!', 'success');   // ✅ Updated message
 
     const container = document.querySelector(`.available-item[data-id="${questionId}"]`);
     if (container) {
