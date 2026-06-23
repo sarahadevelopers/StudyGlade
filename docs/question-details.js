@@ -68,9 +68,29 @@ async function loadPage() {
     if (currentUser.role === 'student' && currentQuestion && currentQuestion.status === 'pending') await loadBids();
     await loadComments();
     checkSpecialActions();
+
+    // Attach download listeners after rendering
+    attachDownloadListeners();
   } catch (err) {
     console.error(err);
     document.getElementById('questionDetails').innerHTML = '<p class="error">Failed to load question details.</p>';
+  }
+}
+
+// ---------- Attach download listeners via event delegation ----------
+function attachDownloadListeners() {
+  document.querySelectorAll('.download-link').forEach(function(link) {
+    link.removeEventListener('click', handleDownload);
+    link.addEventListener('click', handleDownload);
+  });
+}
+
+function handleDownload(e) {
+  e.preventDefault();
+  const url = this.getAttribute('data-url');
+  const filename = this.getAttribute('data-filename');
+  if (url && filename) {
+    window.downloadFile(url, filename);
   }
 }
 
@@ -105,13 +125,11 @@ async function loadQuestion() {
     // --- Attached files ---
     if (question.files && question.files.length > 0) {
       filesHtml = '<p><strong>Attached files:</strong></p><ul>';
-      question.files.forEach((url, index) => {
+      question.files.forEach(function(url, index) {
         const fileName = question.fileNames && question.fileNames[index]
           ? question.fileNames[index]
           : getFileNameFromUrl(url);
-        filesHtml += '<li><a href="#" onclick="downloadFile(' +
-          JSON.stringify(url) + ', ' + JSON.stringify(fileName) +
-          '); return false;">Download ' + escapeHtml(fileName) + '</a></li>';
+        filesHtml += '<li><a href="#" class="download-link" data-url="' + escapeHtml(url) + '" data-filename="' + escapeHtml(fileName) + '">Download ' + escapeHtml(fileName) + '</a></li>';
       });
       filesHtml += '</ul>';
     }
@@ -119,22 +137,18 @@ async function loadQuestion() {
     // --- Answer files ---
     if (question.answerFiles && question.answerFiles.length > 0) {
       answerHtml = '<p><strong>Answer files:</strong></p><ul>';
-      question.answerFiles.forEach((url, index) => {
+      question.answerFiles.forEach(function(url, index) {
         const fileName = question.answerFileNames && question.answerFileNames[index]
           ? question.answerFileNames[index]
           : getFileNameFromUrl(url);
-        answerHtml += '<li><a href="#" onclick="downloadFile(' +
-          JSON.stringify(url) + ', ' + JSON.stringify(fileName) +
-          '); return false;">Download ' + escapeHtml(fileName) + '</a></li>';
+        answerHtml += '<li><a href="#" class="download-link" data-url="' + escapeHtml(url) + '" data-filename="' + escapeHtml(fileName) + '">Download ' + escapeHtml(fileName) + '</a></li>';
       });
       answerHtml += '</ul>';
     } else if (question.answerFile) {
       const answerUrl = question.answerFileSigned || question.answerFile;
       if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
         const fileName = question.answerFileName || getFileNameFromUrl(answerUrl);
-        answerHtml = '<p><strong>Answer:</strong> <a href="#" onclick="downloadFile(' +
-          JSON.stringify(answerUrl) + ', ' + JSON.stringify(fileName) +
-          '); return false;">Download ' + escapeHtml(fileName) + '</a></p>';
+        answerHtml = '<p><strong>Answer:</strong> <a href="#" class="download-link" data-url="' + escapeHtml(answerUrl) + '" data-filename="' + escapeHtml(fileName) + '">Download ' + escapeHtml(fileName) + '</a></p>';
       } else if (answerUrl) {
         answerHtml = '<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable. Please contact support.</span></p>';
       }
@@ -289,9 +303,7 @@ async function loadComments() {
       let fileLink = '';
       if (c.fileUrl) {
         const fileName = c.fileName || getFileNameFromUrl(c.fileUrl);
-        fileLink = '<p><a href="#" onclick="downloadFile(' +
-          JSON.stringify(c.fileUrl) + ', ' + JSON.stringify(fileName) +
-          '); return false;">📎 Download attached file</a></p>';
+        fileLink = '<p><a href="#" class="download-link" data-url="' + escapeHtml(c.fileUrl) + '" data-filename="' + escapeHtml(fileName) + '">📎 Download attached file</a></p>';
       }
       return `
         <div class="comment-item">
