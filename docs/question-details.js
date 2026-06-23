@@ -48,14 +48,12 @@ async function loadPage() {
       return;
     }
     currentUser = JSON.parse(userStr);
-    
-    // Set dashboard link based on role
+
     const dashboardLink = document.getElementById('dashboardLink');
     if (currentUser.role === 'student') dashboardLink.href = 'student-dashboard.html';
     else if (currentUser.role === 'tutor') dashboardLink.href = 'tutor-dashboard.html';
     else dashboardLink.href = 'admin-dashboard.html';
-    
-    // Update user menu
+
     document.getElementById('userName').innerText = currentUser.fullName;
     if (currentUser.avatar) document.getElementById('userAvatar').src = currentUser.avatar;
     else {
@@ -65,9 +63,9 @@ async function loadPage() {
       else if (currentUser.gender === 'male') avatarUrl = `https://randomuser.me/api/portraits/men/${id}.jpg`;
       document.getElementById('userAvatar').src = avatarUrl;
     }
-    
+
     await loadQuestion();
-    if (currentUser.role === 'student' && currentQuestion.status === 'pending') await loadBids();
+    if (currentUser.role === 'student' && currentQuestion && currentQuestion.status === 'pending') await loadBids();
     await loadComments();
     checkSpecialActions();
   } catch (err) {
@@ -76,14 +74,13 @@ async function loadPage() {
   }
 }
 
-// ---------- Load question details (with fallbacks and download support) ----------
+// ---------- Load question details ----------
 async function loadQuestion() {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
     currentQuestion = question;
     const isDemo = question.isDemo === true;
 
-    // ----- Apply fallbacks for demo questions -----
     let displaySubject, displaySchool, displayCourse, displayDeadline, displayCategory;
 
     if (isDemo) {
@@ -104,7 +101,7 @@ async function loadQuestion() {
 
     let filesHtml = '', answerHtml = '';
 
-    // --- Attached files (from student when posting) ---
+    // --- Attached files ---
     if (question.files && question.files.length > 0) {
       filesHtml = '<p><strong>Attached files:</strong></p><ul>';
       question.files.forEach((url, index) => {
@@ -116,7 +113,7 @@ async function loadQuestion() {
       filesHtml += '</ul>';
     }
 
-    // --- Answer files (tutor upload) ---
+    // --- Answer files ---
     if (question.answerFiles && question.answerFiles.length > 0) {
       answerHtml = `<p><strong>Answer files:</strong></p><ul>`;
       question.answerFiles.forEach((url, index) => {
@@ -126,9 +123,7 @@ async function loadQuestion() {
         answerHtml += `<li><a href="#" onclick="downloadFile(${JSON.stringify(url)}, ${JSON.stringify(fileName)}); return false;">Download ${escapeHtml(fileName)}</a></li>`;
       });
       answerHtml += '</ul>';
-    }
-    // Fallback to legacy single file
-    else if (question.answerFile) {
+    } else if (question.answerFile) {
       const answerUrl = question.answerFileSigned || question.answerFile;
       if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
         const fileName = question.answerFileName || getFileNameFromUrl(answerUrl);
@@ -159,24 +154,24 @@ async function loadBids() {
   try {
     const bids = await apiFetch(`/questions/${questionId}/bids`);
     const container = document.getElementById('bidsList');
-    if (!bids.length) {
+    if (!bids || bids.length === 0) {
       container.innerHTML = '<p>No bids yet.</p>';
-    } else {
-      container.innerHTML = bids.map(b => `
-        <div class="bid-item" style="border:1px solid #E2E8F0; border-radius:24px; padding:1rem; margin-bottom:1rem;">
-          <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
-          Bid amount: <strong>${formatMoney(b.amount)}</strong><br>
-          <button onclick="acceptBid('${b._id}', ${b.amount}, event)" class="btn-sm btn-primary-sm">Accept this bid</button>
-        </div>
-      `).join('');
+      return;
     }
+    container.innerHTML = bids.map(b => `
+      <div class="bid-item" style="border:1px solid #E2E8F0; border-radius:24px; padding:1rem; margin-bottom:1rem;">
+        <strong>${escapeHtml(b.tutorId.fullName)}</strong><br>
+        Bid amount: <strong>${formatMoney(b.amount)}</strong><br>
+        <button onclick="acceptBid('${b._id}', ${b.amount}, event)" class="btn-sm btn-primary-sm">Accept this bid</button>
+      </div>
+    `).join('');
     document.getElementById('bidsSection').style.display = 'block';
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Error loading bids:', err); }
 }
 
-// ---------- Accept a bid (student) – redirects to dashboard with refresh flag ----------
+// ---------- Accept a bid ----------
 window.acceptBid = async (bidId, bidAmount, event) => {
-  const btn = event.target;
+  const btn = event?.target;
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Accepting...'; }
   if (!confirm(`Accept bid $${bidAmount}? Your wallet will be adjusted.`)) {
     if (btn) { btn.disabled = false; btn.innerHTML = 'Accept this bid'; }
@@ -192,26 +187,32 @@ window.acceptBid = async (bidId, bidAmount, event) => {
   }
 };
 
-// ---------- Tutor actions (additional funds & cancel) ----------
+// ---------- Special actions ----------
 function checkSpecialActions() {
   const tutorActionsDiv = document.getElementById('tutorActions');
   const fundsRequestDiv = document.getElementById('fundsRequestCard');
+
+  if (!currentQuestion) return;
+
   if (currentUser.role === 'tutor' && currentQuestion.tutorId && currentQuestion.tutorId._id === currentUser.id && currentQuestion.status === 'assigned') {
-    tutorActionsDiv.style.display = 'block';
-    document.getElementById('requestFundsBtn').onclick = () => requestAdditionalFunds();
-    document.getElementById('cancelAssignmentBtn').onclick = () => cancelAssignment();
-  } else {
+    if (tutorActionsDiv) {
+      tutorActionsDiv.style.display = 'block';
+      document.getElementById('requestFundsBtn').onclick = () => requestAdditionalFunds();
+      document.getElementById('cancelAssignmentBtn').onclick = () => cancelAssignment();
+    }
+  } else if (tutorActionsDiv) {
     tutorActionsDiv.style.display = 'none';
   }
-  
-  // Student: show pending funds request
+
   if (currentUser.role === 'student' && currentQuestion.additionalFundsRequest && currentQuestion.additionalFundsRequest.status === 'pending') {
-    const req = currentQuestion.additionalFundsRequest;
-    document.getElementById('fundsRequestDetails').innerHTML = `Tutor requests <strong>$${req.amount}</strong> extra.<br>Reason: ${escapeHtml(req.reason)}`;
-    fundsRequestDiv.style.display = 'block';
-    document.getElementById('approveFundsBtn').onclick = () => respondToFundsRequest(true);
-    document.getElementById('rejectFundsBtn').onclick = () => respondToFundsRequest(false);
-  } else {
+    if (fundsRequestDiv) {
+      const req = currentQuestion.additionalFundsRequest;
+      document.getElementById('fundsRequestDetails').innerHTML = `Tutor requests <strong>$${req.amount}</strong> extra.<br>Reason: ${escapeHtml(req.reason)}`;
+      fundsRequestDiv.style.display = 'block';
+      document.getElementById('approveFundsBtn').onclick = () => respondToFundsRequest(true);
+      document.getElementById('rejectFundsBtn').onclick = () => respondToFundsRequest(false);
+    }
+  } else if (fundsRequestDiv) {
     fundsRequestDiv.style.display = 'none';
   }
 }
@@ -245,7 +246,6 @@ async function cancelAssignment() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ---------- Student responds to funds request – redirects to dashboard with refresh flag ----------
 async function respondToFundsRequest(accept) {
   try {
     await apiFetch(`/questions/${questionId}/respond-funds-request`, {
@@ -262,11 +262,11 @@ async function loadComments() {
   try {
     const comments = await apiFetch(`/comments/question/${questionId}`);
     const container = document.getElementById('commentsList');
-    if (!comments.length) {
+    if (!comments || comments.length === 0) {
       container.innerHTML = '<p>No comments yet.</p>';
       return;
     }
-    const currentUserId = currentUser.id;
+    const currentUserId = currentUser ? currentUser.id : null;
     container.innerHTML = comments.map(c => {
       let fileLink = '';
       if (c.fileUrl) {
@@ -278,11 +278,11 @@ async function loadComments() {
           <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small>
           <p>${escapeHtml(c.text)}</p>
           ${fileLink}
-          ${(c.userId === currentUserId || currentUser.role === 'admin') ? `<button onclick="deleteComment('${c._id}')" class="btn-outline-sm" style="font-size:0.7rem;">Delete</button>` : ''}
+          ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) ? `<button onclick="deleteComment('${c._id}')" class="btn-outline-sm" style="font-size:0.7rem;">Delete</button>` : ''}
         </div>
       `;
     }).join('');
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Error loading comments:', err); }
 }
 
 window.deleteComment = async (commentId) => {
@@ -294,19 +294,19 @@ window.deleteComment = async (commentId) => {
   }
 };
 
-// ---------- Improved comment POST with 401 handling and token refresh ----------
-document.getElementById('postCommentBtn').addEventListener('click', async () => {
+// ---------- Post comment ----------
+document.getElementById('postCommentBtn')?.addEventListener('click', async () => {
   const text = document.getElementById('commentText').value;
   const file = document.getElementById('commentFile').files[0];
   if (!text.trim() && !file) return alert('Enter a comment or attach a file.');
-  
+
   const formData = new FormData();
   formData.append('questionId', questionId);
   if (text.trim()) formData.append('text', text);
   if (file) formData.append('file', file);
-  
+
   let retried = false;
-  
+
   const attempt = async () => {
     try {
       const res = await fetch(`${window.API_BASE}/comments`, {
@@ -314,7 +314,7 @@ document.getElementById('postCommentBtn').addEventListener('click', async () => 
         credentials: 'include',
         body: formData
       });
-      
+
       if (res.status === 401 && !retried) {
         retried = true;
         const refreshRes = await fetch(`${window.API_BASE}/auth/refresh-token`, {
@@ -329,7 +329,7 @@ document.getElementById('postCommentBtn').addEventListener('click', async () => 
           return;
         }
       }
-      
+
       if (res.ok) {
         document.getElementById('commentText').value = '';
         document.getElementById('commentFile').value = '';
@@ -342,7 +342,7 @@ document.getElementById('postCommentBtn').addEventListener('click', async () => 
       alert(err.message);
     }
   };
-  
+
   attempt();
 });
 
