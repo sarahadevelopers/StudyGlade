@@ -554,9 +554,10 @@ function renderAssignmentsByTab(tab) {
     `;
 
     if (a.status === 'assigned' && !isOverdue) {
+      // In-progress assignments – show upload and complete buttons
       html += `
         <div class="btn-group">
-         <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" multiple style="display:none;">
+          <input type="file" id="answer-${a._id}" class="assignment-file-input" accept=".pdf,.doc,.docx,.jpg,.png" multiple style="display:none;">
           <button class="btn-sm btn-primary-sm" onclick="document.getElementById('answer-${a._id}').click()">📎 Upload Answers</button>
           <button class="btn-sm btn-success-sm" data-question-id="${a._id}" onclick="completeQuestion('${a._id}', event)">✅ Mark Complete</button>
           <button class="btn-sm btn-warning-sm" onclick="requestAdditionalFunds('${a._id}')">💰 Request More</button>
@@ -565,14 +566,26 @@ function renderAssignmentsByTab(tab) {
         </div>
       `;
     } else if (a.status === 'completed' || isOverdue) {
+      // Completed or overdue – show download buttons (if files exist)
       let answerTimeHtml = '';
       if (a.answerUploadedAt) {
         const submittedDate = new Date(a.answerUploadedAt);
         answerTimeHtml = `<div class="assignment-meta" style="margin-top:4px;">Answer submitted: ${submittedDate.toLocaleString()}</div>`;
       }
+
+      // ✅ Check for multiple files first, then fallback to single
+      let downloadBtn = '';
+      if (a.answerFiles && a.answerFiles.length > 0) {
+        downloadBtn = `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer(s)</button>`;
+      } else if (a.answerFile) {
+        downloadBtn = `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer</button>`;
+      } else {
+        downloadBtn = '<span class="text-muted">No file uploaded</span>';
+      }
+
       html += `
         <div class="btn-group">
-          ${a.answerFiles && a.answerFiles.length ? `<button class="btn-sm btn-download" onclick="downloadAnswer('${a._id}')">⬇ Download Answer(s)</button>` : '<span class="text-muted">No file uploaded</span>'}
+          ${downloadBtn}
           <button class="btn-sm btn-outline-sm" onclick="window.location.href='question-details.html?id=${a._id}'">📄 View Question</button>
         </div>
         ${answerTimeHtml}
@@ -582,7 +595,7 @@ function renderAssignmentsByTab(tab) {
   });
   container.innerHTML = html;
 
-  // Attach change event listeners to file inputs
+  // Attach change event listeners to file inputs (for multiple file upload)
   document.querySelectorAll('.assignment-file-input').forEach(input => {
     const questionId = input.id.replace('answer-', '');
     input.addEventListener('change', (e) => {
@@ -591,7 +604,7 @@ function renderAssignmentsByTab(tab) {
       }
     });
   });
-} 
+}
 
 function renderAssignmentsPagination() {
   if (assignmentsTotalPages <= 1) return;
@@ -698,19 +711,19 @@ async function uploadAnswer(questionId) {
 async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
-    
-    // Check for multiple files first (new system)
     if (question.answerFiles && question.answerFiles.length > 0) {
-      // Open the first file directly (Cloudinary URL)
-      window.open(question.answerFiles[0], '_blank');
+      const url = question.answerFiles[0];
+      const fileName = question.answerFileNames?.[0] || 'answer-file';
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       showToast('Downloading answer file...', 'success');
-    } 
-    // Fallback to legacy single file
-    else if (question.answerFile) {
-      // Use the proxy endpoint for the legacy file
+    } else if (question.answerFile) {
       window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
-    } 
-    else {
+    } else {
       showToast('No answer file available', 'error');
     }
   } catch (err) {

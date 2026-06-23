@@ -137,40 +137,39 @@
 
         // ---- Question Attachments (files student uploaded) ----
         const questionAttachDiv = document.getElementById('questionAttachmentsSection');
-let qFilesHtml = '';
-if (q.files && q.files.length > 0) {
-  qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
-  q.files.forEach((url, index) => {
-    // ✅ Use stored fileNames if available, otherwise fallback to URL extraction
-    let fileName;
-    if (q.fileNames && q.fileNames[index]) {
-      fileName = q.fileNames[index];
-    } else {
-      fileName = getFileNameFromUrl(url);
-    }
-    
-    let icon = 'fa-file';
-    if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
-    else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
-    else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
-    else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
-    else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
-    
-    qFilesHtml += `
-      <li>
-        <i class="fas ${icon} file-icon"></i>
-        <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
-        <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
-          <i class="fas fa-download"></i> Download
-        </span>
-      </li>`;
-  });
-  qFilesHtml += `</ul>`;
-  questionAttachDiv.innerHTML = qFilesHtml;
-  questionAttachDiv.style.display = 'block';
-} else {
-  questionAttachDiv.style.display = 'none';
-}
+        let qFilesHtml = '';
+        if (q.files && q.files.length > 0) {
+          qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
+          q.files.forEach((url, index) => {
+            let fileName;
+            if (q.fileNames && q.fileNames[index]) {
+              fileName = q.fileNames[index];
+            } else {
+              fileName = getFileNameFromUrl(url);
+            }
+
+            let icon = 'fa-file';
+            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+
+            qFilesHtml += `
+              <li>
+                <i class="fas ${icon} file-icon"></i>
+                <a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">${escapeHtml(fileName)}</a>
+                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+                  <i class="fas fa-download"></i> Download
+                </span>
+              </li>`;
+          });
+          qFilesHtml += `</ul>`;
+          questionAttachDiv.innerHTML = qFilesHtml;
+          questionAttachDiv.style.display = 'block';
+        } else {
+          questionAttachDiv.style.display = 'none';
+        }
 
         // ---- Answer file(s) ----
         const answerDiv = document.getElementById('answerFileSection');
@@ -180,8 +179,8 @@ if (q.files && q.files.length > 0) {
         if (q.answerFiles && q.answerFiles.length > 0) {
           content = `<h3>📄 Answer Files</h3><ul class="files-list">`;
           q.answerFiles.forEach((url, index) => {
-            const fileName = q.answerFileNames && q.answerFileNames[index] 
-              ? q.answerFileNames[index] 
+            const fileName = q.answerFileNames && q.answerFileNames[index]
+              ? q.answerFileNames[index]
               : getFileNameFromUrl(url);
             let icon = 'fa-file';
             if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
@@ -189,10 +188,11 @@ if (q.files && q.files.length > 0) {
             else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
             else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
             else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+
             content += `
               <li>
                 <i class="fas ${icon} file-icon"></i>
-                <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(fileName)}</a>
+                <a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">${escapeHtml(fileName)}</a>
                 <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
                   <i class="fas fa-download"></i> Download
                 </span>
@@ -202,7 +202,7 @@ if (q.files && q.files.length > 0) {
           content += `</ul>`;
           answerDiv.innerHTML = content;
           answerDiv.style.display = 'block';
-        } 
+        }
         // Fallback to legacy single file
         else if (q.answerFile) {
           let fileUrl = q.answerFileSigned || q.answerFile;
@@ -214,12 +214,12 @@ if (q.files && q.files.length > 0) {
 
           content = `<h3>📄 Answer</h3><ul class="files-list"><li>`;
           content += `<i class="fas ${icon} file-icon"></i>`;
-          content += `<a href="${escapeHtml(fileUrl)}" target="_blank">${escapeHtml(fileName)}</a>`;
+          content += `<a href="${escapeHtml(fileUrl)}" download="${escapeHtml(fileName)}" target="_blank">${escapeHtml(fileName)}</a>`;
           content += `<span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;"><i class="fas fa-download"></i> Download</span>`;
           content += `</li></ul>`;
           answerDiv.innerHTML = content;
           answerDiv.style.display = 'block';
-        } 
+        }
         else {
           answerDiv.style.display = 'none';
         }
@@ -243,12 +243,12 @@ if (q.files && q.files.length > 0) {
         const currentUserId = currentUser ? currentUser.id : null;
         container.innerHTML = comments.map(c => `
           <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
-            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> 
+            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong>
             <small>${new Date(c.createdAt).toLocaleString()}</small>
             <p>${escapeHtml(c.text)}</p>
-            ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" target="_blank">📎 Download attached file</a></p>` : ''}
-            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin')) 
-              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>` 
+            ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" download="${escapeHtml(c.fileName || getFileNameFromUrl(c.fileUrl))}" target="_blank">📎 Download attached file</a></p>` : ''}
+            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin'))
+              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>`
               : ''}
           </div>
         `).join('');
@@ -269,13 +269,12 @@ if (q.files && q.files.length > 0) {
       formData.append('questionId', questionId);
       if (text.trim()) formData.append('text', text);
       if (file) formData.append('file', file);
-      const token = localStorage.getItem('token');
       try {
-       const res = await fetch(`${window.API_BASE}/comments`, {
-  method: 'POST',
-  credentials: 'include',
-  body: formData
-});
+        const res = await fetch(`${window.API_BASE}/comments`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
         if (res.ok) {
           document.getElementById('commentText').value = '';
           fileInput.value = '';

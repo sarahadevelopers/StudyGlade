@@ -20,6 +20,14 @@ function formatDate(date) {
   return new Date(date).toLocaleString();
 }
 
+// ---------- Helper: get file name from URL ----------
+function getFileNameFromUrl(url) {
+  if (!url) return 'file';
+  const parts = url.split('/');
+  const last = parts[parts.length - 1];
+  return last.split('?')[0] || 'file';
+}
+
 // ---------- DOM elements ----------
 const urlParams = new URLSearchParams(window.location.search);
 const questionId = urlParams.get('id');
@@ -68,7 +76,7 @@ async function loadPage() {
   }
 }
 
-// ---------- Load question details (with fallbacks for demo questions and multiple answer files) ----------
+// ---------- Load question details (with fallbacks and download support) ----------
 async function loadQuestion() {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
@@ -79,33 +87,14 @@ async function loadQuestion() {
     let displaySubject, displaySchool, displayCourse, displayDeadline, displayCategory;
 
     if (isDemo) {
-      // Subject – stick to "General" if missing
       displaySubject = (question.subject && question.subject.trim() !== '' && question.subject !== 'General')
         ? question.subject
         : 'General';
-
-      // School – fallback to "GCU" if not provided
-      displaySchool = (question.school && question.school.trim() !== '')
-        ? question.school
-        : 'GCU';
-
-      // Course – fallback to "Not specified" if not provided
-      displayCourse = (question.course && question.course.trim() !== '')
-        ? question.course
-        : 'Not specified';
-
-      // Category – fallback to "—" if missing
+      displaySchool = (question.school && question.school.trim() !== '') ? question.school : 'GCU';
+      displayCourse = (question.course && question.course.trim() !== '') ? question.course : 'Not specified';
       displayCategory = question.category || '—';
-
-      // Deadline – if missing, calculate 3 days from now
-      if (question.deadline) {
-        displayDeadline = formatDate(question.deadline);
-      } else {
-        const fallbackDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-        displayDeadline = formatDate(fallbackDate);
-      }
+      displayDeadline = question.deadline ? formatDate(question.deadline) : formatDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
     } else {
-      // Real questions: use stored values with fallbacks
       displaySubject = question.subject || 'General';
       displaySchool = question.school || 'Not specified';
       displayCourse = question.course || 'Not specified';
@@ -116,31 +105,35 @@ async function loadQuestion() {
     let filesHtml = '', answerHtml = '';
 
     // --- Attached files (from student when posting) ---
-    if (question.files?.length) {
+    if (question.files && question.files.length > 0) {
       filesHtml = '<p><strong>Attached files:</strong></p><ul>';
-      question.files.forEach(url => filesHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download</a></li>`);
+      question.files.forEach((url, index) => {
+        const fileName = question.fileNames && question.fileNames[index]
+          ? question.fileNames[index]
+          : getFileNameFromUrl(url);
+        filesHtml += `<li><a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
+      });
       filesHtml += '</ul>';
     }
 
     // --- Answer files (tutor upload) ---
-    // ✅ Support multiple answer files (new system)
     if (question.answerFiles && question.answerFiles.length > 0) {
       answerHtml = `<p><strong>Answer files:</strong></p><ul>`;
       question.answerFiles.forEach((url, index) => {
-        const fileName = question.answerFileNames && question.answerFileNames[index] 
-          ? question.answerFileNames[index] 
-          : `file-${index + 1}`;
-        answerHtml += `<li><a href="${escapeHtml(url)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
+        const fileName = question.answerFileNames && question.answerFileNames[index]
+          ? question.answerFileNames[index]
+          : getFileNameFromUrl(url);
+        answerHtml += `<li><a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
       });
       answerHtml += '</ul>';
-    } 
-    // ✅ Fallback to legacy single file (old system)
+    }
+    // Fallback to legacy single file
     else if (question.answerFile) {
       const answerUrl = question.answerFileSigned || question.answerFile;
       if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
-        answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" target="_blank">Download answer (${escapeHtml(question.answerFileName || 'file')})</a></p>`;
+        const fileName = question.answerFileName || getFileNameFromUrl(answerUrl);
+        answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></p>`;
       } else if (answerUrl) {
-        console.warn('Invalid answer URL – not starting with http', answerUrl);
         answerHtml = `<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable. Please contact support.</span></p>`;
       }
     }
@@ -278,7 +271,7 @@ async function loadComments() {
       <div class="comment-item">
         <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small>
         <p>${escapeHtml(c.text)}</p>
-        ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" target="_blank">📎 Download attached file</a></p>` : ''}
+        ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" download="${escapeHtml(c.fileName || getFileNameFromUrl(c.fileUrl))}" target="_blank">📎 Download attached file</a></p>` : ''}
         ${(c.userId === currentUserId || currentUser.role === 'admin') ? `<button onclick="deleteComment('${c._id}')" class="btn-outline-sm" style="font-size:0.7rem;">Delete</button>` : ''}
       </div>
     `).join('');
@@ -317,13 +310,11 @@ document.getElementById('postCommentBtn').addEventListener('click', async () => 
       
       if (res.status === 401 && !retried) {
         retried = true;
-        // Try to refresh the token
         const refreshRes = await fetch(`${window.API_BASE}/auth/refresh-token`, {
           method: 'POST',
           credentials: 'include'
         });
         if (refreshRes.ok) {
-          // Retry the comment
           return attempt();
         } else {
           alert('Session expired. Please log in again.');
