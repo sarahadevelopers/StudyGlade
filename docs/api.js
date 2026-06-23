@@ -188,7 +188,24 @@ window.showToast = function(message, type = 'info') {
   window.formatMoney = function(amount) {
     return `$${parseFloat(amount).toFixed(2)}`;
   };
-
+// ========== Add the downloadFile helper HERE ==========
+window.downloadFile = async function(url, filename) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network error');
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    console.error('Download error:', err);
+    window.showToast('Failed to download file', 'error');
+  }
+};
   // ========== Idle Timeout with Warning Modal (private) ==========
   let idleTimer = null;
   let warningTimer = null;

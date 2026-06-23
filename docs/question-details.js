@@ -111,7 +111,7 @@ async function loadQuestion() {
         const fileName = question.fileNames && question.fileNames[index]
           ? question.fileNames[index]
           : getFileNameFromUrl(url);
-        filesHtml += `<li><a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
+        filesHtml += `<li><a href="#" onclick="downloadFile(${JSON.stringify(url)}, ${JSON.stringify(fileName)}); return false;">Download ${escapeHtml(fileName)}</a></li>`;
       });
       filesHtml += '</ul>';
     }
@@ -123,7 +123,7 @@ async function loadQuestion() {
         const fileName = question.answerFileNames && question.answerFileNames[index]
           ? question.answerFileNames[index]
           : getFileNameFromUrl(url);
-        answerHtml += `<li><a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></li>`;
+        answerHtml += `<li><a href="#" onclick="downloadFile(${JSON.stringify(url)}, ${JSON.stringify(fileName)}); return false;">Download ${escapeHtml(fileName)}</a></li>`;
       });
       answerHtml += '</ul>';
     }
@@ -132,7 +132,7 @@ async function loadQuestion() {
       const answerUrl = question.answerFileSigned || question.answerFile;
       if (answerUrl && (answerUrl.startsWith('http://') || answerUrl.startsWith('https://'))) {
         const fileName = question.answerFileName || getFileNameFromUrl(answerUrl);
-        answerHtml = `<p><strong>Answer:</strong> <a href="${escapeHtml(answerUrl)}" download="${escapeHtml(fileName)}" target="_blank">Download ${escapeHtml(fileName)}</a></p>`;
+        answerHtml = `<p><strong>Answer:</strong> <a href="#" onclick="downloadFile(${JSON.stringify(answerUrl)}, ${JSON.stringify(fileName)}); return false;">Download ${escapeHtml(fileName)}</a></p>`;
       } else if (answerUrl) {
         answerHtml = `<p><strong>Answer:</strong> <span style="color:#dc2626;">⚠️ Answer file unavailable. Please contact support.</span></p>`;
       }
@@ -267,14 +267,21 @@ async function loadComments() {
       return;
     }
     const currentUserId = currentUser.id;
-    container.innerHTML = comments.map(c => `
-      <div class="comment-item">
-        <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small>
-        <p>${escapeHtml(c.text)}</p>
-        ${c.fileUrl ? `<p><a href="${escapeHtml(c.fileUrl)}" download="${escapeHtml(c.fileName || getFileNameFromUrl(c.fileUrl))}" target="_blank">📎 Download attached file</a></p>` : ''}
-        ${(c.userId === currentUserId || currentUser.role === 'admin') ? `<button onclick="deleteComment('${c._id}')" class="btn-outline-sm" style="font-size:0.7rem;">Delete</button>` : ''}
-      </div>
-    `).join('');
+    container.innerHTML = comments.map(c => {
+      let fileLink = '';
+      if (c.fileUrl) {
+        const fileName = c.fileName || getFileNameFromUrl(c.fileUrl);
+        fileLink = `<p><a href="#" onclick="downloadFile(${JSON.stringify(c.fileUrl)}, ${JSON.stringify(fileName)}); return false;">📎 Download attached file</a></p>`;
+      }
+      return `
+        <div class="comment-item">
+          <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong> <small>${new Date(c.createdAt).toLocaleString()}</small>
+          <p>${escapeHtml(c.text)}</p>
+          ${fileLink}
+          ${(c.userId === currentUserId || currentUser.role === 'admin') ? `<button onclick="deleteComment('${c._id}')" class="btn-outline-sm" style="font-size:0.7rem;">Delete</button>` : ''}
+        </div>
+      `;
+    }).join('');
   } catch (err) { console.error(err); }
 }
 

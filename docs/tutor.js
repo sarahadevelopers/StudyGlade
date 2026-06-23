@@ -712,16 +712,13 @@ async function downloadAnswer(questionId) {
   try {
     const question = await apiFetch(`/questions/${questionId}`);
     if (question.answerFiles && question.answerFiles.length > 0) {
+      // For multiple files, download the first one (or loop if needed)
       const url = question.answerFiles[0];
       const fileName = question.answerFileNames?.[0] || 'answer-file';
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await window.downloadFile(url, fileName);
       showToast('Downloading answer file...', 'success');
     } else if (question.answerFile) {
+      // Legacy single file – use the proxy endpoint (already sets correct headers)
       window.open(`${window.API_BASE}/questions/${questionId}/download-answer`, '_blank');
     } else {
       showToast('No answer file available', 'error');
