@@ -72,243 +72,260 @@
   <script src="api.js"></script>
   <script src="auth.js"></script>
   <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const questionId = urlParams.get('id');
-  if (!questionId) {
-    alert('No question specified');
-    window.location.href = '/';
-  }
-
-  let currentUser = null;
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-
-  function formatMoney(amount) {
-    return `$${parseFloat(amount).toFixed(2)}`;
-  }
-
-  function formatDate(date) {
-    if (!date) return 'Not set';
-    return new Date(date).toLocaleString();
-  }
-
-  // Helper to get file name from URL
-  function getFileNameFromUrl(url) {
-    if (!url) return 'file';
-    const parts = url.split('/');
-    const last = parts[parts.length - 1];
-    return last.split('?')[0] || 'file';
-  }
-
-  async function loadAnswerDetails() {
-    try {
-      const q = await apiFetch(`/questions/${questionId}`);
-      currentUser = JSON.parse(localStorage.getItem('user'));
-
-      // ---- Question metadata ----
-      let displaySubject = q.subject || 'General';
-      let displaySchool = q.school || 'Not specified';
-      let displayCourse = q.course || 'Not specified';
-      let displayCategory = q.category || '—';
-      let displayDeadline = q.deadline ? formatDate(q.deadline) : 'Not set';
-
-      const titleHtml = `<h2>${escapeHtml(q.title)}</h2>`;
-      const descHtml = `<p>${escapeHtml(q.description)}</p>`;
-      const metaHtml = `
-        <p><strong>Budget:</strong> ${formatMoney(q.budget)} |
-        <strong>Status:</strong> ${escapeHtml(q.status)}</p>
-        <p><strong>Category:</strong> ${escapeHtml(displayCategory)} |
-        <strong>Deadline:</strong> ${escapeHtml(displayDeadline)}</p>
-        <p><strong>Subject:</strong> ${escapeHtml(displaySubject)}</p>
-        <p><strong>School:</strong> ${escapeHtml(displaySchool)} |
-        <strong>Course:</strong> ${escapeHtml(displayCourse)}</p>
-      `;
-
-      document.getElementById('answerDetails').innerHTML = titleHtml + descHtml + metaHtml;
-
-      // ---- Question Attachments (files student uploaded) ----
-      const questionAttachDiv = document.getElementById('questionAttachmentsSection');
-      let qFilesHtml = '';
-      if (q.files && q.files.length > 0) {
-        qFilesHtml = `<h3>📎 Question Attachments</h3><ul class="files-list">`;
-        q.files.forEach((url, index) => {
-          let fileName;
-          if (q.fileNames && q.fileNames[index]) {
-            fileName = q.fileNames[index];
-          } else {
-            fileName = getFileNameFromUrl(url);
-          }
-
-          let icon = 'fa-file';
-          if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
-          else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
-          else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
-          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
-          else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
-
-          qFilesHtml += `
-            <li>
-              <i class="fas ${icon} file-icon"></i>
-              <a href="#" onclick="downloadFile(${JSON.stringify(url)}, ${JSON.stringify(fileName)}); return false;">${escapeHtml(fileName)}</a>
-              <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
-                <i class="fas fa-download"></i> Download
-              </span>
-            </li>`;
-        });
-        qFilesHtml += `</ul>`;
-        questionAttachDiv.innerHTML = qFilesHtml;
-        questionAttachDiv.style.display = 'block';
-      } else {
-        questionAttachDiv.style.display = 'none';
-      }
-
-      // ---- Answer file(s) ----
-      const answerDiv = document.getElementById('answerFileSection');
-      let content = '';
-
-      if (q.answerFiles && q.answerFiles.length > 0) {
-        content = `<h3>📄 Answer Files</h3><ul class="files-list">`;
-        q.answerFiles.forEach((url, index) => {
-          const fileName = q.answerFileNames && q.answerFileNames[index]
-            ? q.answerFileNames[index]
-            : getFileNameFromUrl(url);
-          let icon = 'fa-file';
-          if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
-          else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
-          else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
-          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
-          else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
-
-          content += `
-            <li>
-              <i class="fas ${icon} file-icon"></i>
-              <a href="#" onclick="downloadFile(${JSON.stringify(url)}, ${JSON.stringify(fileName)}); return false;">${escapeHtml(fileName)}</a>
-              <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
-                <i class="fas fa-download"></i> Download
-              </span>
-            </li>`;
-        });
-        content += `</ul>`;
-        answerDiv.innerHTML = content;
-        answerDiv.style.display = 'block';
-      }
-      // Fallback to legacy single file
-      else if (q.answerFile) {
-        let fileUrl = q.answerFileSigned || q.answerFile;
-        let fileName = q.answerFileName || getFileNameFromUrl(fileUrl);
-        let icon = 'fa-file';
-        if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
-        else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
-        else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
-
-        content = `<h3>📄 Answer</h3><ul class="files-list"><li>`;
-        content += `<i class="fas ${icon} file-icon"></i>`;
-        content += `<a href="#" onclick="downloadFile(${JSON.stringify(fileUrl)}, ${JSON.stringify(fileName)}); return false;">${escapeHtml(fileName)}</a>`;
-        content += `<span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;"><i class="fas fa-download"></i> Download</span>`;
-        content += `</li></ul>`;
-        answerDiv.innerHTML = content;
-        answerDiv.style.display = 'block';
-      }
-      else {
-        answerDiv.style.display = 'none';
-      }
-
-      await loadComments();
-
-    } catch (err) {
-      document.getElementById('answerDetails').innerHTML = `<p style="color:red;">Error loading answer: ${err.message}</p>`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const questionId = urlParams.get('id');
+    if (!questionId) {
+      alert('No question specified');
+      window.location.href = '/';
     }
-  }
 
-  async function loadComments() {
-    try {
-      const comments = await apiFetch(`/comments/question/${questionId}`);
-      const container = document.getElementById('commentsList');
-      if (comments.length === 0) {
-        container.innerHTML = '<p>No discussion yet. Start a conversation with your tutor.</p>';
+    let currentUser = null;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    function formatMoney(amount) {
+      return `$${parseFloat(amount).toFixed(2)}`;
+    }
+
+    function formatDate(date) {
+      if (!date) return 'Not set';
+      return new Date(date).toLocaleString();
+    }
+
+    function getFileNameFromUrl(url) {
+      if (!url) return 'file';
+      const parts = url.split('/');
+      const last = parts[parts.length - 1];
+      return last.split('?')[0] || 'file';
+    }
+
+    // ---------- Attach download listeners via event delegation ----------
+    function attachDownloadListeners() {
+      document.querySelectorAll('.download-link').forEach(function(link) {
+        link.removeEventListener('click', handleDownload);
+        link.addEventListener('click', handleDownload);
+      });
+    }
+
+    function handleDownload(e) {
+      e.preventDefault();
+      const url = this.getAttribute('data-url');
+      const filename = this.getAttribute('data-filename');
+      if (url && filename) {
+        window.downloadFile(url, filename);
+      }
+    }
+
+    async function loadAnswerDetails() {
+      try {
+        const q = await apiFetch(`/questions/${questionId}`);
+        currentUser = JSON.parse(localStorage.getItem('user'));
+
+        // ---- Question metadata ----
+        let displaySubject = q.subject || 'General';
+        let displaySchool = q.school || 'Not specified';
+        let displayCourse = q.course || 'Not specified';
+        let displayCategory = q.category || '—';
+        let displayDeadline = q.deadline ? formatDate(q.deadline) : 'Not set';
+
+        const titleHtml = '<h2>' + escapeHtml(q.title) + '</h2>';
+        const descHtml = '<p>' + escapeHtml(q.description) + '</p>';
+        const metaHtml = `
+          <p><strong>Budget:</strong> ${formatMoney(q.budget)} |
+          <strong>Status:</strong> ${escapeHtml(q.status)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(displayCategory)} |
+          <strong>Deadline:</strong> ${escapeHtml(displayDeadline)}</p>
+          <p><strong>Subject:</strong> ${escapeHtml(displaySubject)}</p>
+          <p><strong>School:</strong> ${escapeHtml(displaySchool)} |
+          <strong>Course:</strong> ${escapeHtml(displayCourse)}</p>
+        `;
+
+        document.getElementById('answerDetails').innerHTML = titleHtml + descHtml + metaHtml;
+
+        // ---- Question Attachments ----
+        const questionAttachDiv = document.getElementById('questionAttachmentsSection');
+        let qFilesHtml = '';
+        if (q.files && q.files.length > 0) {
+          qFilesHtml = '<h3>📎 Question Attachments</h3><ul class="files-list">';
+          q.files.forEach(function(url, index) {
+            let fileName;
+            if (q.fileNames && q.fileNames[index]) {
+              fileName = q.fileNames[index];
+            } else {
+              fileName = getFileNameFromUrl(url);
+            }
+
+            let icon = 'fa-file';
+            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+
+            qFilesHtml += `
+              <li>
+                <i class="fas ${icon} file-icon"></i>
+                <a href="#" class="download-link" data-url="${escapeHtml(url)}" data-filename="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>
+                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+                  <i class="fas fa-download"></i> Download
+                </span>
+              </li>`;
+          });
+          qFilesHtml += '</ul>';
+          questionAttachDiv.innerHTML = qFilesHtml;
+          questionAttachDiv.style.display = 'block';
+        } else {
+          questionAttachDiv.style.display = 'none';
+        }
+
+        // ---- Answer files ----
+        const answerDiv = document.getElementById('answerFileSection');
+        let content = '';
+
+        if (q.answerFiles && q.answerFiles.length > 0) {
+          content = '<h3>📄 Answer Files</h3><ul class="files-list">';
+          q.answerFiles.forEach(function(url, index) {
+            const fileName = q.answerFileNames && q.answerFileNames[index]
+              ? q.answerFileNames[index]
+              : getFileNameFromUrl(url);
+            let icon = 'fa-file';
+            if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+            else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+            else if (fileName.match(/\.(xls|xlsx)$/i)) icon = 'fa-file-excel';
+            else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+            else if (fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-archive';
+
+            content += `
+              <li>
+                <i class="fas ${icon} file-icon"></i>
+                <a href="#" class="download-link" data-url="${escapeHtml(url)}" data-filename="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>
+                <span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;">
+                  <i class="fas fa-download"></i> Download
+                </span>
+              </li>`;
+          });
+          content += '</ul>';
+          answerDiv.innerHTML = content;
+          answerDiv.style.display = 'block';
+        }
+        // Fallback to legacy single file
+        else if (q.answerFile) {
+          let fileUrl = q.answerFileSigned || q.answerFile;
+          let fileName = q.answerFileName || getFileNameFromUrl(fileUrl);
+          let icon = 'fa-file';
+          if (fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+          else if (fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+          else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) icon = 'fa-file-image';
+
+          content = '<h3>📄 Answer</h3><ul class="files-list"><li>';
+          content += '<i class="fas ' + icon + ' file-icon"></i>';
+          content += '<a href="#" class="download-link" data-url="' + escapeHtml(fileUrl) + '" data-filename="' + escapeHtml(fileName) + '">' + escapeHtml(fileName) + '</a>';
+          content += '<span style="margin-left:auto; font-size:0.7rem; color:#94a3b8;"><i class="fas fa-download"></i> Download</span>';
+          content += '</li></ul>';
+          answerDiv.innerHTML = content;
+          answerDiv.style.display = 'block';
+        } else {
+          answerDiv.style.display = 'none';
+        }
+
+        await loadComments();
+        attachDownloadListeners();
+
+      } catch (err) {
+        document.getElementById('answerDetails').innerHTML = '<p style="color:red;">Error loading answer: ' + err.message + '</p>';
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const comments = await apiFetch('/comments/question/' + questionId);
+        const container = document.getElementById('commentsList');
+        if (comments.length === 0) {
+          container.innerHTML = '<p>No discussion yet. Start a conversation with your tutor.</p>';
+          return;
+        }
+        const currentUserId = currentUser ? currentUser.id : null;
+        container.innerHTML = comments.map(function(c) {
+          let fileLink = '';
+          if (c.fileUrl) {
+            const fileName = c.fileName || getFileNameFromUrl(c.fileUrl);
+            fileLink = '<p><a href="#" class="download-link" data-url="' + escapeHtml(c.fileUrl) + '" data-filename="' + escapeHtml(fileName) + '">📎 Download attached file</a></p>';
+          }
+          return `
+            <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
+              <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong>
+              <small>${new Date(c.createdAt).toLocaleString()}</small>
+              <p>${escapeHtml(c.text)}</p>
+              ${fileLink}
+              ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin'))
+                ? '<button onclick="deleteComment(\'' + c._id + '\')" class="btn-outline" style="font-size:0.8rem;">Delete</button>'
+                : ''}
+            </div>
+          `;
+        }).join('');
+        attachDownloadListeners();
+      } catch (err) {
+        document.getElementById('commentsList').innerHTML = '<p style="color:red;">Error loading discussion: ' + err.message + '</p>';
+      }
+    }
+
+    document.getElementById('postCommentBtn').addEventListener('click', async function() {
+      const text = document.getElementById('commentText').value;
+      const fileInput = document.getElementById('commentFile');
+      const file = fileInput.files[0];
+      if (!text.trim() && !file) {
+        alert('Please enter a comment or attach a file.');
         return;
       }
-      const currentUserId = currentUser ? currentUser.id : null;
-      container.innerHTML = comments.map(c => {
-        let fileLink = '';
-        if (c.fileUrl) {
-          const fileName = c.fileName || getFileNameFromUrl(c.fileUrl);
-          fileLink = `<p><a href="#" onclick="downloadFile(${JSON.stringify(c.fileUrl)}, ${JSON.stringify(fileName)}); return false;">📎 Download attached file</a></p>`;
-        }
-        return `
-          <div class="comment" style="border-left: 3px solid #2563EB; margin-bottom: 1rem; padding-left: 1rem;">
-            <strong>${escapeHtml(c.userName)} (${escapeHtml(c.userRole)})</strong>
-            <small>${new Date(c.createdAt).toLocaleString()}</small>
-            <p>${escapeHtml(c.text)}</p>
-            ${fileLink}
-            ${(c.userId === currentUserId || (currentUser && currentUser.role === 'admin'))
-              ? `<button onclick="deleteComment('${c._id}')" class="btn-outline" style="font-size:0.8rem;">Delete</button>`
-              : ''}
-          </div>
-        `;
-      }).join('');
-    } catch (err) {
-      document.getElementById('commentsList').innerHTML = `<p style="color:red;">Error loading discussion: ${err.message}</p>`;
-    }
-  }
-
-  document.getElementById('postCommentBtn').addEventListener('click', async () => {
-    const text = document.getElementById('commentText').value;
-    const fileInput = document.getElementById('commentFile');
-    const file = fileInput.files[0];
-    if (!text.trim() && !file) {
-      alert('Please enter a comment or attach a file.');
-      return;
-    }
-    const formData = new FormData();
-    formData.append('questionId', questionId);
-    if (text.trim()) formData.append('text', text);
-    if (file) formData.append('file', file);
-    try {
-      const res = await fetch(`${window.API_BASE}/comments`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      if (res.ok) {
-        document.getElementById('commentText').value = '';
-        fileInput.value = '';
-        loadComments();
-      } else {
-        const data = await res.json();
-        alert(data.error);
-      }
-    } catch (err) {
-      alert(err.message);
-    }
-  });
-
-  async function deleteComment(commentId) {
-    if (confirm('Delete this comment?')) {
+      const formData = new FormData();
+      formData.append('questionId', questionId);
+      if (text.trim()) formData.append('text', text);
+      if (file) formData.append('file', file);
       try {
-        await apiFetch(`/comments/${commentId}`, { method: 'DELETE' });
-        loadComments();
+        const res = await fetch(window.API_BASE + '/comments', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        if (res.ok) {
+          document.getElementById('commentText').value = '';
+          fileInput.value = '';
+          loadComments();
+        } else {
+          const data = await res.json();
+          alert(data.error);
+        }
       } catch (err) {
         alert(err.message);
       }
+    });
+
+    async function deleteComment(commentId) {
+      if (confirm('Delete this comment?')) {
+        try {
+          await apiFetch('/comments/' + commentId, { method: 'DELETE' });
+          loadComments();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
     }
-  }
 
-  // Logout
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    localStorage.clear();
-    window.location.href = 'login.html';
-  });
+    // Logout
+    document.getElementById('logoutBtn')?.addEventListener('click', function() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
 
-  loadAnswerDetails();
-</script>
+    loadAnswerDetails();
+  </script>
 </body>
 </html>
