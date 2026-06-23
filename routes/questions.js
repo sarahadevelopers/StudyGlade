@@ -561,6 +561,7 @@ router.post('/:id/accept-suggestion',
 );
 
 // ------------------- 10. Upload answer (tutor) -------------------
+// ------------------- 10. Upload answer (tutor) -------------------
 router.post('/:id/upload-answers', 
   auth, 
   roleCheck('tutor'), 
@@ -578,8 +579,9 @@ router.post('/:id/upload-answers',
 
       console.log(`[UPLOAD] ${req.files.length} file(s) received`);
 
+      // ---------- Upload files to Cloudinary & store original names ----------
       const uploadedUrls = [];
-      const uploadedFileNames = [];
+      const uploadedFileNames = [];    // ✅ Store original file names
 
       for (const file of req.files) {
         console.log(`[UPLOAD] Uploading: ${file.originalname}, size: ${file.size}`);
@@ -598,25 +600,25 @@ router.post('/:id/upload-answers',
           ).end(file.buffer);
         });
         uploadedUrls.push(result.secure_url);
-        uploadedFileNames.push(file.originalname);
+        uploadedFileNames.push(file.originalname);   // ✅ Store original name
       }
 
-      // Store as array in the question document
+      // ---------- Update question with answer files and original names ----------
       const updated = await Question.findByIdAndUpdate(
         req.params.id,
         {
           $set: {
             answerFiles: uploadedUrls,
-            answerFileNames: uploadedFileNames,
+            answerFileNames: uploadedFileNames,   // ✅ Save original names
             answerUploadedAt: new Date()
           }
         },
         { new: true, runValidators: false }
       );
 
-      console.log(`[UPLOAD] Updated document – answerFiles = ${updated.answerFiles?.length || 0} files`);
+      console.log(`[UPLOAD] Updated document – ${updated.answerFiles?.length || 0} file(s) saved`);
 
-      // Notifications and emails (unchanged – adjust message to reflect multiple files)
+      // ---------- Notify student ----------
       const tutor = await User.findById(req.userId).select('fullName');
       await Notification.create({
         userId: question.studentId,
@@ -626,6 +628,7 @@ router.post('/:id/upload-answers',
         link: `/answer-details.html?id=${question._id}`
       });
 
+      // ---------- Send email to student ----------
       const student = await User.findById(question.studentId);
       sendEmailWithTemplate(student.email, 'Answer Uploaded for Your Question', 'answer-uploaded.ejs', {
         studentName: student.fullName,
@@ -635,6 +638,7 @@ router.post('/:id/upload-answers',
         questionId: question._id
       }).catch(err => console.error('Failed to send email:', err));
 
+      // ---------- Real‑time notification via socket ----------
       const io = getIO(req);
       emitToUser(io, question.studentId, 'answer_uploaded', {
         questionId: question._id,
@@ -643,7 +647,7 @@ router.post('/:id/upload-answers',
         fileUrls: uploadedUrls
       });
 
-      res.json({ message: 'Answer(s) uploaded', fileUrls: uploadedUrls });
+      res.json({ message: 'Answer(s) uploaded', fileUrls: uploadedUrls, fileNames: uploadedFileNames });
     } catch (err) {
       console.error('[UPLOAD] Error:', err);
       res.status(500).json({ error: err.message });
